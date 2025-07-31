@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server'
-import dbConnect from '../../../../lib/mongodb'
-import User from '../../../../models/User'
-import { generateToken, createAuthResponse } from '../../../../lib/auth'
+import axios from 'axios'
 
 export async function POST(req) {
   try {
-    await dbConnect()
-    
     const { name, email, password } = await req.json()
 
-    // Validate required fields
+    // Validasi input
     if (!name || !email || !password) {
       return NextResponse.json(
         { success: false, error: 'Please provide all required fields' },
@@ -17,36 +13,35 @@ export async function POST(req) {
       )
     }
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email })
-    if (existingUser) {
-      return NextResponse.json(
-        { success: false, error: 'User already exists with this email' },
-        { status: 400 }
-      )
-    }
+    // Kirim data ke API eksternal
+    const { data } = await axios.post(
+      'https://nexaai-v2-api-gen.ifabula.id/api/auth/register',
+      {
+        first_name: name,
+        last_name: "",
+        email,
+        password,
+        mobile_number: null,
+        mu_mr_id: null,
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    )
 
-    // Create new user
-    const user = new User({
-      name,
-      email,
-      password
-    })
+    const token = data.token
+    const user = data.user
 
-    await user.save()
+    const response = NextResponse.json({ success: true, user, token })
 
-    // Generate JWT token
-    const token = generateToken({ userId: user._id })
-
-    // Create response
-    const response = NextResponse.json(createAuthResponse(user, token))
-
-    // Set HTTP-only cookie
+    // Set cookie token
     response.cookies.set('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
+      maxAge: 60 * 60 * 24 * 7 // 7 hari
     })
 
     return response
@@ -54,19 +49,17 @@ export async function POST(req) {
   } catch (error) {
     console.error('Signup error:', error)
 
-    // Handle specific MongoDB errors
-    if (error.code === 11000) {
-      return NextResponse.json(
-        { success: false, error: 'Email already exists' },
-        { status: 400 }
-      )
-    }
+    if (axios.isAxiosError(error) && error.response) {
+      const status = error.response.status
+      const errData = error.response.data
 
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(val => val.message)
       return NextResponse.json(
-        { success: false, error: messages.join(', ') },
-        { status: 400 }
+        {
+          success: false,
+          error: errData?.error || 'Registrasi gagal',
+          detail: errData
+        },
+        { status }
       )
     }
 
@@ -75,4 +68,4 @@ export async function POST(req) {
       { status: 500 }
     )
   }
-} 
+}

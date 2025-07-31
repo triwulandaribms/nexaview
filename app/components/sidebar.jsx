@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from 'next/navigation'
 import {
   Home,
   MessageCircle,
@@ -24,8 +25,27 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [activeItem, setActiveItem] = useState("/dashboard");
   const pathname = usePathname();
+  const router = useRouter();
 
-  console.log(activeItem);
+  const handleLogout = async () => {
+    try {
+      console.log("Logout clicked");
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST'
+      });
+
+      if (res.ok) {
+        router.push('/login');
+      } else {
+        const errorData = await res.json();
+        console.error('Logout gagal:', errorData);
+      }
+    } catch (error) {
+      console.error('Error saat logout:', error);
+    }
+
+    if (isMobile) setIsOpen(false);
+  };
 
   useEffect(() => {
     if (pathname !== activeItem) {
@@ -76,9 +96,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const NavItem = ({ icon: Icon, label, href, isActive = false, onClick }) => (
     <Link href={href} className="block">
       <div
-        className={`flex items-center space-x-3 p-[10px] rounded-md cursor-pointer transition-all duration-200 ${
-          isActive ? "shadow-sm" : ""
-        }`}
+        className={`flex items-center space-x-3 p-[10px] rounded-md cursor-pointer transition-all duration-200 ${isActive ? "shadow-sm" : ""
+          }`}
         style={{
           background: isActive ? "var(--sidebar-active-light)" : "transparent",
           color: isActive ? "var(--primary)" : "var(--sidebar-text)",
@@ -104,9 +123,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       >
         <Icon className="h-4 sm:w-4 flex-shrink-0" />
         <span
-          className={`text-xs sm:text-sm ${
-            isActive ? "font-semibold" : "font-medium"
-          }`}
+          className={`text-xs sm:text-sm ${isActive ? "font-semibold" : "font-medium"
+            }`}
         >
           {label}
         </span>
@@ -143,13 +161,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] border-r flex flex-col z-50 transform transition-transform duration-300 ease-in-out ${
-          isMobile
-            ? isOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-            : "translate-x-0"
-        }`}
+        className={`fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] border-r flex flex-col z-50 transform transition-transform duration-300 ease-in-out ${isMobile
+          ? isOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
+          : "translate-x-0"
+          }`}
         style={{
           background: "var(--sidebar-bg)",
           borderColor: "var(--sidebar-border)",
@@ -244,11 +261,8 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               borderColor: "var(--border-light)",
               color: "var(--text-inverse)",
             }}
-            onClick={() => {
-              // Add logout functionality here
-              console.log("Logout clicked");
-              if (isMobile) setIsOpen(false); // Close mobile sidebar
-            }}
+            onClick={handleLogout}
+
           >
             <div className="flex items-center space-x-3">
               <LogOut className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
