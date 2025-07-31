@@ -1,16 +1,18 @@
-import { NextResponse } from 'next/server'
-import axios from 'axios'
-import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server';
+import axios from 'axios';
+import { cookies } from 'next/headers';
 
 export async function POST() {
   try {
-    // Ambil token dari cookie
-    const cookieStore = cookies()
-    const accessToken = cookieStore.get('access_token')?.value
-    const idToken = cookieStore.get('id_token')?.value
+    const cookieStore = cookies();
 
-    // Kirim request ke API logout eksternal dengan header yang benar
-    await axios.post('https://nexaai-v2-api-gen.ifabula.id/api/auth/logout', null, {
+    const baseURL = process.env.API_BASE_URL;
+
+    const accessToken = cookieStore.get('token')?.value;
+    const idToken = cookieStore.get('id_token')?.value;
+
+    // Kirim request logout ke API eksternal
+    await axios.post(`${baseURL}/api/auth/logout`, null, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken || ''}`,
@@ -23,21 +25,25 @@ export async function POST() {
       message: 'Logged out successfully'
     });
 
-    // Hapus semua cookie yang terkait auth
     const cookieOptions = {
-      httpOnly: true,
+      httpOnly: process.env.COOKIE_HTTP_ONLY === 'true',
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 0
+      maxAge: 0 // Expire immediately
     };
 
+    // Hapus semua token cookie
     response.cookies.set('token', '', cookieOptions);
     response.cookies.set('id_token', '', cookieOptions);
+    response.cookies.set('client_token', '', {
+      ...cookieOptions,
+      httpOnly: false
+    });
 
     return response;
 
   } catch (error) {
-    console.error('Logout error:', error?.response?.data || error.message)
+    console.error('Logout error:', error?.response?.data || error.message);
 
     return NextResponse.json(
       {

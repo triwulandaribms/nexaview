@@ -1,66 +1,53 @@
-import { NextResponse } from 'next/server'
-import axios from 'axios'
+import { NextResponse } from 'next/server';
+import axios from 'axios';
+import { cookies } from 'next/headers';
 
-export async function POST(request) {
+export async function POST() {
   try {
-    const { email, password } = await request.json()
+    const cookieStore = cookies();
 
-    // Validate input
-    if (!email || !password) {
+    const baseURL = process.env.API_BASE_URL;
+    if (!baseURL) {
+      console.error('API_BASE_URL is not defined in .env.local');
       return NextResponse.json(
-        { success: false, error: 'Email and password are required.' },
-        { status: 400 }
-      )
-    }
-
-    // Send login request to external API
-    const { data } = await axios.post(
-      'https://nexaai-v2-api-gen.ifabula.id/api/auth/login',
-      { email, password },
-      {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }
-    )
-
-    console.log('Login response:', data)
-
-    // Extract tokens and user data (adapt this if the structure changes)
-    const accessToken = data?.access_token
-    const idToken = data?.id_token
-    const user = data?.user || null
-
-    // Validate presence of tokens
-    if (!accessToken) {
-      return NextResponse.json(
-        { success: false, error: 'Access token is missing in response.' },
+        { success: false, error: 'Missing API base URL.' },
         { status: 500 }
-      )
+      );
     }
 
-    // Build response
+    const accessToken = cookieStore.get('token')?.value;
+    const idToken = cookieStore.get('id_token')?.value;
+
+    // Kirim request logout ke API eksternal
+    await axios.post(`${baseURL}/api/auth/logout`, null, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken || ''}`,
+        'x-id-token': idToken || ''
+      }
+    });
+
     const response = NextResponse.json({
       success: true,
-      message: 'Login successful',
-      user
-    })
+      message: 'Logged out successfully'
+    });
 
-    // Set secure cookies
     const cookieOptions = {
-      httpOnly: false,
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 // 7 days
-    }
+      maxAge: 0 // Expire immediately
+    };
 
-    response.cookies.set('token', accessToken, cookieOptions)
+    // Hapus semua token cookie
+    response.cookies.set('token', '', cookieOptions);
+    response.cookies.set('id_token', '', cookieOptions);
+    response.cookies.set('client_token', '', {
+      ...cookieOptions,
+      httpOnly: false
+    });
 
-    if (idToken) {
-      response.cookies.set('id_token', idToken, cookieOptions)
-    }
-
-    return response
+    return response;
 
   } catch (error) {
     console.error('Login error:', error?.response?.data || error.message)

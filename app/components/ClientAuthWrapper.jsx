@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Cookies from 'js-cookie'
-import LoadingSpinner from './LoadingSpinner' // ✅ import spinner
 
 export default function ClientAuthWrapper({ children }) {
   const router = useRouter()
@@ -11,13 +10,8 @@ export default function ClientAuthWrapper({ children }) {
 
   useEffect(() => {
     const token = Cookies.get('token')
-    const isAuthPage = pathname.startsWith('/login')
 
-    if (!token && !isAuthPage) {
-      router.replace('/login')
-    }
-
-    if (token && isAuthPage) {
+    if (token) {
       router.replace('/dashboard')
     }
 
