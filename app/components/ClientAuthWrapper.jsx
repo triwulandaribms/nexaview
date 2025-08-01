@@ -1,25 +1,28 @@
 'use client'
+
 import { useEffect, useState } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Cookies from 'js-cookie'
 
-export default function ClientAuthWrapper({ children }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const [checking, setChecking] = useState(true);
+const PUBLIC_GUEST_PATHS = ['/login', '/signup']
+
+export default function GuestOnlyWrapper({ children }) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    const token = Cookies.get('token');
+    const token = Cookies.get('token')
+    console.log(token);
     
-    if (token) {
-      router.replace('/dashboard');
+    if (token && PUBLIC_GUEST_PATHS.includes(pathname)) {
+      router.replace('/dashboard')
+    } else {
+      setChecking(false)
     }
-
-    setChecking(false);
   }, [pathname, router])
 
   if (checking) {
-    // return <LoadingSpinner /> 
     return <div style={{ display: 'none' }} />
   }
 

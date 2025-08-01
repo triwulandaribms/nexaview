@@ -60,10 +60,10 @@ export default function SignupPage() {
 
       if (data.success) {
         // Store user info in localStorage for client-side access
-        localStorage.setItem('user', JSON.stringify(data.user))
+        // localStorage.setItem('user', JSON.stringify(data.user))
         
         // Redirect to dashboard
-        router.push('/dashboard')
+        router.push('/login')
       } else {
         setError(data.error || 'Signup failed')
       }
