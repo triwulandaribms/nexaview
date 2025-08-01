@@ -22,15 +22,15 @@ export default function RootLayout({ children }) {
         className={outfit.className}
         style={{ background: 'var(--background)' }}
       >
-        <ClientAuthWrapper>
-          <ThemeProvider>
+        <ThemeProvider>
+          <ClientAuthWrapper>
             <LenisProvider>
               <LayoutWrapper>
                 {children}
               </LayoutWrapper>
             </LenisProvider>
-          </ThemeProvider>
-        </ClientAuthWrapper>
+          </ClientAuthWrapper>
+        </ThemeProvider>
       </body>
     </html>
   )

@@ -10,7 +10,7 @@ export default function ClientAuthWrapper({ children }) {
 
   useEffect(() => {
     const token = Cookies.get('token');
-
+    
     if (token) {
       router.replace('/dashboard');
     }

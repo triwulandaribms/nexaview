@@ -42,12 +42,12 @@ export async function POST(request) {
     // // Simpan token ke cookie
     response.cookies.set('token', access_token, {
       ...baseCookieOptions,
-      httpOnly: true,
+      httpOnly: false,
     });
 
     response.cookies.set('id_token', id_token, {
       ...baseCookieOptions,
-      httpOnly: true,
+      httpOnly: false,
     });
 
     return response;
