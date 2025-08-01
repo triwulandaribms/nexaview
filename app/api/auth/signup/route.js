@@ -73,7 +73,7 @@ export async function POST(req) {
     return response;
 
   } catch (error) {
-    console.error('Signup error:', error?.response?.data || error.message);
+    console.error('Signup error ==>>> ', error?.response?.data || error.message);
 
     if (axios.isAxiosError(error) && error.response) {
       const status = error.response.status;

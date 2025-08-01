@@ -4,18 +4,18 @@ import { usePathname, useRouter } from 'next/navigation'
 import Cookies from 'js-cookie'
 
 export default function ClientAuthWrapper({ children }) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const [checking, setChecking] = useState(true)
+  const router = useRouter();
+  const pathname = usePathname();
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const token = Cookies.get('token')
+    const token = Cookies.get('token');
 
     if (token) {
-      router.replace('/dashboard')
+      router.replace('/dashboard');
     }
 
-    setChecking(false)
+    setChecking(false);
   }, [pathname, router])
 
   if (checking) {

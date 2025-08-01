@@ -5,7 +5,6 @@ import { cookies } from 'next/headers';
 export async function POST() {
   try {
     const cookieStore = cookies();
-
     const baseURL = process.env.API_BASE_URL;
 
     const accessToken = cookieStore.get('token')?.value;
@@ -29,21 +28,17 @@ export async function POST() {
       httpOnly: process.env.COOKIE_HTTP_ONLY === 'true',
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 0 // Expire immediately
+      maxAge: 0 
     };
 
     // Hapus semua token cookie
     response.cookies.set('token', '', cookieOptions);
     response.cookies.set('id_token', '', cookieOptions);
-    response.cookies.set('client_token', '', {
-      ...cookieOptions,
-      httpOnly: false
-    });
 
     return response;
 
   } catch (error) {
-    console.error('Logout error:', error?.response?.data || error.message);
+    console.error('Logout error ==>> ', error?.response?.data || error.message);
 
     return NextResponse.json(
       {

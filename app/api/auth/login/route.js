@@ -2,68 +2,78 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { cookies } from 'next/headers';
 
-export async function POST() {
+export async function POST(request) {
   try {
-    const cookieStore = cookies();
+    // Ambil data dari body request
+    const { email, password } = await request.json();
 
+    // Validasi konfigurasi environment
     const baseURL = process.env.API_BASE_URL;
     if (!baseURL) {
-      console.error('API_BASE_URL is not defined in .env.local');
+      console.error('[CONFIG ERROR] Missing API_BASE_URL in environment variables.');
       return NextResponse.json(
-        { success: false, error: 'Missing API base URL.' },
+        { success: false, error: 'Server configuration error. Please contact administrator.' },
         { status: 500 }
       );
     }
 
-    const accessToken = cookieStore.get('token')?.value;
-    const idToken = cookieStore.get('id_token')?.value;
+    // Kirim permintaan login ke API eksternal
+    const responseFromAPI = await axios.post(
+      `${baseURL}/api/auth/login`,
+      { email, password },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
 
-    // Kirim request logout ke API eksternal
-    await axios.post(`${baseURL}/api/auth/logout`, null, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken || ''}`,
-        'x-id-token': idToken || ''
-      }
-    });
+    const { access_token, id_token } = responseFromAPI.data;
+
+    // Opsi cookie standar
+    const baseCookieOptions = {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 7 hari
+    };
 
     const response = NextResponse.json({
       success: true,
-      message: 'Logged out successfully'
+      message: 'Login successful',
     });
 
-    const cookieOptions = {
+    // // Simpan token ke cookie
+    response.cookies.set('token', access_token, {
+      ...baseCookieOptions,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 0 // Expire immediately
-    };
+    });
 
-    // Hapus semua token cookie
-    response.cookies.set('token', '', cookieOptions);
-    response.cookies.set('id_token', '', cookieOptions);
-    response.cookies.set('client_token', '', {
-      ...cookieOptions,
-      httpOnly: false
+    response.cookies.set('id_token', id_token, {
+      ...baseCookieOptions,
+      httpOnly: true,
     });
 
     return response;
-
   } catch (error) {
-    console.error('Login error:', error?.response?.data || error.message)
+    console.error('LOGIN ERROR =>>>> ', axios.isAxiosError(error) ? error.response?.data : error);
 
     if (axios.isAxiosError(error)) {
-      const status = error.response?.status || 500
-      const apiError = error.response?.data?.error || 'Login failed'
+      const statusCode = error.response?.status || 500;
+
+      if (statusCode === 401) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid email or password' },
+          { status: 401 }
+        );
+      }
+
+      const message = error.response?.data?.error || 'Authentication failed.';
       return NextResponse.json(
-        { success: false, error: apiError },
-        { status }
-      )
+        { success: false, error: message },
+        { status: statusCode }
+      );
     }
 
     return NextResponse.json(
-      { success: false, error: 'Unexpected server error' },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
-    )
+    );
   }
 }
