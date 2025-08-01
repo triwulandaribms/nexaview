@@ -21,7 +21,6 @@ export async function POST(req) {
         { status: 500 }
       );
     }
-    console.log(baseURL, " <====");
 
     // Kirim data ke API eksternal
     await axios.post(

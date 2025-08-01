@@ -13,10 +13,13 @@ export default function GuestOnlyWrapper({ children }) {
 
   useEffect(() => {
     const token = Cookies.get('token')
-    console.log(token);
-    
+
     if (token && PUBLIC_GUEST_PATHS.includes(pathname)) {
-      router.replace('/dashboard')
+      setTimeout(() => {
+        router.replace('/dashboard')
+      }, 100)
+    } else if (!token && !PUBLIC_GUEST_PATHS.includes(pathname)) {
+      router.replace('/login')
     } else {
       setChecking(false)
     }
