@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { ChevronLeft, Lock, BookOpen } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { kbApi } from "@/app/lib/knowledgeBaseApi";
 import { withTimeout } from "@/app/lib/http";
@@ -50,7 +50,7 @@ const SkeletonLoader = () => (
   </div>
 );
 
-export default function CreateKnowledgeBase() {
+export default function UpdateKnowledgeBase() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
@@ -60,12 +60,40 @@ export default function CreateKnowledgeBase() {
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const params = useParams();
+
+  const id = params?.id;
 
   React.useEffect(() => {
-    // Simulate loading delay
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
+    let mounted = true;
+    const { signal, cancel } = withTimeout(20000);
+
+    (async () => {
+      if (!id) return;
+      setIsLoading(true);
+      setErrorMsg('');
+
+      try {
+        const { data } = await kbApi.detail(id, { signal });
+        if (!mounted) return;
+
+        setFormData(prev => ({
+          ...prev,
+          name: data?.name || "",
+          description: data?.description || "",
+          selectedRoles: Array.isArray(data?.roles) ? data.roles : [],
+        }));
+      } catch (e) {
+        if (mounted) setErrorMsg(e?.message || "Failed to load knowledge base");
+      } finally {
+        if (mounted) setIsLoading(false);
+        cancel();
+      }
+    })();
+
+    return () => { mounted = false; cancel(); };
+  }, [id]);
+
 
   const roles = [
     "Admin",
@@ -97,7 +125,6 @@ export default function CreateKnowledgeBase() {
       description: description?.trim() || undefined,
       roles: Array.isArray(selectedRoles) ? selectedRoles : [],
     };
-    // buang field undefined
     return Object.fromEntries(Object.entries(payload).filter(([, v]) => v !== undefined));
   }
 
@@ -105,54 +132,34 @@ export default function CreateKnowledgeBase() {
     e.preventDefault();
     setErrorMsg('');
 
-
-    // Validasi minimal
     if (!formData.name?.trim()) {
       setErrorMsg('Name is required.');
       return;
     }
+    if (!id) {
+      setErrorMsg('Invalid knowledge base id.');
+      return;
+    }
 
-    // Cegah double submit
     if (submitting) return;
-
     const payload = sanitizePayload(formData);
-    const { signal, cancel } = withTimeout(20000); // 20s timeout
+    const { signal, cancel } = withTimeout(20000);
 
     setSubmitting(true);
     try {
-
-      const { data, message } = await kbApi.create({ ...payload, documents: [] }, { signal });
-
-      // Navigasi setelah sukses (prioritas pakai id dari server)
-      const kbId = data?.id;
-      if (kbId) {
-        router.push(`/knowledge-base/${kbId}`);
-      } else {
-        // fallback: kembali ke list
-        router.push('/knowledge-base');
-      }
-
-      // Optional: tampilkan toast sukses
-      // toast.success(message || 'Knowledge base created');
+      const { data, message } = await kbApi.update(id, payload, { signal });
+      router.back()
     } catch (err) {
-      // Kategorisasi error yang ramah user
       const status = err?.status ?? 500;
-      let msg = err?.message || 'Failed to create knowledge base';
+      let msg = err?.message || 'Failed to update knowledge base';
 
-      if (status === 400 || status === 422) {
-        msg = 'Invalid input. Please check the form fields.';
-      } else if (status === 401) {
-        msg = 'Unauthorized. Please sign in again.';
-      } else if (status === 403) {
-        msg = 'Forbidden. You do not have permission for this action.';
-      } else if (status === 404) {
-        msg = 'Endpoint not found.';
-      } else if (status >= 500) {
-        msg = 'Server error. Please try again later.';
-      }
+      if (status === 400 || status === 422) msg = 'Invalid input. Please check the form fields.';
+      else if (status === 401) msg = 'Unauthorized. Please sign in again.';
+      else if (status === 403) msg = 'Forbidden. You do not have permission for this action.';
+      else if (status === 404) msg = 'Knowledge base not found.';
+      else if (status >= 500) msg = 'Server error. Please try again later.';
 
       setErrorMsg(msg);
-      console.error(err);
     } finally {
       cancel();
       setSubmitting(false);
@@ -179,7 +186,7 @@ export default function CreateKnowledgeBase() {
           className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         >
           <ChevronLeft className="h-5 w-5" />
-          Create Knowledge Base
+          Edit Knowledge Base
         </button>
       </motion.div>
 
@@ -208,7 +215,7 @@ export default function CreateKnowledgeBase() {
                 </motion.div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-semibold text-[var(--text-primary)]">
-                    New Knowledge Base
+                    Edit  Knowledge Base
                   </h2>
                   <p className="text-sm text-[var(--text-secondary)]">
                     Created by dika@ifabula.com •{" "}
@@ -410,7 +417,7 @@ export default function CreateKnowledgeBase() {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  {submitting ? 'Creating…' : 'Create Knowledge Base'}
+                  {submitting ? 'Saving…' : 'Save Changes'}
                 </motion.button>
               </motion.div>
             </div>

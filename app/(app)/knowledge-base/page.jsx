@@ -12,75 +12,56 @@ import {
   FileText,
   Edit,
   Trash2,
+  X,
+  AlertTriangle,
+  Check,
+  Loader2
 } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { kbApi } from "@/app/lib/knowledgeBaseApi";
+import { withTimeout } from "@/app/lib/http";
+import Alert from "@/app/components/Alert";
+
 
 export default function KnowledgeBase() {
+  const [knowledgeBases, setKnowledgeBases] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid");
   const [isLoading, setIsLoading] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [selectedKB, setSelectedKB] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  // const [editOpen, setEditOpen] = useState(false);
+  // const [saving, setSaving] = useState(false);
+  // const [editForm, setEditForm] = useState({ name: "", email: "" });
+
   const router = useRouter();
 
   // Simulate loading state
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1200);
+    let mounted = true;
 
-    return () => clearTimeout(timer);
+    (async () => {
+
+      const { signal, cancel } = withTimeout(20000);
+      setIsLoading(true);
+      try {
+        const { data } = await kbApi.all({ signal });
+        if (mounted) setKnowledgeBases(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error(e);
+        if (mounted) setKnowledgeBases([]);
+      } finally {
+        if (mounted) setIsLoading(false);
+        cancel();
+      }
+    })();
+
+    return () => { mounted = false; };
   }, []);
 
-  const knowledgeBases = [
-    {
-      id: 1,
-      name: "Meeting",
-      email: "demo@ifabula.com",
-      date: "26 Jun 2025",
-      documentCount: 1,
-      color: "#8BC34A",
-    },
-    {
-      id: 2,
-      name: "BUKA Finance",
-      email: "demo@ifabula.com",
-      date: "24 Jun 2025",
-      documentCount: 4,
-      color: "#FF5252",
-    },
-    {
-      id: 3,
-      name: "GoTo Finance",
-      email: "demo@ifabula.com",
-      date: "24 Jun 2025",
-      documentCount: 4,
-      color: "#E91E63",
-    },
-    {
-      id: 4,
-      name: "Hukum",
-      email: "demo1@gmail.com",
-      date: "16 May 2025",
-      documentCount: 2,
-      color: "#26A69A",
-    },
-    {
-      id: 5,
-      name: "Data CRM",
-      email: "demo@ifabula.com",
-      date: "05 May 2025",
-      documentCount: 4,
-      color: "#42A5F5",
-    },
-    {
-      id: 6,
-      name: "General Information",
-      email: "demo@ifabula.com",
-      date: "29 Apr 2025",
-      documentCount: 3,
-      color: "#9CCC65",
-    },
-  ];
 
   const filteredKnowledgeBases = knowledgeBases.filter(
     (kb) =>
@@ -217,6 +198,82 @@ export default function KnowledgeBase() {
     </div>
   );
 
+  const openDelete = (kb) => {
+    setSelectedKB(kb);
+    setConfirmOpen(true);
+  }
+
+  const closeDelete = () => {
+    if (!deleting) setConfirmOpen(false);
+  }
+
+  useEffect(() => {
+    function onKey(e) { if (e.key === "Escape") closeDelete(); }
+    if (confirmOpen) window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmOpen, deleting]);
+
+  async function handleConfirmDelete() {
+    if (!selectedKB?.id || deleting) return;
+
+    const { signal, cancel } = withTimeout(20_000);
+    setDeleting(true);
+    setErrorMsg('');
+
+    try {
+      const res = await kbApi.remove(selectedKB.id, { signal });
+
+      if (!res?.data?.success) {
+        setErrorMsg(res?.data?.error || 'Failed to delete knowledge base');
+        return;
+      }
+
+      // optimistic remove from list
+      setKnowledgeBases((list) => list.filter((kb) => kb.id !== selectedKB.id));
+    } catch (e) {
+      console.error(e);
+      setErrorMsg(e.message || 'Failed to delete knowledge base');
+    } finally {
+      cancel();
+      setDeleting(false);
+      setConfirmOpen(false);
+    }
+  }
+
+
+
+  // function openEdit(kb) {
+
+  //   setSelectedKB(kb);
+  //   setEditForm({ name: kb.name || "", email: kb.created_by_name || "" });
+  //   setEditOpen(true);
+  // }
+  function openEdit(kb) {
+    if (!kb?.id) return;
+    router.push(`/knowledge-base/update/${kb.id}`);
+  }
+  function closeEdit() { if (!saving) setEditOpen(false); }
+
+  // useEffect(() => {
+  //   function onKey(e) { if (e.key === "Escape") closeEdit(); }
+  //   if (editOpen) window.addEventListener("keydown", onKey);
+  //   return () => window.removeEventListener("keydown", onKey);
+  // }, [editOpen, saving]);
+
+  // async function handleSaveEdit(e) {
+  //   e?.preventDefault?.();
+  //   if (!editForm.name.trim()) return; // validasi sederhana
+  //   setSaving(true);
+  //   try {
+  //     // TODO: panggil API update milikmu di sini
+  //     // await fetch(`/api/knowledge-base/${selectedKB.id}`, { method:"PATCH", body: JSON.stringify(editForm) })
+  //     await new Promise(r => setTimeout(r, 800)); // simulasi
+  //   } finally {
+  //     setSaving(false);
+  //     setEditOpen(false);
+  //   }
+  // }
+
   if (isLoading) {
     return (
       <motion.main
@@ -242,6 +299,13 @@ export default function KnowledgeBase() {
       transition={{ duration: 0.3 }}
       className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]"
     >
+
+      {errorMsg && (
+        <Alert variant="error" onDismiss={() => setErrorMsg('')}>
+          {errorMsg}
+        </Alert>
+      )}
+
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -388,6 +452,7 @@ export default function KnowledgeBase() {
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
+                        onClick={() => openEdit(kb)}
                         className="p-1 rounded hover:bg-gray-100 cursor-pointer"
                         style={{ color: "var(--text-secondary)" }}
                       >
@@ -396,6 +461,7 @@ export default function KnowledgeBase() {
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
+                        onClick={() => openDelete(kb)}
                         className="p-1 rounded hover:bg-gray-100 cursor-pointer"
                         style={{ color: "var(--text-secondary)" }}
                       >
@@ -417,7 +483,7 @@ export default function KnowledgeBase() {
                             className="font-semibold text-lg mb-1 truncate"
                             style={{ color: "var(--text-primary)" }}
                           >
-                            {kb.name}
+                            {kb?.name || ""}
                           </h3>
                         </div>
                       </div>
@@ -429,21 +495,21 @@ export default function KnowledgeBase() {
                           style={{ color: "var(--text-secondary)" }}
                         >
                           <Mail className="h-4 w-4" />
-                          <span>{kb.email}</span>
+                          <span>{kb?.created_by_name || ""}</span>
                         </div>
                         <div
                           className="flex items-center gap-2 text-sm"
                           style={{ color: "var(--text-secondary)" }}
                         >
                           <Calendar className="h-4 w-4" />
-                          <span>{kb.date}</span>
+                          <span>{kb?.created_at || ""}</span>
                         </div>
                         <div
                           className="flex items-center gap-2 text-sm"
                           style={{ color: "var(--text-secondary)" }}
                         >
                           <FileText className="h-4 w-4" />
-                          <span>{kb.documentCount} documents</span>
+                          <span>{kb?.docs_count || 0} documents</span>
                         </div>
                       </div>
 
@@ -501,6 +567,7 @@ export default function KnowledgeBase() {
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
+                          onClick={() => openEdit(kb)}
                           className="p-1 rounded hover:bg-gray-100 cursor-pointer"
                           style={{ color: "var(--text-secondary)" }}
                         >
@@ -509,6 +576,7 @@ export default function KnowledgeBase() {
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
+                          onClick={() => openDelete(kb)}
                           className="p-1 rounded hover:bg-gray-100 cursor-pointer"
                           style={{ color: "var(--text-secondary)" }}
                         >
@@ -533,7 +601,7 @@ export default function KnowledgeBase() {
                               className="font-semibold text-lg"
                               style={{ color: "var(--text-primary)" }}
                             >
-                              {kb.name}
+                              {kb?.name || ""}
                             </h3>
                           </div>
                           <div
@@ -542,15 +610,15 @@ export default function KnowledgeBase() {
                           >
                             <div className="flex items-center gap-1">
                               <Mail className="h-3 w-3" />
-                              <span>{kb.email}</span>
+                              <span>{kb?.created_by_name || ""}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              <span>{kb.date}</span>
+                              <span>{kb?.created_at || ""}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <FileText className="h-3 w-3" />
-                              <span>{kb.documentCount} documents</span>
+                              <span>{kb?.docs_count || ""} documents</span>
                             </div>
                           </div>
                         </div>
@@ -640,6 +708,246 @@ export default function KnowledgeBase() {
           </motion.div>
         )}
       </motion.div>
+
+      <AnimatePresence>
+        {confirmOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              key="overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50"
+              style={{ background: "rgba(0,0,0,0.5)" }}
+              onClick={closeDelete}
+            />
+
+            {/* Dialog */}
+            <motion.div
+              key="dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-title"
+              aria-describedby="delete-desc"
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            >
+              <div
+                className="w-full max-w-[28rem] sm:max-w-md rounded-2xl border shadow-xl"
+                style={{
+                  background: "var(--surface-elevated)",
+                  borderColor: "var(--border-light)",
+                }}
+              >
+                {/* Header */}
+                <div className="flex items-center gap-3 px-5 pt-5">
+                  <div className="p-2 rounded-xl" style={{ background: "var(--surface-secondary)" }}>
+                    <AlertTriangle className="h-5 w-5" style={{ color: "var(--primary)" }} />
+                  </div>
+                  <h2 id="delete-title" className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                    Delete Knowledge Base?
+                  </h2>
+                </div>
+
+                {/* Body */}
+                <div className="px-5 pt-3 pb-5">
+                  <p id="delete-desc" className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                    This action cannot be undone. You will delete:
+                  </p>
+
+                  <div
+                    className="mt-3 rounded-lg border px-4 py-3 text-sm"
+                    style={{ borderColor: "var(--border-light)", color: "var(--text-primary)", background: "var(--surface-secondary)" }}
+                  >
+                    <span className="font-medium">{selectedKB?.name}</span>
+                    <div className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
+                      {selectedKB?.created_by_name} • {selectedKB?.created_at} • {selectedKB?.docs_count} documents
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-5 grid grid-cols-1 sm:flex sm:justify-end gap-2 sm:gap-3">
+                    {/* Cancel */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={closeDelete}
+                      disabled={deleting}
+                      aria-label="Cancel"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl border font-medium transition-all disabled:opacity-60"
+                      style={{
+                        background: "var(--surface-elevated)",
+                        color: "var(--text-primary)",
+                        borderColor: "var(--border-light)",
+                        outline: "none",
+                        boxShadow: "0 1px 0 rgba(255,255,255,.04) inset, 0 6px 20px rgba(0,0,0,.04)",
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                      <span>Cancel</span>
+                    </motion.button>
+
+                    {/* Delete */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleConfirmDelete}
+                      disabled={deleting}
+                      aria-label="Delete"
+                      aria-busy={deleting}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl font-medium transition-all disabled:opacity-60"
+                      style={{
+                        background: "var(--primary)",
+                        color: "var(--text-inverse)",
+                        outline: "none",
+                        boxShadow: "0 10px 24px rgba(0,0,0,.10)",
+                      }}
+                    >
+                      {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      <span>{deleting ? "Deleting…" : "Delete"}</span>
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* <AnimatePresence>
+        {editOpen && (
+          <>
+            Overlay
+            <motion.div
+              key="overlay-edit"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50"
+              style={{ background: "rgba(0,0,0,0.5)" }}
+              onClick={closeEdit}
+            />
+
+            Dialog
+            <motion.div
+              key="dialog-edit"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="edit-title"
+              aria-describedby="edit-desc"
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            >
+              <form
+                onSubmit={handleSaveEdit}
+                className="w-full max-w-[28rem] sm:max-w-md rounded-2xl border shadow-xl"
+                style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}
+              >
+                Header
+                <div className="flex items-center gap-3 px-5 pt-5">
+                  <div className="p-2 rounded-xl" style={{ background: "var(--surface-secondary)" }}>
+                    <Edit className="h-5 w-5" style={{ color: "var(--primary)" }} />
+                  </div>
+                  <h2 id="edit-title" className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                    Edit Knowledge Base
+                  </h2>
+                </div>
+
+                Body
+                <div className="px-5 pt-3 pb-5">
+                  <p id="edit-desc" className="text-sm mb-3" style={{ color: "var(--text-secondary)" }}>
+                    Perbarui informasi di bawah ini.
+                  </p>
+
+                  Name
+                  <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-primary)" }}>
+                    Nama
+                  </label>
+                  <input
+                    value={editForm.name}
+                    onChange={(e) => setEditForm(v => ({ ...v, name: e.target.value }))}
+                    required
+                    minLength={2}
+                    className="w-full px-3 py-2 rounded-lg border mb-3 focus:outline-none focus:ring-2"
+                    style={{
+                      background: "var(--surface-elevated)",
+                      borderColor: "var(--border-light)",
+                      color: "var(--text-primary)",
+                      "--tw-ring-color": "var(--primary)"
+                    }}
+                    placeholder="Nama KB"
+                  />
+
+                  Email
+                  <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-primary)" }}>
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm(v => ({ ...v, email: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                    style={{
+                      background: "var(--surface-elevated)",
+                      borderColor: "var(--border-light)",
+                      color: "var(--text-primary)",
+                      "--tw-ring-color": "var(--primary)"
+                    }}
+                    placeholder="email@domain.com"
+                  />
+
+                  <div className="mt-5 grid grid-cols-1 sm:flex sm:justify-end gap-2 sm:gap-3">
+                    Cancel
+                    <motion.button
+                      type="button"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={closeEdit}
+                      disabled={saving}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl border font-medium transition-all disabled:opacity-60"
+                      style={{
+                        background: "var(--surface-elevated)",
+                        color: "var(--text-primary)",
+                        borderColor: "var(--border-light)",
+                        boxShadow: "0 1px 0 rgba(255,255,255,.04) inset, 0 6px 20px rgba(0,0,0,.04)",
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                      <span>Batal</span>
+                    </motion.button>
+
+                    Save
+                    <motion.button
+                      type="submit"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      disabled={saving || !editForm.name.trim()}
+                      aria-busy={saving}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl font-medium transition-all disabled:opacity-60"
+                      style={{
+                        background: "var(--primary)",
+                        color: "var(--text-inverse)",
+                        boxShadow: "0 10px 24px rgba(0,0,0,.10)",
+                      }}
+                    >
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      <span>{saving ? "Menyimpan..." : "Simpan"}</span>
+                    </motion.button>
+                  </div>
+                </div>
+              </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence> */}
+
     </motion.main>
   );
 }

@@ -12,7 +12,10 @@ export async function POST(request) {
     if (!baseURL) {
       console.error('[CONFIG ERROR] Missing API_BASE_URL in environment variables.');
       return NextResponse.json(
-        { success: false, error: 'Server configuration error. Please contact administrator.' },
+        {
+          success: false,
+          error: 'Server configuration error. Please contact administrator.'
+        },
         { status: 500 }
       );
     }

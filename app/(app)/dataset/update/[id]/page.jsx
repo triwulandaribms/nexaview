@@ -1,14 +1,14 @@
 "use client";
 import React, { useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Upload, Plus, X, ArrowLeft } from "lucide-react";
-import PageHeader from "../../../components/PageHeader";
 import Alert from "@/app/components/Alert";
 import { withTimeout } from "@/app/lib/http";
 import { dsApi } from "@/app/lib/datasetBaseApi";
+import PageHeader from "@/app/components/PageHeader";
 
-export default function CreateDataset() {
+export default function UpdateDataset() {
   const router = useRouter();
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -20,6 +20,10 @@ export default function CreateDataset() {
   const [isLoading, setIsLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const params = useParams();
+  const id = params.id;
+
+
   // Simulate loading
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -126,33 +130,61 @@ export default function CreateDataset() {
   };
 
   const handleSubmit = async () => {
-    if (!file || uploading) return;
+    if (uploading) return;
 
-    const { signal, cancel } = withTimeout(30_000);   // 30 s timeout
+    const { signal, cancel } = withTimeout(30_000);
     setUploading(true);
     setErrorMsg('');
 
     try {
-      const res = await dsApi.upload(file,
-        { categories, tags },
-        { signal }
-      );
+      const payload = { categories, tagsdataset };
 
-      if (!res.data?.success) {
-        setErrorMsg(res.error || 'Upload failed');
+      const res = await dsApi.update(id, payload, { signal });
+
+      if (!res.success) {
+        setErrorMsg(res.error || 'Gagal memperbarui dataset');
         return;
       }
 
-      router.push('/dataset');
-
+      router.back();
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.message || 'Upload failed');
+      setErrorMsg(err.message || 'Gagal memperbarui dataset');
     } finally {
       cancel();
       setUploading(false);
     }
   }
+  useEffect(() => {
+    if (!id) return;
+
+    let mounted = true;
+    const { signal, cancel } = withTimeout();
+
+    (async () => {
+      const res = await dsApi.detail(id, { signal });
+
+      const sizeByte = res.data?.file_size ?? 0;
+      const sizeMB = (sizeByte / (1024 * 1024)).toFixed(2);
+
+      if (!mounted) return;
+
+      if (res?.success == false) {
+        setErrorMsg(res.error || 'Gagal memuat dataset');
+      } else {
+        setCategories(res.data.category || []);
+        setTags(res.data.tags || []);
+        setFile({
+          name: res.data?.filename || "",
+          size: sizeMB
+        })
+
+      }
+      setIsLoading(false);
+    })();
+
+    return () => { mounted = false; cancel(); };
+  }, [id]);
 
   return (
     <motion.main
@@ -184,9 +216,8 @@ export default function CreateDataset() {
             </div>
           ) : (
             <PageHeader
-              title="Document Manager"
-              subtitle="Upload and manage your files. These can be used in knowledge bases or for fine-tuning models."
-            />
+              title="Edit Dataset"
+              subtitle="Update your dataset categories and tags." />
           )}
         </div>
 
@@ -276,7 +307,7 @@ export default function CreateDataset() {
                         className="text-sm"
                         style={{ color: "var(--text-secondary)" }}
                       >
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                        {file.size} MB
                       </p>
                     </div>
                   </div>
@@ -443,7 +474,7 @@ export default function CreateDataset() {
                 color: "var(--text-inverse)",
               }}
             >
-              Upload Document
+              Edit Document
             </motion.button>
           </motion.div>
         )}
