@@ -629,7 +629,11 @@ export default function KnowledgeBaseDetails() {
                       </div>
                     </td>
                     <td className="py-4 text-[var(--text-secondary)]">
-                      {doc?.category}
+                      {Array.isArray(doc?.category)
+                        ? doc.category.length > 3
+                          ? `${doc.category.slice(0, 3).join(', ')} …(+${doc.category.length - 3})`
+                          : doc.category.join(', ')
+                        : doc?.category}
                     </td>
                     <td className="py-4 text-[var(--text-secondary)]">
                       {doc?.updated_at}
@@ -1311,9 +1315,13 @@ export default function KnowledgeBaseDetails() {
                       background: "var(--surface-secondary)",
                     }}
                   >
-                    <span className="font-medium">{docDeleteTarget?.file_name}</span>
+                    <span className="font-medium">{docDeleteTarget?.file_name || docDeleteTarget?.filename}</span>
                     <div className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
-                      {docDeleteTarget?.category} • {docDeleteTarget?.updated_at}
+                      {Array.isArray(docDeleteTarget?.category)
+                        ? docDeleteTarget.category.join(', ')
+                        : docDeleteTarget?.category}
+                      {' • '}
+                      {docDeleteTarget?.updated_at}
                     </div>
                   </div>
 
