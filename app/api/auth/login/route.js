@@ -28,13 +28,12 @@ export async function POST(request) {
     );
 
     const { access_token, id_token } = responseFromAPI.data;
-
     // Opsi cookie standar
     const baseCookieOptions = {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 hari
+      maxAge: 60 * 60 * 24 * 7,
     };
 
     const response = NextResponse.json({
@@ -42,7 +41,6 @@ export async function POST(request) {
       message: 'Login successful',
     });
 
-    // // Simpan token ke cookie
     response.cookies.set('token', access_token, {
       ...baseCookieOptions,
       httpOnly: false,

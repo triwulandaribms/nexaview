@@ -1,11 +1,11 @@
 import { cookies } from 'next/headers';
 import axios from 'axios';
-import { fail, normalizeAxiosError, ok } from '@/app/lib/utils';
+import { deriveTypeSimple, fail, formatDate, formatFileSize, normalizeAxiosError, ok } from '@/app/lib/utils';
 
 export async function GET(_req, { params }) {
     const { id } = await params;
     const baseURL = process.env.API_BASE_URL;
-    if (!baseURL) return fail('Konfigurasi server salah. Hubungi administrator.', 500);
+    if (!baseURL) return fail("Server configuration error. Please contact administrator.", 500);
 
     try {
         const { data } = await axios.get(`${baseURL}/api/dataset/${id}`, {
@@ -13,20 +13,30 @@ export async function GET(_req, { params }) {
             timeout: 30_000,
             validateStatus: s => s >= 200 && s < 300,
         });
-
-        return ok('Berhasil mengambil detail dataset.', data);
+        const mapped = {
+            ...data,
+            file_size: formatFileSize(data.file_size),
+            updated_at: formatDate(data.updated_at),
+            created_at: formatDate(data.created_at),
+            type: deriveTypeSimple({
+                file_type: data.file_type,
+                name: null,
+                filename: data.filename,
+            }),
+        };
+        return ok("Successfully fetched dataset detail.", mapped);
     } catch (err) {
-        const { code, msg } = normalizeAxiosError(err, 'Gagal mengambil detail');
+        const { code, msg } = normalizeAxiosError(err, "Failed to fetch dataset detail");
         return fail(msg, code);
     }
 }
 
 export async function PUT(request, { params }) {
-    const { id } = params;
+    const { id } = await params;
     const baseURL = process.env.API_BASE_URL;
     if (!baseURL) return fail('Konfigurasi server salah. Hubungi administrator.', 500);
 
-    const token = cookies().get('token')?.value;
+    // const token = cookies().get('token')?.value;
     const body = await request.json();
 
     try {
@@ -34,7 +44,7 @@ export async function PUT(request, { params }) {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                // ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             timeout: 30_000,
             validateStatus: s => s >= 200 && s < 300,
@@ -48,7 +58,7 @@ export async function PUT(request, { params }) {
 }
 
 export async function DELETE(_req, { params }) {
-    const { id } = params;
+    const { id } = await params;
     const baseURL = process.env.API_BASE_URL;
     if (!baseURL) return fail('Konfigurasi server salah. Hubungi administrator.', 500);
 

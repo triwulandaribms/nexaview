@@ -1,20 +1,37 @@
 import { cookies } from 'next/headers';
 import axios from 'axios';
-import { fail, normalizeAxiosError, ok } from '@/app/lib/utils';
+import { fail, formatDate, normalizeAxiosError, ok } from '@/app/lib/utils';
 
 export async function GET(_req, { params }) {
-  const { id } = params;
+  const { id } = await params;
   const baseURL = process.env.API_BASE_URL;
   if (!baseURL) return fail('Server configuration error. Please contact administrator.', 500);
 
+  const cookieStore = await cookies();
+
+  const token = cookieStore.get('token')?.value;
+  const idToken = cookieStore.get('id_token')?.value;
   try {
     const { data } = await axios.get(`${baseURL}/api/knowledge_bases/${id}`, {
-      headers: { Accept: 'application/json' },
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`,
+        'x-id-token': idToken || ''
+      },
       timeout: 30_000,
       validateStatus: s => s >= 200 && s < 300,
     });
 
-    return ok('Fetched knowledge base detail successfully.', data);
+    const kb = data?.data ?? data ?? {};
+    
+    const transformed = {
+      ...kb,
+      created_at: formatDate(kb.created_at),
+      updated_at: formatDate(kb.updated_at),
+    };
+
+    return ok('Fetched knowledge base detail successfully.', transformed);
   } catch (err) {
     const { code, msg } = normalizeAxiosError(err, 'Failed to fetch detail');
     return fail(msg, code);
@@ -23,11 +40,14 @@ export async function GET(_req, { params }) {
 
 /* ------------ PUT /api/knowledge_bases/:id ------------ */
 export async function PUT(req, { params }) {
-  const { id } = params;
+  const { id } = await params;
   const baseURL = process.env.API_BASE_URL;
   if (!baseURL) return fail('Server configuration error. Please contact administrator.', 500);
 
-  const token = cookies().get('token')?.value; // optional auth
+  const cookieStore = await cookies();
+
+  const token = cookieStore.get('token')?.value;
+  const idToken = cookieStore.get('id_token')?.value;
   const body = await req.json();
 
   try {
@@ -35,12 +55,12 @@ export async function PUT(req, { params }) {
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Authorization: `Bearer ${token || ''}`,
+        'x-id-token': idToken || ''
       },
       timeout: 30_000,
       validateStatus: s => s >= 200 && s < 300,
     });
-
     return ok('Knowledge base updated successfully.', data);
   } catch (err) {
     const { code, msg } = normalizeAxiosError(err, 'Failed to update');
@@ -54,13 +74,18 @@ export async function DELETE(_req, { params }) {
   const baseURL = process.env.API_BASE_URL;
   if (!baseURL) return fail('Server configuration error. Please contact administrator.', 200);
 
-  const token = cookies().get('token')?.value;
+  const cookieStore = await cookies();
+
+  const token = cookieStore.get('token')?.value;
+  const idToken = cookieStore.get('id_token')?.value;
 
   try {
     await axios.delete(`${baseURL}/api/knowledge_bases/${id}`, {
       headers: {
         Accept: 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token || ''}`,
+        'x-id-token': idToken || ''
       },
       timeout: 30_000,
       validateStatus: s => s >= 200 && s < 300,

@@ -140,7 +140,6 @@ export default function Datasets() {
 
     (async () => {
       const res = await dsApi.list({ signal });
-      console.log(res.data);
 
       if (!mounted) return;
 

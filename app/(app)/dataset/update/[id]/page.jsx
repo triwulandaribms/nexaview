@@ -22,7 +22,7 @@ export default function UpdateDataset() {
   const [errorMsg, setErrorMsg] = useState('');
   const params = useParams();
   const id = params.id;
-
+  const isFileSectionDisabled = true;
 
   // Simulate loading
   useEffect(() => {
@@ -132,29 +132,32 @@ export default function UpdateDataset() {
   const handleSubmit = async () => {
     if (uploading) return;
 
-    const { signal, cancel } = withTimeout(30_000);
     setUploading(true);
-    setErrorMsg('');
+    setErrorMsg("");
+
+    const controller = new AbortController();
+    const { signal } = controller;
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
 
     try {
-      const payload = { categories, tagsdataset };
-
+      const payload = { category: categories, tags };
       const res = await dsApi.update(id, payload, { signal });
 
-      if (!res.success) {
-        setErrorMsg(res.error || 'Gagal memperbarui dataset');
+      if (res?.success == false) {
+        setErrorMsg(res?.error || "Failed to update dataset");
         return;
       }
-
       router.back();
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.message || 'Gagal memperbarui dataset');
+      setErrorMsg(err?.message || "Failed to update dataset");
     } finally {
-      cancel();
+      clearTimeout(timeoutId);
       setUploading(false);
     }
-  }
+  };
+
+
   useEffect(() => {
     if (!id) return;
 
@@ -163,9 +166,6 @@ export default function UpdateDataset() {
 
     (async () => {
       const res = await dsApi.detail(id, { signal });
-
-      const sizeByte = res.data?.file_size ?? 0;
-      const sizeMB = (sizeByte / (1024 * 1024)).toFixed(2);
 
       if (!mounted) return;
 
@@ -176,9 +176,11 @@ export default function UpdateDataset() {
         setTags(res.data.tags || []);
         setFile({
           name: res.data?.filename || "",
-          size: sizeMB
+          size: res?.data.file_size || ""
         })
-
+        const hasMeta = (Array.isArray(res.data.category) && res.data.category.length > 0)
+          || (Array.isArray(res.data.tags) && res.data.tags.length > 0);
+        setIsExpanded(hasMeta);
       }
       setIsLoading(false);
     })();
@@ -232,20 +234,20 @@ export default function UpdateDataset() {
         ) : (
           <motion.div className="max-w-3xl mx-auto">
             <div
-              className={`relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"
-                }`}
+              className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors
+    ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"}
+    ${isFileSectionDisabled ? "opacity-60 pointer-events-none select-none" : "cursor-pointer"}
+  `}
               style={{
                 background: "var(--surface-elevated)",
-                borderColor: isDragging
-                  ? "var(--primary)"
-                  : "var(--border-light)",
+                borderColor: isDragging ? "var(--primary)" : "var(--border-light)",
               }}
-              onDragEnter={handleDragEnter}
-              onDragLeave={handleDragLeave}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              onClick={() =>
-                !file && document.getElementById("fileInput").click()
+              onDragEnter={isFileSectionDisabled ? undefined : handleDragEnter}
+              onDragLeave={isFileSectionDisabled ? undefined : handleDragLeave}
+              onDragOver={isFileSectionDisabled ? undefined : handleDragOver}
+              onDrop={isFileSectionDisabled ? undefined : handleDrop}
+              onClick={
+                isFileSectionDisabled ? undefined : () => !file && document.getElementById("fileInput").click()
               }
             >
               <input
@@ -253,8 +255,8 @@ export default function UpdateDataset() {
                 id="fileInput"
                 className="hidden"
                 onChange={handleFileSelect}
+                disabled={isFileSectionDisabled}
               />
-
               {!file ? (
                 <div className="space-y-4">
                   <div
@@ -307,7 +309,7 @@ export default function UpdateDataset() {
                         className="text-sm"
                         style={{ color: "var(--text-secondary)" }}
                       >
-                        {file.size} MB
+                        {file.size}
                       </p>
                     </div>
                   </div>
@@ -467,7 +469,7 @@ export default function UpdateDataset() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleSubmit}
-              disabled={!file}
+              disabled={uploading}
               className="w-full mt-6 py-3 rounded-lg font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: "var(--primary)",

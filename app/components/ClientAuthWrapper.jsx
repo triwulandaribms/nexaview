@@ -11,23 +11,24 @@ export default function GuestOnlyWrapper({ children }) {
   const pathname = usePathname()
   const [checking, setChecking] = useState(true)
 
-  // useEffect(() => {
-    // const token = Cookies.get('token')
+  useEffect(() => {
+    const token = Cookies.get('token')
+    const idToken = Cookies.get('id_token')
 
-    // if (token && PUBLIC_GUEST_PATHS.includes(pathname)) {
-    // setTimeout(() => {
-    // router.replace('/dashboard')
-    //     }, 100)
-    //   } else if (!token && !PUBLIC_GUEST_PATHS.includes(pathname)) {
-    //     router.replace('/login')
-    //   } else {
-    //     setChecking(false)
-    //   }
-    // }, [pathname, router])
+    if (token && idToken && PUBLIC_GUEST_PATHS.includes(pathname)) {
+    setTimeout(() => {
+    router.replace('/dashboard')
+        }, 100)
+      } else if (!token && !PUBLIC_GUEST_PATHS.includes(pathname)) {
+        router.replace('/login')
+      } else {
+        setChecking(false)
+      }
+    }, [pathname, router])
 
-    // if (checking) {
-    //   return <div style={{ display: 'none' }} />
-    // }
+    if (checking) {
+      return <div style={{ display: 'none' }} />
+    }
 
     return <>{children}</>
   }

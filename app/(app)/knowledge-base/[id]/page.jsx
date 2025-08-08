@@ -25,6 +25,7 @@ import { useRouter, useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { withTimeout } from "@/app/lib/http";
 import { kbApi } from "@/app/lib/knowledgeBaseApi";
+import { dsApi } from "@/app/lib/datasetBaseApi";
 
 export default function KnowledgeBaseDetails() {
   const router = useRouter();
@@ -58,6 +59,9 @@ export default function KnowledgeBaseDetails() {
   const [docTagsArr, setDocTagsArr] = useState([]);
   const [newDocCat, setNewDocCat] = useState("");
   const [newDocTag, setNewDocTag] = useState("");
+  const [availableDatasets, setAvailableDatasets] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]); // id dataset terpilih
+  const [query, setQuery] = useState(""); // pencarian/filter
 
   const MAX_SIZE = 25 * 1024 * 1024; // 25MB
   const ACCEPT = [
@@ -99,43 +103,97 @@ export default function KnowledgeBaseDetails() {
   function removeFile() { setUploadFile(null); setErrorMsg(""); }
 
   async function handleUpload() {
-    if (!uploadFile) return;
+    if (selectedIds.length === 0) return;
     setUploading(true);
-    setProgress(0);
-    // TODO: ganti dengan API upload milikmu
-    for (let p = 0; p <= 100; p += 12) {
-      // simulasi progres
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise(r => setTimeout(r, 120));
-      setProgress(p);
+
+    const pickType = (mime = "") => {
+      if (mime.startsWith("image/")) return "image";
+      if (mime.startsWith("video/")) return "video";
+      if (mime.startsWith("audio/")) return "audio";
+      if (mime.startsWith("text/")) return "text";
+      return "document";
+    };
+
+    const normalizeDoc = (d = {}) => ({
+      id: d.id,
+      file_name: d.file_name || d.filename || d.name || "(untitled)",
+      category: Array.isArray(d.category) ? d.category.join(", ") : (d.category ?? "-"),
+      updated_at: d.updated_at
+        ? d.updated_at
+        : d.lastUpdated
+          ? d.lastUpdated
+          : (d.created_at || d.createdAt)
+            ? new Date(d.created_at || d.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+            : "-",
+      tags: Array.isArray(d.tags)
+        ? d.tags
+        : typeof d.tags === "string"
+          ? d.tags.split(",").map(t => t.trim()).filter(Boolean)
+          : [],
+      type: d.type || pickType(String(d.file_type || "")),
+    });
+
+    const chosen = selectedIds
+      .map(id => availableDatasets.find(d => d.id === id))
+      .filter(Boolean);
+
+    const rows = chosen.map(d =>
+      normalizeDoc({
+        ...d,
+        updated_at: new Date(d.updated_at || d.created_at).toLocaleDateString(
+          "en-GB",
+          { day: "2-digit", month: "short", year: "numeric" }
+        ),
+      })
+    );
+
+    try {
+      const existingIds = (knowledgeBase?.documents || [])
+        .map(d => (typeof d === "string" ? d : d?.id))
+        .filter(Boolean);
+      const mergedIds = Array.from(new Set([...existingIds, ...selectedIds]));
+
+      const payload = {
+        name: knowledgeBase?.name || "",
+        roles: knowledgeBase?.roles || [],
+        documents: mergedIds,
+      };
+
+      const controller = new AbortController();
+      const { signal } = controller;
+
+      const { data, message } = await kbApi.update(knowledgeBase?.id, payload, { signal });
+
+      setKnowledgeBase(kb => {
+        const existing = Array.isArray(kb.documents) ? kb.documents : [];
+        const normalizedExisting = existing.map(normalizeDoc);
+
+        const byId = new Map();
+        [...rows, ...normalizedExisting].forEach(item => {
+          if (item?.id && !byId.has(item.id)) byId.set(item.id, item);
+        });
+        const nextDocs = Array.from(byId.values());
+
+        return {
+          ...kb,
+          documents: nextDocs,
+          documentCount: nextDocs.length,
+          docs_count: nextDocs.length,
+        };
+      });
+    } catch (err) {
+      console.error("Failed to update KB:", err);
+    } finally {
+      setUploading(false);
+      setUploadOpen(false);
+      setSelectedIds([]);
+      setQuery("");
     }
-    // Tambahkan ke list (optimistic)
-    setKnowledgeBase(kb => ({
-      ...kb,
-      documentCount: kb.documentCount + 1,
-      documents: [
-        {
-          id: Date.now(),
-          name: uploadFile.name,
-          category: uploadCategories.join(", "),
-          lastUpdated: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-          tags: uploadTags,
-          type: uploadFile.type.startsWith("image") ? "image" :
-            uploadFile.type.startsWith("video") ? "video" : "document",
-        },
-        ...kb.documents
-      ]
-    }));
-    setUploading(false);
-    setUploadOpen(false);
-    setUploadFile(null);
-    setUploadCategories([]); setUploadTags([]); setNewCat(""); setNewTag("");
   }
 
-
   function openDocView(doc) {
-    setDocViewTarget(doc);
-    setDocViewOpen(true);
+
+    router.push("/dataset/" + doc.id);
   }
   function closeDocView() { setDocViewOpen(false); }
 
@@ -153,7 +211,9 @@ export default function KnowledgeBaseDetails() {
   function closeDocDelete() { if (!docDeleting) setDocDeleteOpen(false); }
 
   useEffect(() => {
-    function onKey(e) { if (e.key === "Escape") closeDocDelete(); }
+    function onKey(e) {
+      if (e.key === "Escape") closeDocDelete();
+    }
     if (docDeleteOpen) window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [docDeleteOpen, docDeleting]);
@@ -161,26 +221,50 @@ export default function KnowledgeBaseDetails() {
   async function handleConfirmDocDelete() {
     if (docDeleteIndex == null) return;
     setDocDeleting(true);
+
+    const prevKB = knowledgeBase;
+
     try {
-      // Optimistic UI: hapus dari state
+      let removedDocId = null;
       setKnowledgeBase(kb => {
-        const docs = [...kb.documents];
+        const docs = Array.isArray(kb.documents) ? [...kb.documents] : [];
+        removedDocId = docs[docDeleteIndex]?.id ?? null;
         docs.splice(docDeleteIndex, 1);
-        return { ...kb, documents: docs, documentCount: Math.max(0, kb.documentCount - 1) };
+        return {
+          ...kb,
+          documents: docs,
+          documentCount: Math.max(0, (kb.documentCount || 0) - 1),
+          docs_count: Math.max(0, (kb.docs_count || 0) - 1),
+        };
       });
 
-      // TODO: panggil API hapus kamu, mis.:
-      // await fetch(`/api/documents/${docDeleteTarget.id}`, { method: "DELETE" });
-      await new Promise(r => setTimeout(r, 700));
+      const remainingIds = (prevKB?.documents || [])
+        .filter((_, idx) => idx !== docDeleteIndex)
+        .map(d => d.id);
+
+      const payload = {
+        name: prevKB?.name || "",
+        roles: prevKB?.roles || [],
+        documents: remainingIds,
+      };
+
+      const controller = new AbortController();
+      const { signal } = controller;
+      const { data, message } = await kbApi.update(prevKB?.id, payload, { signal });
+
       setDocDeleteOpen(false);
+    } catch (err) {
+      console.error("Failed to delete document from KB:", err);
+      setKnowledgeBase(prevKB);
     } finally {
       setDocDeleting(false);
     }
   }
 
+
   function openDocEdit(doc, index) {
     setDocIndex(index);
-    setDocForm({ name: doc?.name ?? "" });
+    setDocForm({ name: doc?.file_name ?? "" });
     setDocForm({
       name: doc?.name ?? "",
       category: doc?.category ?? "",
@@ -211,7 +295,7 @@ export default function KnowledgeBaseDetails() {
         const docs = [...kb.documents];
         docs[docIndex] = {
           ...docs[docIndex],
-          name: docForm.name,
+          file_name: docForm.name,
           category: docForm.category,
           tags: tagsArr
         };
@@ -229,8 +313,8 @@ export default function KnowledgeBaseDetails() {
 
 
   const openEdit = () => {
-    setEditForm({ name: knowledgeBase?.name ?? "", email: knowledgeBase?.email ?? "" });
-    setEditOpen(true);
+    router.push("update/" + knowledgeBase.id);
+
   }
   const closeEdit = () => { if (!saving) setEditOpen(false); }
 
@@ -254,27 +338,27 @@ export default function KnowledgeBaseDetails() {
     return () => window.removeEventListener("keydown", onKey);
   }, [editOpen, saving]);
 
-  // Mock data - in real app, fetch based on params.id
-  const mockKnowledgeBases = {
-    "e58cd5da-caeb-40a7-af32-42257d3faaac": {
-      id: "e58cd5da-caeb-40a7-af32-42257d3faaac",
-      name: "Meeting",
-      email: "demo@ifabula.com",
-      date: "26 Jun 2025",
-      documentCount: 1,
-      documents: [
-        {
-          id: 1,
-          name: "Discussion-20250626_100327-Meeting Recording.mp4",
-          category: "report, business",
-          lastUpdated: "26 Jun 2025",
-          tags: ["financial a...", "+4"],
-          type: "video",
-        },
-      ],
-    },
 
-  };
+  useEffect(() => {
+    if (!uploadOpen) return;
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    (async () => {
+      try {
+        const { data } = await dsApi.list({ signal });
+
+        const items = Array.isArray(data) ? data : (data?.items || []);
+        setAvailableDatasets(items);
+      } catch (e) {
+        console.error(e);
+        setAvailableDatasets([]);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [uploadOpen]);
+
 
   useEffect(() => {
     let mounted = true;
@@ -283,6 +367,7 @@ export default function KnowledgeBaseDetails() {
       setIsLoading(true);
       try {
         const { data } = await kbApi.detail(params.id, { signal });
+
         if (mounted) setKnowledgeBase({
           ...data,
           email: data?.created_by_name || ""
@@ -518,9 +603,9 @@ export default function KnowledgeBaseDetails() {
                 </tr>
               </thead>
               <tbody>
-                {knowledgeBase.documents.map((doc, index) => (
+                {knowledgeBase?.documents?.map((doc, index) => (
                   <motion.tr
-                    key={doc.id}
+                    key={doc?.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.4 + index * 0.1 }}
@@ -532,31 +617,54 @@ export default function KnowledgeBaseDetails() {
                     <td className="py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-[var(--surface-secondary)] rounded-lg flex items-center justify-center">
-                          {getDocumentIcon(doc.type)}
+                          {getDocumentIcon(doc?.type)}
                         </div>
-                        <span className="text-[var(--text-primary)] font-medium">
-                          {doc.name}
+                        <span
+                          className="text-[var(--text-primary)] font-medium max-w-[240px] truncate block"
+                          title={doc?.file_name || doc?.filename || doc?.name || "(untitled)"}
+                        >
+                          {doc?.file_name || doc?.filename || doc?.name || "(untitled)"}
                         </span>
+
                       </div>
                     </td>
                     <td className="py-4 text-[var(--text-secondary)]">
-                      {doc.category}
+                      {doc?.category}
                     </td>
                     <td className="py-4 text-[var(--text-secondary)]">
-                      {doc.lastUpdated}
+                      {doc?.updated_at}
                     </td>
                     <td className="py-4">
                       <div className="flex gap-1 flex-wrap">
-                        {doc.tags.map((tag, tagIndex) => (
-                          <span
-                            key={tagIndex}
-                            className="px-2 py-1 bg-[var(--surface-secondary)] text-[var(--text-secondary)] rounded text-xs"
-                          >
-                            {tag}
-                          </span>
-                        ))}
+                        {(() => {
+                          const tags = Array.isArray(doc?.tags) ? doc.tags : [];
+                          const shown = tags.slice(0, 2);
+                          const rest = tags.length > 2 ? tags.slice(2) : [];
+                          return (
+                            <>
+                              {shown.map((tag, i) => (
+                                <span
+                                  key={i}
+                                  className="px-2 py-1 bg-[var(--surface-secondary)] text-[var(--text-secondary)] rounded text-xs"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                              {rest.length > 0 && (
+                                <span
+                                  className="px-2 py-1 bg-[var(--surface-secondary)] text-[var(--text-secondary)] rounded text-xs"
+                                  title={rest.join(", ")}
+                                >
+                                  … (+{rest.length})
+                                </span>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </td>
+
+
                     <td className="py-4">
                       <div className="flex gap-2">
                         <motion.button
@@ -567,14 +675,14 @@ export default function KnowledgeBaseDetails() {
                         >
                           <Eye className="h-4 w-4 text-[var(--text-secondary)]" />
                         </motion.button>
-                        <motion.button
+                        {/* <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => openDocEdit(doc, index)}
                           className="p-2 rounded-lg bg-[var(--surface-secondary)] hover:bg-[var(--surface-tertiary)] transition-colors"
                         >
                           <Edit className="h-4 w-4 text-[var(--text-secondary)]" />
-                        </motion.button>
+                        </motion.button> */}
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
@@ -861,102 +969,7 @@ export default function KnowledgeBaseDetails() {
           </>
         )}
       </AnimatePresence>
-      <AnimatePresence>
-        {docDeleteOpen && (
-          <>
-            {/* Overlay */}
-            <motion.div
-              key="overlay-doc-del"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50"
-              style={{ background: "rgba(0,0,0,0.5)" }}
-              onClick={closeDocDelete}
-            />
 
-            {/* Dialog */}
-            <motion.div
-              key="dialog-doc-del"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="doc-del-title"
-              aria-describedby="doc-del-desc"
-              initial={{ opacity: 0, y: 16, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 320, damping: 28 }}
-              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-            >
-              <div
-                className="w-full max-w-[28rem] sm:max-w-md rounded-2xl border shadow-xl"
-                style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}
-              >
-                {/* Header */}
-                <div className="flex items-center gap-3 px-5 pt-5">
-                  <div className="p-2 rounded-xl" style={{ background: "var(--surface-secondary)" }}>
-                    <AlertTriangle className="h-5 w-5" style={{ color: "var(--primary)" }} />
-                  </div>
-                  <h2 id="doc-del-title" className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                    Hapus Dokumen?
-                  </h2>
-                </div>
-
-                {/* Body */}
-                <div className="px-5 pt-3 pb-5">
-                  <p id="doc-del-desc" className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                    Aksi ini tidak dapat dibatalkan. Kamu akan menghapus:
-                  </p>
-                  <div
-                    className="mt-3 rounded-lg border px-4 py-3 text-sm"
-                    style={{ borderColor: "var(--border-light)", color: "var(--text-primary)", background: "var(--surface-secondary)" }}
-                  >
-                    <span className="font-medium">{docDeleteTarget?.name}</span>
-                    <div className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
-                      {docDeleteTarget?.category} • {docDeleteTarget?.lastUpdated}
-                    </div>
-                  </div>
-
-                  {/* Actions (mobile-first, tap area 44px) */}
-                  <div className="mt-5 grid grid-cols-1 sm:flex sm:justify-end gap-2 sm:gap-3">
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={closeDocDelete}
-                      disabled={docDeleting}
-                      aria-label="Batal"
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl border font-medium transition-all disabled:opacity-60"
-                      style={{
-                        background: "var(--surface-elevated)",
-                        color: "var(--text-primary)",
-                        borderColor: "var(--border-light)",
-                        boxShadow: "0 1px 0 rgba(255,255,255,.04) inset, 0 6px 20px rgba(0,0,0,.04)",
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                      <span>Batal</span>
-                    </motion.button>
-
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleConfirmDocDelete}
-                      disabled={docDeleting}
-                      aria-label="Hapus"
-                      aria-busy={docDeleting}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl font-medium transition-all disabled:opacity-60"
-                      style={{ background: "var(--primary)", color: "var(--text-inverse)", boxShadow: "0 10px 24px rgba(0,0,0,.10)" }}
-                    >
-                      {docDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                      <span>{docDeleting ? "Menghapus..." : "Hapus"}</span>
-                    </motion.button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
       <AnimatePresence>
         {docViewOpen && (
           <>
@@ -995,7 +1008,7 @@ export default function KnowledgeBaseDetails() {
                   </div>
                   <div className="min-w-0">
                     <h2 id="doc-view-title" className="text-lg font-semibold truncate" style={{ color: "var(--text-primary)" }}>
-                      {docViewTarget?.name}
+                      {docViewTarget?.file_name}
                     </h2>
                     <p id="doc-view-desc" className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
                       Pratinjau & detail dokumen
@@ -1034,7 +1047,7 @@ export default function KnowledgeBaseDetails() {
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-[var(--text-secondary)]" />
                       <span className="text-[var(--text-secondary)]">Terakhir diperbarui:</span>
-                      <span className="font-medium text-[var(--text-primary)]">{docViewTarget?.lastUpdated || "-"}</span>
+                      <span className="font-medium text-[var(--text-primary)]">{docViewTarget?.updated_at || "-"}</span>
                     </div>
                   </div>
 
@@ -1092,6 +1105,9 @@ export default function KnowledgeBaseDetails() {
           </>
         )}
       </AnimatePresence>
+
+
+
       <AnimatePresence>
         {uploadOpen && (
           <>
@@ -1113,11 +1129,20 @@ export default function KnowledgeBaseDetails() {
               exit={{ opacity: 0, y: 20, scale: 0.98 }}
               transition={{ type: "spring", stiffness: 300, damping: 28 }}
               role="dialog" aria-modal="true" aria-labelledby="upload-title"
-              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4"
             >
-              <div className="w-full max-w-2xl bg-[var(--surface-elevated)] rounded-2xl shadow-2xl overflow-hidden focus:outline-none">
-                {/* Header */}
-                <div className="px-6 pt-6 pb-3 flex items-center gap-3">
+              <div
+                className="
+      w-full max-w-2xl
+      bg-[var(--surface-elevated)]
+      rounded-2xl shadow-2xl focus:outline-none
+      max-h-[85vh] flex flex-col
+      overflow-hidden
+    "
+                style={{ WebkitOverflowScrolling: "touch" }}
+              >
+                {/* Header → STICKY */}
+                <div className="px-4 sm:px-6 pt-5 pb-3 flex items-center gap-3 sticky top-0 z-10 bg-[var(--surface-elevated)]">
                   <div className="p-2 rounded-xl bg-[var(--surface-secondary)]">
                     <Upload className="h-5 w-5" style={{ color: "var(--primary)" }} />
                   </div>
@@ -1126,149 +1151,212 @@ export default function KnowledgeBaseDetails() {
                   </h2>
                 </div>
 
-                {/* Body */}
-                <div className="px-6 pb-6">
-                  {/* Dropzone */}
-                  <div
-                    onDragOver={onDragOver}
-                    onDragLeave={onDragLeave}
-                    onDrop={onDrop}
-                    onClick={() => !uploading && document.getElementById("uploadInput")?.click()}
-                    className={[
-                      "rounded-xl border-2 border-dashed p-6 text-center cursor-pointer transition-colors",
-                      "outline-none focus:ring-2 focus:ring-[var(--primary)]",
-                      dragActive ? "bg-[var(--primary)]/5 border-[var(--primary)]" : "bg-[var(--surface-secondary)] border-[var(--border-light)]"
-                    ].join(" ")}
-                    tabIndex={0}
-                    role="button"
-                    aria-label="Drop files here or click to browse"
-                  >
+                {/* Body → SCROLL UTAMA */}
+                <div
+                  className="flex-1 min-h-0 px-4 sm:px-6 pb-5 overflow-y-auto"
+                  style={{ scrollbarGutter: "stable" }}
+                >
+                  {/* Search */}
+                  <div className="mb-3">
+                    <label className="block text-sm mb-1 text-[var(--text-secondary)]">Search</label>
                     <input
-                      id="uploadInput"
-                      type="file"
-                      accept={ACCEPT.join(",")}
-                      className="hidden"
-                      onChange={onBrowse}
-                      disabled={uploading}
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="Type to filter documents…"
+                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                      style={{ borderColor: "var(--border-light)", "--tw-ring-color": "var(--primary)", background: "var(--surface-elevated)", color: "var(--text-primary)" }}
                     />
-                    {!uploadFile ? (
-                      <div className="text-[var(--text-secondary)]">
-                        <Upload className="mx-auto mb-2 h-6 w-6 text-[var(--primary)]" />
-                        <p className="font-medium">Drag & drop file di sini atau klik untuk pilih</p>
-                        <p className="text-xs mt-1">PDF, DOCX, PPTX, XLSX, TXT, JPG/PNG/WEBP, MP4 · maks 25MB</p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
-                        <div className="min-w-0">
-                          <p className="font-medium text-[var(--text-primary)] truncate">{uploadFile.name}</p>
-                          <p className="text-xs text-[var(--text-secondary)]">
-                            {(uploadFile.size / 1024 / 1024).toFixed(2)} MB
-                          </p>
-                        </div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); removeFile(); }}
-                          disabled={uploading}
-                          className="px-3 py-1.5 rounded-lg border text-sm"
-                          style={{ borderColor: "var(--border-light)", color: "var(--text-primary)" }}
-                        >
-                          Hapus
-                        </button>
-                      </div>
-                    )}
                   </div>
 
-                  {/* Error */}
-                  {errorMsg && (
-                    <div className="mt-3 text-sm text-red-600">{errorMsg}</div>
-                  )}
-
-                  {/* Categories */}
-                  <div className="mt-5">
-                    <label className="block text-sm mb-2 text-[var(--text-secondary)]">Categories</label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {uploadCategories.map((c, i) => (
-                        <span key={i} className="px-3 py-1 rounded-full text-sm bg-[var(--surface-secondary)] text-[var(--text-secondary)]">
-                          {c}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <input
-                        value={newCat}
-                        onChange={(e) => setNewCat(e.target.value)}
-                        placeholder="Add category"
-                        className="flex-1 px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
-                        style={{ borderColor: "var(--border-light)", "--tw-ring-color": "var(--primary)", background: "var(--surface-elevated)", color: "var(--text-primary)" }}
-                      />
-                      <button
-                        onClick={() => { if (newCat.trim()) { setUploadCategories([...uploadCategories, newCat.trim()]); setNewCat(""); } }}
-                        className="px-4 py-2 rounded-lg font-medium bg-[var(--primary)] text-white"
-                      >
-                        Add
-                      </button>
+                  {/* List dokumen → HAPUS max-h & overflow di sini */}
+                  <div className="rounded-xl border"
+                    style={{ borderColor: "var(--border-light)", background: "var(--surface-secondary)" }}>
+                    <div className="divide-y" style={{ divideColor: "var(--border-light)" }}>
+                      {availableDatasets
+                        .filter(d =>
+                          !query.trim()
+                          || String(d.filename || d.name || "").toLowerCase().includes(query.toLowerCase())
+                          || String(d.file_type || "").toLowerCase().includes(query.toLowerCase())
+                        )
+                        .map((d) => {
+                          const id = d.id;
+                          const checked = selectedIds.includes(id);
+                          return (
+                            <label key={id}
+                              className="flex items-center gap-3 p-3 cursor-pointer hover:bg-[var(--surface-elevated)]">
+                              <input
+                                type="checkbox"
+                                className="h-5 w-5"
+                                checked={checked}
+                                onChange={(e) => {
+                                  setSelectedIds(prev =>
+                                    e.target.checked ? [...prev, id] : prev.filter(x => x !== id)
+                                  );
+                                }}
+                              />
+                              <div className="min-w-0">
+                                <div className="font-medium text-[var(--text-primary)] truncate">
+                                  {d.filename || d.name || "(untitled)"}
+                                </div>
+                                <div className="text-xs text-[var(--text-secondary)] truncate">
+                                  {d.file_type} · {(d.file_size / 1024 / 1024).toFixed(2)} MB
+                                </div>
+                              </div>
+                              <span className="ml-auto text-xs text-[var(--text-tertiary)]">
+                                {new Date(d.updated_at || d.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      {availableDatasets.length === 0 && (
+                        <div className="p-4 text-sm text-[var(--text-secondary)]">No data</div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Tags */}
-                  <div className="mt-4">
-                    <label className="block text-sm mb-2 text-[var(--text-secondary)]">Tags</label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {uploadTags.map((t, i) => (
-                        <span key={i} className="px-3 py-1 rounded-full text-sm bg-[var(--primary)]/10 text-[var(--primary)]">
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                      <input
-                        value={newTag}
-                        onChange={(e) => setNewTag(e.target.value)}
-                        placeholder="Add tag"
-                        className="flex-1 px-3 py-2 rounded-lg border focus:outline-none focus:ring-2"
-                        style={{ borderColor: "var(--border-light)", "--tw-ring-color": "var(--primary)", background: "var(--surface-elevated)", color: "var(--text-primary)" }}
-                      />
-                      <button
-                        onClick={() => { if (newTag.trim()) { setUploadTags([...uploadTags, newTag.trim()]); setNewTag(""); } }}
-                        className="px-4 py-2 rounded-lg font-medium bg-[var(--primary)] text-white"
-                      >
-                        Add
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Progress */}
-                  {uploading && (
-                    <div className="mt-5">
-                      <div className="h-2 rounded-full bg-[var(--surface-secondary)] overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-[var(--primary)] transition-all"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                      <div className="mt-2 text-sm text-[var(--text-secondary)]">{progress}%</div>
+                  {/* Chips pilihan */}
+                  {selectedIds.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {selectedIds.map(id => {
+                        const d = availableDatasets.find(x => x.id === id);
+                        return (
+                          <span key={id} className="px-3 py-1 rounded-full text-sm bg-[var(--primary)]/10 text-[var(--primary)]">
+                            {(d?.filename || d?.name || id).toString().slice(0, 28)}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
+                </div>
 
-                  {/* Actions */}
-                  <div className="mt-6 grid grid-cols-1 sm:flex sm:justify-end gap-2 sm:gap-3">
-                    <button
-                      onClick={() => !uploading && setUploadOpen(false)}
-                      disabled={uploading}
-                      className="w-full sm:w-auto inline-flex items-center justify-center px-5 min-h-[44px] rounded-xl border font-medium disabled:opacity-60"
-                      style={{ borderColor: "var(--border-light)", background: "var(--surface-elevated)", color: "var(--text-primary)" }}
-                    >
-                      Batal
-                    </button>
+                {/* Footer (tetap fixed di bawah card) */}
+                <div className="px-4 sm:px-6 py-4 grid grid-cols-1 sm:flex sm:justify-end gap-2 sm:gap-3">
+                  <button
+                    onClick={() => setUploadOpen(false)}
+                    disabled={uploading}
+                    className="w-full sm:w-auto inline-flex items-center justify-center px-5 min-h-[44px] rounded-xl border font-medium disabled:opacity-60"
+                    style={{ borderColor: "var(--border-light)", background: "var(--surface-elevated)", color: "var(--text-primary)" }}
+                  >
+                    Cancel
+                  </button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                    onClick={handleUpload}
+                    disabled={selectedIds.length === 0 || uploading}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl font-medium disabled:opacity-60"
+                    style={{ background: "var(--primary)", color: "var(--text-inverse)", boxShadow: "0 10px 24px rgba(0,0,0,.10)" }}
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    <span>{uploading ? "Saving..." : "Select"}</span>
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+
+      <AnimatePresence>
+        {docDeleteOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              key="overlay-doc-del"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50"
+              style={{ background: "rgba(0,0,0,0.5)" }}
+              onClick={closeDocDelete}
+            />
+
+            {/* Dialog */}
+            <motion.div
+              key="dialog-doc-del"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="doc-del-title"
+              aria-describedby="doc-del-desc"
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            >
+              <div
+                className="w-full max-w-[28rem] sm:max-w-md rounded-2xl border shadow-xl"
+                style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}
+              >
+                {/* Header */}
+                <div className="flex items-center gap-3 px-5 pt-5">
+                  <div className="p-2 rounded-xl" style={{ background: "var(--surface-secondary)" }}>
+                    <AlertTriangle className="h-5 w-5" style={{ color: "var(--primary)" }} />
+                  </div>
+                  <h2 id="doc-del-title" className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                    Delete Document?
+                  </h2>
+                </div>
+
+                {/* Body */}
+                <div className="px-5 pt-3 pb-5">
+                  <p id="doc-del-desc" className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                    This action cannot be undone. You are about to delete:
+                  </p>
+                  <div
+                    className="mt-3 rounded-lg border px-4 py-3 text-sm"
+                    style={{
+                      borderColor: "var(--border-light)",
+                      color: "var(--text-primary)",
+                      background: "var(--surface-secondary)",
+                    }}
+                  >
+                    <span className="font-medium">{docDeleteTarget?.file_name}</span>
+                    <div className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
+                      {docDeleteTarget?.category} • {docDeleteTarget?.updated_at}
+                    </div>
+                  </div>
+
+                  {/* Actions (mobile-first, tap area 44px) */}
+                  <div className="mt-5 grid grid-cols-1 sm:flex sm:justify-end gap-2 sm:gap-3">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={handleUpload}
-                      disabled={!uploadFile || uploading}
-                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl font-medium disabled:opacity-60"
-                      style={{ background: "var(--primary)", color: "var(--text-inverse)", boxShadow: "0 10px 24px rgba(0,0,0,.10)" }}
+                      onClick={closeDocDelete}
+                      disabled={docDeleting}
+                      aria-label="Cancel"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl border font-medium transition-all disabled:opacity-60"
+                      style={{
+                        background: "var(--surface-elevated)",
+                        color: "var(--text-primary)",
+                        borderColor: "var(--border-light)",
+                        boxShadow: "0 1px 0 rgba(255,255,255,.04) inset, 0 6px 20px rgba(0,0,0,.04)",
+                      }}
                     >
-                      {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                      <span>{uploading ? "Uploading..." : "Upload"}</span>
+                      <X className="h-4 w-4" />
+                      <span>Cancel</span>
+                    </motion.button>
+
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleConfirmDocDelete}
+                      disabled={docDeleting}
+                      aria-label="Delete"
+                      aria-busy={docDeleting}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl font-medium transition-all disabled:opacity-60"
+                      style={{
+                        background: "var(--primary)",
+                        color: "var(--text-inverse)",
+                        boxShadow: "0 10px 24px rgba(0,0,0,.10)",
+                      }}
+                    >
+                      {docDeleting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                      <span>{docDeleting ? "Deleting..." : "Delete"}</span>
                     </motion.button>
                   </div>
                 </div>

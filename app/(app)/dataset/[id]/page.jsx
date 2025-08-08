@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
+import { dsApi } from "@/app/lib/datasetBaseApi";
 
 export default function DatasetDetail() {
   const router = useRouter();
@@ -25,179 +26,52 @@ export default function DatasetDetail() {
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [aiSummary, setAiSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [dataset, setDataset] = useState(null);
 
-  // Sample dataset data (in a real app, this would come from an API based on the ID)
-  const datasets = [
-    {
-      id: 1,
-      name: "Discussion-20250626_100327-Meeting Recording.mp4",
-      description:
-        "Meeting recording discussing project milestones and quarterly review",
-      type: "video",
-      createdAt: "26 Jun 2025",
-      categories: ["financial analysis", "data sourcing", "import quota"],
-      tags: ["company evaluation", "trade data"],
-      lastEditedAt: "26 Jun 2025",
-      documentId: "d85abc4e93bc8c5e9bec2947",
-      fileType: "video/mp4",
-      fileSize: "21.87 MB",
-      uploadedBy: "Admin User",
-      summary:
-        "This document contains important information related to report. It was uploaded on June 26, 2025 and categorized under report.",
-    },
-    {
-      id: 2,
-      name: "PT BUKA.pdf",
-      description: "Company profile and business overview document",
-      type: "document",
-      createdAt: "24 Jun 2025",
-      categories: ["company profile", "stock exchange", "e-commerce"],
-      tags: ["technology", "indonesia"],
-      lastEditedAt: "24 Jun 2025",
-      documentId: "f95def6e83bc8c5e9bec2845",
-      fileType: "application/pdf",
-      fileSize: "2.1 MB",
-      uploadedBy: "Admin User",
-      summary:
-        "This document contains company profile and business overview information. It was uploaded on June 24, 2025 and categorized under report.",
-    },
-    {
-      id: 3,
-      name: "FinancialStatement-2024-Tahunan-BUKA.pdf",
-      description: "Annual financial statement and reports for 2024",
-      type: "document",
-      createdAt: "24 Jun 2025",
-      categories: ["financial statements", "subsidiaries", "assets"],
-      tags: ["currency exchange", "liabilities"],
-      lastEditedAt: "24 Jun 2025",
-      documentId: "g85def6e93bc8c5e9bec2946",
-      fileType: "application/pdf",
-      fileSize: "15.7 MB",
-      uploadedBy: "Admin User",
-      summary:
-        "This document contains financial statements and subsidiary information. It was uploaded on June 24, 2025 and categorized under report.",
-    },
-    {
-      id: 4,
-      name: "FinancialStatement-2023-Tahunan-BUKA.pdf",
-      description:
-        "Annual financial statement and comprehensive business analysis for 2023",
-      type: "document",
-      createdAt: "24 Jun 2025",
-      categories: [
-        "financial statement",
-        "subsidiary information",
-        "short-term loans",
-      ],
-      tags: [
-        "financial statements",
-        "bank loans",
-        "subsidiaries",
-        "business acquisition",
-      ],
-      lastEditedAt: "24 Jun 2025",
-      documentId: "h95def6e83bc8c5e9bec2844",
-      fileType: "application/pdf",
-      fileSize: "18.2 MB",
-      uploadedBy: "Admin User",
-      summary:
-        "This document contains comprehensive financial statements and business analysis for 2023. It includes subsidiary information and short-term loan details.",
-    },
-    {
-      id: 5,
-      name: "FinancialStatement-2025-I-GOTO.pdf",
-      description: "Q1 2025 financial statement and quarterly business review",
-      type: "document",
-      createdAt: "24 Jun 2025",
-      categories: [
-        "financial statement",
-        "unconsolidated report",
-        "subsidiaries",
-      ],
-      tags: ["credit risk", "interim"],
-      lastEditedAt: "24 Jun 2025",
-      documentId: "i85def6e93bc8c5e9bec2843",
-      fileType: "application/pdf",
-      fileSize: "12.4 MB",
-      uploadedBy: "Admin User",
-      summary:
-        "This document contains Q1 2025 financial statement and quarterly business review. It includes unconsolidated report and subsidiary information.",
-    },
-    {
-      id: 6,
-      name: "PT GoTo Gojek Tokopedia.pdf",
-      description:
-        "Company profile and digital platform technology services overview",
-      type: "document",
-      createdAt: "23 Jun 2025",
-      categories: [
-        "company profile",
-        "digital platform",
-        "technology services",
-      ],
-      tags: ["stock exchange", "indonesia"],
-      lastEditedAt: "23 Jun 2025",
-      documentId: "j85def6e93bc8c5e9bec2842",
-      fileType: "application/pdf",
-      fileSize: "5.8 MB",
-      uploadedBy: "Admin User",
-      summary:
-        "This document contains company profile and digital platform technology services overview. It was uploaded on June 23, 2025 and categorized under report.",
-    },
-    {
-      id: 7,
-      name: "FinancialStatement-2023-Tahunan-GOTO.pdf",
-      description:
-        "Complete annual financial statements and business operations report",
-      type: "document",
-      createdAt: "20 Jun 2025",
-      categories: ["annual report", "subsidiaries", "financial statements"],
-      tags: ["currency", "bank loans", "consolidation", "currency exchange"],
-      lastEditedAt: "20 Jun 2025",
-      documentId: "k85def6e93bc8c5e9bec2841",
-      fileType: "application/pdf",
-      fileSize: "22.3 MB",
-      uploadedBy: "Admin User",
-      summary:
-        "This document contains complete annual financial statements and business operations report for 2023. It includes comprehensive subsidiary information and currency exchange details.",
-    },
-    {
-      id: 8,
-      name: "FinancialStatement-2024-Tahunan-GOTO.pdf",
-      description:
-        "2024 annual financial statement with comprehensive business analysis",
-      type: "document",
-      createdAt: "20 Jun 2025",
-      categories: ["financial statement", "subsidiaries", "debt management"],
-      tags: ["consolidation", "currency exchange"],
-      lastEditedAt: "20 Jun 2025",
-      documentId: "l85def6e93bc8c5e9bec2840",
-      fileType: "application/pdf",
-      fileSize: "19.6 MB",
-      uploadedBy: "Admin User",
-      summary:
-        "This document contains 2024 annual financial statement with comprehensive business analysis. It includes subsidiary information and debt management details.",
-    },
-    {
-      id: 9,
-      name: "FinancialStatement-2022-Tahunan-GOTO.pdf",
-      description: "2022 annual financial reports and subsidiary information",
-      type: "document",
-      createdAt: "13 Jun 2025",
-      categories: ["financial statements", "subsidiaries", "employee benefits"],
-      tags: ["bank loans", "interest rates"],
-      lastEditedAt: "13 Jun 2025",
-      documentId: "m85def6e93bc8c5e9bec2839",
-      fileType: "application/pdf",
-      fileSize: "16.9 MB",
-      uploadedBy: "Admin User",
-      summary:
-        "This document contains 2022 annual financial reports and subsidiary information. It includes employee benefits and bank loan details with interest rate information.",
-    },
-  ];
+  const [error, setError] = useState("");
+  const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
-  const dataset =
-    datasets.find((d) => d.id === parseInt(params.id)) || datasets[0];
+  useEffect(() => {
+    if (!id) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    (async () => {
+      setIsLoading(true);
+      setError("");
+
+      try {
+        const res = await dsApi.detail(id, { signal });
+        if (!res || res.error) {
+          throw new Error(res?.error || "Gagal memuat dataset.");
+        }
+
+        setDataset(res?.data);
+      } catch (e) {
+        if (e.name !== "AbortError") {
+          setError(e?.message || "Terjadi kesalahan.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+
+    return () => {
+      controller.abort();
+    };
+  }, [id]);
+
+  const handlePreviewDownload = () => {
+    const url = `/api/dataset/${dataset?.id}/download`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = dataset?.filename || "download";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
 
   // Simulate loading
   useEffect(() => {
@@ -395,9 +269,9 @@ export default function DatasetDetail() {
   );
 
   const getFileIcon = (fileType) => {
-    if (fileType.includes("video")) return Database;
-    if (fileType.includes("pdf")) return FileText;
-    if (fileType.includes("image")) return FileText;
+    if (fileType?.includes("video")) return Database;
+    if (fileType?.includes("pdf")) return FileText;
+    if (fileType?.includes("image")) return FileText;
     return Folder;
   };
 
@@ -471,25 +345,32 @@ export default function DatasetDetail() {
                         className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{
                           background: "var(--surface-secondary)",
-                          color: getTypeColor(dataset.type),
+                          color: getTypeColor(dataset?.type),
                         }}
                       >
-                        {React.createElement(getFileIcon(dataset.fileType), {
+                        {React.createElement(getFileIcon(dataset?.file_type), {
                           className: "h-8 w-8",
                         })}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h1
                           className="text-2xl font-bold mb-2"
-                          style={{ color: "var(--text-primary)" }}
+                          style={{
+                            color: "var(--text-primary)",
+                            display: "inline-block",
+                            maxWidth: "100%",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
                         >
-                          {dataset.name}
+                          {dataset?.filename}
                         </h1>
                         <p
                           className="text-base mb-4"
                           style={{ color: "var(--text-secondary)" }}
                         >
-                          {dataset.description}
+                          {dataset?.description || ""}
                         </p>
                         <div className="flex items-center gap-4 text-sm">
                           <div className="flex items-center gap-2">
@@ -498,7 +379,7 @@ export default function DatasetDetail() {
                               style={{ color: "var(--text-tertiary)" }}
                             />
                             <span style={{ color: "var(--text-tertiary)" }}>
-                              Uploaded {dataset.createdAt}
+                              Uploaded {dataset?.created_at}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -507,7 +388,7 @@ export default function DatasetDetail() {
                               style={{ color: "var(--text-tertiary)" }}
                             />
                             <span style={{ color: "var(--text-tertiary)" }}>
-                              by {dataset.uploadedBy}
+                              by {dataset?.updated_at}
                             </span>
                           </div>
                         </div>
@@ -538,7 +419,7 @@ export default function DatasetDetail() {
                         </h3>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {dataset.categories.map((category, idx) => (
+                        {dataset?.category?.map((category, idx) => (
                           <span
                             key={idx}
                             className="px-3 py-1 text-sm rounded-lg font-medium"
@@ -574,7 +455,7 @@ export default function DatasetDetail() {
                         </h3>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {dataset.tags.map((tag, idx) => (
+                        {dataset?.tags?.map((tag, idx) => (
                           <span
                             key={idx}
                             className="px-3 py-1 text-sm rounded-lg"
@@ -622,7 +503,7 @@ export default function DatasetDetail() {
                           className="text-sm font-mono"
                           style={{ color: "var(--text-secondary)" }}
                         >
-                          {dataset.documentId}
+                          {dataset?.id}
                         </p>
                       </div>
                       <div>
@@ -642,7 +523,7 @@ export default function DatasetDetail() {
                           className="text-sm"
                           style={{ color: "var(--text-secondary)" }}
                         >
-                          {dataset.fileType}
+                          {dataset?.file_type}
                         </p>
                       </div>
                       <div>
@@ -662,7 +543,7 @@ export default function DatasetDetail() {
                           className="text-sm"
                           style={{ color: "var(--text-secondary)" }}
                         >
-                          {dataset.fileSize}
+                          {dataset?.file_size}
                         </p>
                       </div>
                     </div>
@@ -692,7 +573,7 @@ export default function DatasetDetail() {
                       className="text-sm leading-relaxed"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      {dataset.summary}
+                      {dataset?.summary || ""}
                     </p>
                   </div>
                 </div>
@@ -725,10 +606,10 @@ export default function DatasetDetail() {
                         className="w-20 h-20 rounded-xl flex items-center justify-center mx-auto mb-4"
                         style={{
                           background: "var(--surface-secondary)",
-                          color: getTypeColor(dataset.type),
+                          color: getTypeColor(dataset?.type),
                         }}
                       >
-                        {React.createElement(getFileIcon(dataset.fileType), {
+                        {React.createElement(getFileIcon(dataset?.file_type), {
                           className: "h-10 w-10",
                         })}
                       </div>
@@ -736,9 +617,10 @@ export default function DatasetDetail() {
                         className="text-sm mb-4"
                         style={{ color: "var(--text-secondary)" }}
                       >
-                        {dataset.fileType} • {dataset.fileSize}
+                        {dataset?.type} • {dataset?.file_size}
                       </p>
                       <button
+                        onClick={handlePreviewDownload}
                         className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all duration-200 hover:opacity-90 cursor-pointer"
                         style={{
                           background: "var(--primary)",
@@ -783,7 +665,7 @@ export default function DatasetDetail() {
                           className="text-sm font-medium"
                           style={{ color: "var(--text-primary)" }}
                         >
-                          {dataset.categories.length}
+                          {dataset?.category?.length}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -803,7 +685,7 @@ export default function DatasetDetail() {
                           className="text-sm font-medium"
                           style={{ color: "var(--text-primary)" }}
                         >
-                          {dataset.tags.length}
+                          {dataset?.tags?.length}
                         </span>
                       </div>
                       <div className="flex items-center justify-between">
@@ -823,7 +705,7 @@ export default function DatasetDetail() {
                           className="text-sm font-medium"
                           style={{ color: "var(--text-primary)" }}
                         >
-                          {dataset.lastEditedAt}
+                          {dataset?.updated_at}
                         </span>
                       </div>
                     </div>
@@ -915,7 +797,7 @@ export default function DatasetDetail() {
                         className="text-base leading-relaxed"
                         style={{ color: "var(--text-secondary)" }}
                       >
-                        {aiSummary.overview}
+                        {aiSummary?.overview}
                       </p>
                     </div>
 
@@ -927,7 +809,7 @@ export default function DatasetDetail() {
                         Key Insights:
                       </h4>
                       <ul className="space-y-2">
-                        {aiSummary.keyPoints.map((point, idx) => (
+                        {aiSummary?.keyPoints.map((point, idx) => (
                           <li key={idx} className="flex items-start gap-3">
                             <span
                               className="w-2 h-2 rounded-full mt-2 flex-shrink-0"
