@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.14",
     "@studio-freight/lenis": "^1.0.42",
     "axios": "^1.11.0",
     "bcryptjs": "^2.4.3",

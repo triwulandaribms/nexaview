@@ -19,6 +19,7 @@ import {
 import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
 import { dsApi } from "@/app/lib/datasetBaseApi";
+import PreviewDocumentModal from "@/app/components/PreviewDocumentModal";
 
 export default function DatasetDetail() {
   const router = useRouter();
@@ -27,10 +28,11 @@ export default function DatasetDetail() {
   const [aiSummary, setAiSummary] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [dataset, setDataset] = useState(null);
-
+  const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
-
   useEffect(() => {
     if (!id) return;
 
@@ -62,18 +64,7 @@ export default function DatasetDetail() {
     };
   }, [id]);
 
-  const handlePreviewDownload = () => {
-    const url = `/api/dataset/${dataset?.id}/download`;
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = dataset?.filename || "download";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  };
 
-
-  // Simulate loading
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsLoading(false);
@@ -620,7 +611,7 @@ export default function DatasetDetail() {
                         {dataset?.type} • {dataset?.file_size}
                       </p>
                       <button
-                        onClick={handlePreviewDownload}
+                        onClick={() => setOpen(true)}
                         className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all duration-200 hover:opacity-90 cursor-pointer"
                         style={{
                           background: "var(--primary)",
@@ -630,6 +621,15 @@ export default function DatasetDetail() {
                         <Eye className="h-4 w-4" />
                         Preview Document
                       </button>
+
+                      <PreviewDocumentModal
+                        open={open}
+                        onOpenChange={setOpen}
+                        fileUrl={`${baseUrl}/uploads/${dataset?.filename || ""}`}
+                        title="Preview Document"
+                        item={dataset}
+                      />
+
                     </div>
                   </div>
 
