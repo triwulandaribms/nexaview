@@ -24,11 +24,16 @@ export async function GET(_req, { params }) {
     });
 
     const kb = data?.data ?? data ?? {};
-    
+
     const transformed = {
       ...kb,
       created_at: formatDate(kb.created_at),
       updated_at: formatDate(kb.updated_at),
+      documents: (kb?.documents || []).map(doc => ({
+        ...doc,
+        created_at: formatDate(doc.created_at),
+        updated_at: formatDate(doc.updated_at),
+      })),
     };
 
     return ok('Fetched knowledge base detail successfully.', transformed);

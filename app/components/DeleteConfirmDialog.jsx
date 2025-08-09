@@ -8,11 +8,10 @@ export default function DeleteConfirmDialog({
   onClose,
   onConfirm,
   deleting = false,
-  item,                    // { filename, file_size, file_type, created_at, updated_at, category, tags, processing_status }
+  item,
 }) {
   const dialogRef = useRef(null);
 
-  /* ---------------------------------- focus & ESC ---------------------------------- */
   useEffect(() => {
     if (!open) return;
     const prev = document.activeElement;
@@ -21,7 +20,6 @@ export default function DeleteConfirmDialog({
     const onKey = (e) => { if (e.key === "Escape") onClose?.(); };
     window.addEventListener("keydown", onKey);
 
-    /* lock scroll */
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -32,7 +30,6 @@ export default function DeleteConfirmDialog({
     };
   }, [open, onClose]);
 
-  /* ---------------------------------- helpers ---------------------------------- */
   const formatSize = (bytes) =>
     bytes ? `${(bytes / 1024 / 1024).toFixed(2)} MB` : "-";
 
@@ -50,7 +47,6 @@ export default function DeleteConfirmDialog({
     <AnimatePresence>
       {open && (
         <>
-          {/* ---------- overlay ---------- */}
           <motion.button
             key="overlay"
             aria-label="Close dialog"
@@ -62,15 +58,13 @@ export default function DeleteConfirmDialog({
             style={{ background: "rgba(0,0,0,0.5)" }}
           />
 
-          {/* ---------- container ---------- */}
           <motion.div
             key="container"
-            className="fixed inset-0 z-[101] flex items-end sm:items-center justify-center p-4"
+            className="fixed inset-0 z-[101] flex items-end sm:items-center justify-center p-4 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            {/* ---------- dialog panel ---------- */}
             <motion.div
               role="dialog"
               aria-modal="true"
@@ -88,7 +82,6 @@ export default function DeleteConfirmDialog({
                 borderColor: "var(--border-light)",
               }}
             >
-              {/* ---------- header ---------- */}
               <div className="flex items-center gap-3 px-5 pt-5">
                 <div
                   className="p-2 rounded-xl"
@@ -106,7 +99,6 @@ export default function DeleteConfirmDialog({
                 >
                   Delete this dataset?
                 </h2>
-                {/* close icon */}
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -119,7 +111,6 @@ export default function DeleteConfirmDialog({
                 </motion.button>
               </div>
 
-              {/* ---------- body ---------- */}
               <div className="px-5 pt-3 pb-5">
                 <p
                   id="delete-desc"
@@ -130,7 +121,6 @@ export default function DeleteConfirmDialog({
                   The following item will be removed permanently:
                 </p>
 
-                {/* simple info card */}
                 <div
                   className="mt-3 rounded-lg border px-4 py-3 text-sm flex items-center gap-3"
                   style={{
@@ -139,7 +129,6 @@ export default function DeleteConfirmDialog({
                     color: "var(--text-primary)",
                   }}
                 >
-                  {/* file initial */}
                   <div
                     className="shrink-0 rounded-md flex items-center justify-center"
                     style={{
@@ -154,7 +143,6 @@ export default function DeleteConfirmDialog({
                     {item?.name?.[0]?.toUpperCase() ?? "F"}
                   </div>
 
-                  {/* file name + meta */}
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{item?.name}</div>
                     <div
@@ -167,9 +155,7 @@ export default function DeleteConfirmDialog({
                   </div>
                 </div>
 
-                {/* actions */}
                 <div className="mt-5 grid grid-cols-1 sm:flex sm:justify-end gap-2 sm:gap-3">
-                  {/* cancel */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -186,7 +172,6 @@ export default function DeleteConfirmDialog({
                     <span>Cancel</span>
                   </motion.button>
 
-                  {/* delete */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}

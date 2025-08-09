@@ -246,7 +246,9 @@ export default function Datasets() {
 
 
   const lcSearch = searchTerm.toLowerCase();
-  const allFilteredDatasets = (datasets || [])?.filter((ds) => {
+  const safeDatasets = Array.isArray(datasets) ? datasets : [];
+
+  const allFilteredDatasets =safeDatasets?.filter((ds) => {
     if (!ds) return false;
     const filenameMatch =
       typeof ds?.filename === 'string' &&

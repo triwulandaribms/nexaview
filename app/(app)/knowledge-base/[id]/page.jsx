@@ -348,8 +348,46 @@ export default function KnowledgeBaseDetails() {
       try {
         const { data } = await dsApi.list({ signal });
 
-        const items = Array.isArray(data) ? data : (data?.items || []);
-        setAvailableDatasets(items);
+        // 1) Normalisasi sumber data API → array dokumen
+        const apiDocsRaw = data?.documents ?? data?.items ?? data ?? [];
+        const apiDocs = Array.isArray(apiDocsRaw) ? apiDocsRaw : [];
+
+        // 2) Ambil dokumen dari KB (aman saat null/undefined)
+        const kbDocs = Array.isArray(knowledgeBase?.documents) ? knowledgeBase.documents : [];
+
+        // 3) Kalau KB kosong → tampilkan semua
+        if (kbDocs.length === 0) {
+          console.log(`API docs: ${apiDocs.length} (KB kosong, tampilkan semua)`);
+          setAvailableDatasets(apiDocs);
+          return;
+        }
+
+        // 4) Normalisasi ID ke string untuk menghindari mismatch tipe
+        const toKey = v => (v === undefined || v === null ? "" : String(v));
+        const existingIds = new Set(kbDocs.map(d => toKey(d.id)).filter(Boolean));
+
+        // 5) Filter: buang yang ID-nya sudah ada di KB
+        const filtered = apiDocs.filter(d => !existingIds.has(toKey(d.id)));
+
+        // 6) Log bantu debug
+        console.table({
+          api_docs: apiDocs.length,
+          kb_docs: kbDocs.length,
+          removed: apiDocs.length - filtered.length,
+          shown: filtered.length,
+        });
+
+        // 7) (opsional) fallback: kalau filtered kosong padahal apiDocs ada,
+        // kemungkinan ID tidak konsisten → coba longgar pakai filename juga
+        const result =
+          filtered.length === 0 && apiDocs.length > 0
+            ? apiDocs.filter(d => {
+              const name = d.filename || d.file_name;
+              return !kbDocs.some(k => (k.filename || k.file_name) === name);
+            })
+            : filtered;
+
+        setAvailableDatasets(result);
       } catch (e) {
         console.error(e);
         setAvailableDatasets([]);
@@ -357,7 +395,8 @@ export default function KnowledgeBaseDetails() {
     })();
 
     return () => controller.abort();
-  }, [uploadOpen]);
+  }, [uploadOpen, knowledgeBase?.documents]);
+
 
 
   useEffect(() => {
@@ -367,6 +406,7 @@ export default function KnowledgeBaseDetails() {
       setIsLoading(true);
       try {
         const { data } = await kbApi.detail(params.id, { signal });
+
 
         if (mounted) setKnowledgeBase({
           ...data,
@@ -1133,7 +1173,7 @@ export default function KnowledgeBaseDetails() {
               exit={{ opacity: 0, y: 20, scale: 0.98 }}
               transition={{ type: "spring", stiffness: 300, damping: 28 }}
               role="dialog" aria-modal="true" aria-labelledby="upload-title"
-              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4"
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4 backdrop-blur-md"
             >
               <div
                 className="
@@ -1286,7 +1326,7 @@ export default function KnowledgeBaseDetails() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.98 }}
               transition={{ type: "spring", stiffness: 320, damping: 28 }}
-              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 backdrop-blur-md"
             >
               <div
                 className="w-full max-w-[28rem] sm:max-w-md rounded-2xl border shadow-xl"
@@ -1315,7 +1355,7 @@ export default function KnowledgeBaseDetails() {
                       background: "var(--surface-secondary)",
                     }}
                   >
-                    <span className="font-medium">{docDeleteTarget?.file_name || docDeleteTarget?.filename}</span>
+                    <span className="font-medium break-words">{docDeleteTarget?.file_name || docDeleteTarget?.filename}</span>
                     <div className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
                       {Array.isArray(docDeleteTarget?.category)
                         ? docDeleteTarget.category.join(', ')
