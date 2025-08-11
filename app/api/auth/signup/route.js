@@ -58,15 +58,25 @@ export async function POST(req) {
     // });
   } catch (error) {
     console.error("Signup error ==>>> ", error?.response || error.message);
-
     if (axios.isAxiosError(error) && error.response) {
       const status = error.response.status;
       const errData = error.response.data;
 
+      if (status == 409) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "This email is unavailable, please replace it with another one.",
+            detail: errData,
+          },
+          { status: 409 }
+        );
+      }
+
       return NextResponse.json(
         {
           success: false,
-          error: errData?.error || "Registration failed.",
+          error: errData?.message || "Registration failed.",
           detail: errData,
         },
         { status }
