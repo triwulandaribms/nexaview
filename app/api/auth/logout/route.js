@@ -12,13 +12,13 @@ export async function POST() {
     const idToken = cookieStore.get("id_token")?.value;
 
     // Kirim request logout ke API eksternal
-    // await axios.post(`${baseURL}/api/auth/logout`, null, {
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     Authorization: `Bearer ${accessToken || ''}`,
-    //     'x-id-token': idToken || ''
-    //   }
-    // });
+    await axios.post(`${baseURL}/api/auth/logout`, null, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken || ''}`,
+        'x-id-token': idToken || ''
+      }
+    });
 
     const response = NextResponse.json({
       success: true,
