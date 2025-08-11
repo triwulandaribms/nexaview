@@ -701,6 +701,7 @@ export default function KnowledgeBase() {
                 background: "var(--primary)",
                 color: "var(--text-inverse)",
               }}
+              onClick={() => router.push("/knowledge-base/create")}
             >
               <Plus className="h-4 w-4" />
               New Knowledge Base

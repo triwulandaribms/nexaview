@@ -248,7 +248,7 @@ export default function Datasets() {
   const lcSearch = searchTerm.toLowerCase();
   const safeDatasets = Array.isArray(datasets) ? datasets : [];
 
-  const allFilteredDatasets =safeDatasets?.filter((ds) => {
+  const allFilteredDatasets = safeDatasets?.filter((ds) => {
     if (!ds) return false;
     const filenameMatch =
       typeof ds?.filename === 'string' &&
@@ -819,6 +819,7 @@ export default function Datasets() {
                 background: "var(--primary)",
                 color: "var(--text-inverse)",
               }}
+              onClick={() => router.push("/dataset/create")}
             >
               <Plus className="h-4 w-4" />
               Add Document
