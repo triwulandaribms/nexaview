@@ -15,7 +15,6 @@ export async function POST() {
     // Kirim request logout ke API eksternal
     await axios.post(`${baseURL}/api/auth/logout`, null, {
       headers: {
-        'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken || ''}`,
         'x-id-token': idToken || ''
       }
