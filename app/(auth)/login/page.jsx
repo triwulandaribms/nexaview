@@ -18,7 +18,7 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
     setError('')
-    
+
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -34,7 +34,7 @@ export default function LoginPage() {
         // Token is set as httpOnly cookie by the server
         // Store user info in localStorage for client-side access
         localStorage.setItem('user', JSON.stringify(data.user))
-        
+
         // Redirect to dashboard
         router.push('/dashboard')
       } else {
@@ -85,22 +85,22 @@ export default function LoginPage() {
   }
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{ 
+      style={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 20%, #f093fb 40%, #f5576c 60%, #4facfe 80%, #00f2fe 100%)',
         backgroundSize: '400% 400%',
         animation: 'gradientShift 15s ease infinite'
       }}
     >
       {/* Premium Gradient Overlays */}
-      <div 
+      <div
         className="absolute inset-0 opacity-30"
         style={{
           background: 'radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.4) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255, 118, 117, 0.4) 0%, transparent 50%), radial-gradient(circle at 40% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%)'
         }}
       />
-      
+
       {/* Floating Premium Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -163,14 +163,14 @@ export default function LoginPage() {
         variants={containerVariants}
       >
         {/* Logo and Title */}
-        <motion.div 
+        <motion.div
           className="text-center mb-8"
           variants={itemVariants}
         >
-          
-          <motion.h1 
+
+          <motion.h1
             className="text-4xl font-bold mb-3"
-            style={{ 
+            style={{
               background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
@@ -179,7 +179,7 @@ export default function LoginPage() {
               filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
             }}
             initial={{ opacity: 0, y: 20 }}
-            animate={{ 
+            animate={{
               opacity: 1,
               y: 0,
               transition: { delay: 0.2, duration: 0.8 }
@@ -187,15 +187,15 @@ export default function LoginPage() {
           >
             Welcome Back
           </motion.h1>
-          <motion.p 
+          <motion.p
             className="text-lg font-medium"
-            style={{ 
+            style={{
               color: 'rgba(255, 255, 255, 0.9)',
               letterSpacing: '0.025em',
               textShadow: '0 2px 8px rgba(0,0,0,0.3)'
             }}
             initial={{ opacity: 0, y: 10 }}
-            animate={{ 
+            animate={{
               opacity: 1,
               y: 0,
               transition: { delay: 0.4, duration: 0.8 }
@@ -208,7 +208,7 @@ export default function LoginPage() {
         {/* Login Card */}
         <motion.div
           className="p-10 rounded-3xl backdrop-blur-xl relative"
-          style={{ 
+          style={{
             background: 'rgba(255, 255, 255, 0.95)',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
             border: '1px solid rgba(255, 255, 255, 0.2)',
@@ -217,13 +217,12 @@ export default function LoginPage() {
           variants={cardVariants}
         >
 
-
           {/* Error Message */}
           {error && (
-            <motion.div 
+            <motion.div
               className="p-3 rounded-lg text-sm text-center"
               style={{
-                background: 'var(--error-light)',
+                background: 'rgb(254, 226, 226)',
                 color: 'var(--error)',
                 border: '1px solid var(--error)'
               }}
@@ -236,17 +235,17 @@ export default function LoginPage() {
           )}
 
           {/* Login Form */}
-          <motion.form 
-            onSubmit={handleSubmit} 
+          <motion.form
+            onSubmit={handleSubmit}
             className="space-y-4"
             variants={itemVariants}
           >
             {/* Email Input */}
             <div>
-              <label 
-                htmlFor="email" 
+              <label
+                htmlFor="email"
                 className="block text-sm font-semibold mb-3"
-                style={{ 
+                style={{
                   color: '#374151',
                   letterSpacing: '0.025em'
                 }}
@@ -255,8 +254,8 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail 
-                    size={18} 
+                  <Mail
+                    size={18}
                     style={{ color: 'var(--text-tertiary)' }}
                   />
                 </div>
@@ -282,10 +281,10 @@ export default function LoginPage() {
 
             {/* Password Input */}
             <div>
-              <label 
-                htmlFor="password" 
+              <label
+                htmlFor="password"
                 className="block text-sm font-semibold mb-3"
-                style={{ 
+                style={{
                   color: '#374151',
                   letterSpacing: '0.025em'
                 }}
@@ -294,8 +293,8 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock 
-                    size={18} 
+                  <Lock
+                    size={18}
                     style={{ color: 'var(--text-tertiary)' }}
                   />
                 </div>
@@ -322,13 +321,13 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff 
-                      size={18} 
+                    <EyeOff
+                      size={18}
                       style={{ color: 'var(--text-tertiary)' }}
                     />
                   ) : (
-                    <Eye 
-                      size={18} 
+                    <Eye
+                      size={18}
                       style={{ color: 'var(--text-tertiary)' }}
                     />
                   )}
@@ -347,14 +346,14 @@ export default function LoginPage() {
                     accentColor: 'var(--primary)'
                   }}
                 />
-                <span 
+                <span
                   className="ml-2 text-sm"
                   style={{ color: 'var(--text-secondary)' }}
                 >
                   Remember me
                 </span>
               </label>
-              <Link 
+              <Link
                 href="/forgot-password"
                 className="text-sm font-medium hover:underline"
                 style={{ color: 'var(--primary)' }}
@@ -395,16 +394,16 @@ export default function LoginPage() {
           </motion.form>
 
           {/* Sign Up Link */}
-          <motion.div 
+          <motion.div
             className="mt-6 text-center"
             variants={itemVariants}
           >
-            <p 
+            <p
               className="text-sm"
               style={{ color: 'var(--text-secondary)' }}
             >
               Don't have an account?{' '}
-              <Link 
+              <Link
                 href="/signup"
                 className="font-medium hover:underline"
                 style={{ color: 'var(--primary)' }}
