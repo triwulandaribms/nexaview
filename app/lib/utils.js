@@ -5,7 +5,7 @@ export function ok(message, data = null) {
 }
 
 export function fail(error, code = 500) {
-    return NextResponse.json({ success: false, error, code }, { status: 200 });
+    return NextResponse.json({ success: false, error, code }, { status: code });
 }
 
 const pickError = (d, fb = 'Request failed') => d?.error || d?.message || fb;

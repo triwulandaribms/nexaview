@@ -208,3 +208,8 @@ body {
     background-position: 0% 50%;
   }
 }
+
+nextjs-portal,
+[data-nextjs-toast] {
+  display: none !important;
+}

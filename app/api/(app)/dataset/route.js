@@ -41,7 +41,7 @@ export async function GET() {
 export async function POST(request) {
 
     const baseURL = process.env.API_BASE_URL;
-    if (!baseURL) return fail('Konfigurasi server salah. Hubungi administrator.', 500);
+    if (!baseURL) return fail('Server configuration error. Please contact administrator.', 500);
 
 
     const cookieStore = await cookies();
@@ -61,9 +61,12 @@ export async function POST(request) {
             validateStatus: s => s >= 200 && s < 300,
         });
 
-        return ok('Dataset berhasil diunggah.', data);
+        return ok('Dataset successfully uploaded.', data);
     } catch (err) {
-        const { code, msg } = normalizeAxiosError(err, 'Gagal mengunggah dataset');
+        console.log("Erro post dataset = >>> ", err?.message);
+
+        const { code, msg } = normalizeAxiosError(err, 'Failed to upload dataset');
+
         return fail(msg, code);
     }
 }

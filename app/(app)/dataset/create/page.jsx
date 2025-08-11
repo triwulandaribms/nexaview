@@ -128,31 +128,42 @@ export default function CreateDataset() {
   const handleSubmit = async () => {
     if (!file || uploading) return;
 
-    const { signal, cancel } = withTimeout(30_000);   // 30 s timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30_000); // 30s
+    const { signal } = controller;
+
     setUploading(true);
     setErrorMsg('');
 
     try {
-      const res = await dsApi.upload(file,
+      const res = await dsApi.upload(
+        file,
         { categories, tags },
         { signal }
       );
 
-      if (!res.data?.success) {
-        setErrorMsg(res.error || 'Upload failed');
+      if (!res?.data?.success) {
+        setErrorMsg(res?.error || 'Upload failed');
         return;
       }
 
       router.push('/dataset');
-
     } catch (err) {
-      console.error(err);
-      setErrorMsg(err.message || 'Upload failed');
+      if (err?.name === 'AbortError' || err?.code === 'ERR_CANCELED') {
+        setErrorMsg('Request timed out. Please try again.');
+      } else {
+        const msg =
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          String(err);
+        setErrorMsg(msg);
+      }
     } finally {
-      cancel();
+      clearTimeout(timeoutId);
       setUploading(false);
     }
-  }
+  };
 
   return (
     <motion.main
@@ -190,16 +201,17 @@ export default function CreateDataset() {
           )}
         </div>
 
-        {errorMsg && (
-          <Alert variant="error" onDismiss={() => setErrorMsg('')}>
-            {errorMsg}
-          </Alert>
-        )}
+
 
         {isLoading ? (
           <SkeletonUpload />
         ) : (
           <motion.div className="max-w-3xl mx-auto">
+            {errorMsg && (
+              <Alert variant="error" onDismiss={() => setErrorMsg('')}>
+                {errorMsg}
+              </Alert>
+            )}
             <div
               className={`relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"
                 }`}
@@ -436,14 +448,14 @@ export default function CreateDataset() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={handleSubmit}
-              disabled={!file}
+              disabled={!file || uploading}
               className="w-full mt-6 py-3 rounded-lg font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: "var(--primary)",
                 color: "var(--text-inverse)",
               }}
             >
-              Upload Document
+              {uploading ? "Uploading…" : "Upload Document"}
             </motion.button>
           </motion.div>
         )}
