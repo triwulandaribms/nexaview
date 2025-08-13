@@ -18,6 +18,9 @@ import {
   LogOut,
   User,
   Gamepad2,
+  Users,
+  Shield,
+  Key
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 
@@ -88,6 +91,12 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     { icon: Database, label: "Dataset", href: "/dataset" },
     { icon: BookOpen, label: "Knowledge base", href: "/knowledge-base" },
   ];
+
+  const managementItems = [
+    { icon: Users, label: "User Management", href: "/user-management" },
+    { icon: Shield , label: "Role Management", href: "/role-management" },
+  ];
+
 
   const observeTestItems = [
     { icon: Search, label: "Tracing", href: "/tracing" },
@@ -239,6 +248,17 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             />
           ))}
 
+          {/* MANAGEMENT */}
+          <SectionHeader title="MANAGEMENT" />
+          {managementItems.map((item) => (
+            <NavItem
+              key={item.label}
+              icon={item.icon}
+              label={item.label}
+              href={item.href}
+              isActive={activeItem === item.href}
+            />
+          ))}
           {/* Observe & Test Section */}
           <SectionHeader title="OBSERVE & TEST" />
           {observeTestItems.map((item) => (
