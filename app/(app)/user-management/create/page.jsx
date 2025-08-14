@@ -1,4 +1,3 @@
-// app/users/create/page.jsx
 "use client";
 
 import React, { useRef, useState } from "react";
@@ -26,24 +25,21 @@ const fadeUp = {
 export default function CreateUserPage() {
     const router = useRouter();
 
-    // form state
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [mobile, setMobile] = useState("");
     const [role, setRole] = useState("Member");
     const [statusActive, setStatusActive] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
-
     const [password, setPassword] = useState("");
     const [confirm, setConfirm] = useState("");
     const [showPass, setShowPass] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
-
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+
     const currentUserEmail = "you@example.com";
 
-    // helpers & validation
     const emailOk = (v) => /^\S+@\S+\.\S+$/.test(v);
     const phoneOk = (v) => /^[0-9+\-\s()]{8,20}$/.test(v.trim());
     const passOk = (v) => v.length >= 6;
@@ -109,7 +105,6 @@ export default function CreateUserPage() {
             animate="show"
             className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)]"
         >
-            {/* ===== Sticky Top Header ala KB (pakai motion) ===== */}
             <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8">
                 <motion.div
                     initial={{ opacity: 0, y: -16 }}
@@ -130,11 +125,8 @@ export default function CreateUserPage() {
                     </button>
                 </motion.div>
 
-                {/* soft gradient ke konten */}
-                {/* <div className="h-3 pointer-events-none bg-gradient-to-b from-black/5 to-transparent" /> */}
             </div>
 
-            {/* ===== Info Header (ikon + judul) ===== */}
             <motion.section
                 variants={fadeUp}
                 initial="hidden"
@@ -163,7 +155,6 @@ export default function CreateUserPage() {
                 </div>
             </motion.section>
 
-            {/* Error banner */}
             {errorMsg && (
                 <motion.div
                     variants={fadeUp}
@@ -180,19 +171,16 @@ export default function CreateUserPage() {
                 </motion.div>
             )}
 
-            {/* ===== Form grid ===== */}
             <form
                 onSubmit={handleSubmit}
                 className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6"
             >
-                {/* Left column */}
                 <motion.section
                     variants={fadeUp}
                     initial="hidden"
                     animate="show"
                     className="xl:col-span-2 space-y-4 sm:space-y-6"
                 >
-                    {/* User Info */}
                     <div
                         className="rounded-lg border"
                         style={{
@@ -210,7 +198,6 @@ export default function CreateUserPage() {
                             </h2>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {/* Full name */}
                                 <div className="flex flex-col gap-1.5 sm:col-span-2">
                                     <label className="text-sm" style={{ color: "var(--text-secondary)" }}>
                                         Full name
@@ -230,7 +217,6 @@ export default function CreateUserPage() {
                                     />
                                 </div>
 
-                                {/* Email */}
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-sm" style={{ color: "var(--text-secondary)" }}>
                                         Email
@@ -251,7 +237,6 @@ export default function CreateUserPage() {
                                     />
                                 </div>
 
-                                {/* Mobile number */}
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-sm" style={{ color: "var(--text-secondary)" }}>
                                         Mobile number
@@ -273,7 +258,6 @@ export default function CreateUserPage() {
                                     />
                                 </div>
 
-                                {/* Role */}
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-sm" style={{ color: "var(--text-secondary)" }}>
                                         Role
@@ -299,7 +283,6 @@ export default function CreateUserPage() {
                         </div>
                     </div>
 
-                    {/* Security */}
                     <div
                         className="rounded-lg border"
                         style={{
@@ -317,7 +300,7 @@ export default function CreateUserPage() {
                             </h2>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {/* Password */}
+
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-sm" style={{ color: "var(--text-secondary)" }}>
                                         Password
@@ -348,7 +331,6 @@ export default function CreateUserPage() {
                                     </div>
                                 </div>
 
-                                {/* Confirm */}
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-sm" style={{ color: "var(--text-secondary)" }}>
                                         Confirm Password
@@ -382,14 +364,12 @@ export default function CreateUserPage() {
                     </div>
                 </motion.section>
 
-                {/* Right column: Status + Meta */}
                 <motion.aside
                     variants={fadeUp}
                     initial="hidden"
                     animate="show"
                     className="xl:col-span-1 space-y-4 sm:space-y-6"
                 >
-                    {/* Status */}
                     <div
                         className="rounded-lg border"
                         style={{
@@ -435,7 +415,6 @@ export default function CreateUserPage() {
                         </div>
                     </div>
 
-                    {/* Meta */}
                     <div
                         className="rounded-lg border"
                         style={{
@@ -470,7 +449,6 @@ export default function CreateUserPage() {
                 </motion.aside>
             </form>
 
-            {/* Sticky action bar (mobile-first) */}
             <div
                 style={{ borderColor: "var(--border-light)" }}
             >

@@ -1,4 +1,3 @@
-// app/role-management/[id]/page.jsx
 "use client";
 
 import React, { useRef, useState } from "react";
@@ -20,7 +19,7 @@ import RoleSkeletonLoader from "@/app/components/RoleSkeletonLoader";
 const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.25 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } };
 
-/* ===== Permission catalog (samakan dengan create/update) ===== */
+
 const CATALOG = [
     {
         key: "users",
@@ -62,14 +61,11 @@ export default function RoleDetailPage() {
     const params = useParams();
     const roleId = params?.id || "1";
 
-    // ===== UI state =====
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
-    // ===== data state =====
     const [role, setRole] = useState(null);
 
-    // ===== forced skeleton 1.2s (tanpa useEffect) =====
     const [forceSkeleton, setForceSkeleton] = useState(true);
     const timerRef = useRef(null);
     const hydratedRef = useRef(false);
@@ -78,12 +74,11 @@ export default function RoleDetailPage() {
         timerRef.current = setTimeout(() => setForceSkeleton(false), 1200);
     }
     if (!forceSkeleton && !hydratedRef.current) {
-        // Mock data; ganti ke fetch API nanti
         const mock = {
             id: roleId,
             name: "Content Manager",
             description: "Role to manage content and users across the app.",
-            status: "active", // or "inactive"
+            status: "active",
             createdBy: "you@example.com",
             createdAt: "2025-08-10",
             updatedAt: "2025-08-13",
@@ -116,7 +111,6 @@ export default function RoleDetailPage() {
         router.push(`/role-management/${roleId}/edit`);
     }
 
-    // ===== Skeleton =====
     if (forceSkeleton || !role) {
         return (
             <RoleSkeletonLoader />
@@ -141,7 +135,6 @@ export default function RoleDetailPage() {
         <motion.main variants={pageFx} initial="hidden" animate="show"
             className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)]"
         >
-            {/* ===== Sticky Header ===== */}
             <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8">
                 <motion.div
                     initial={{ opacity: 0, y: -16 }}
@@ -164,7 +157,6 @@ export default function RoleDetailPage() {
                 </motion.div>
             </div>
 
-            {/* ===== Info Header ===== */}
             <motion.section variants={fadeUp} initial="hidden" animate="show" >
                 <div className="flex items-start gap-3 sm:gap-4 py-4 sm:py-5">
                     <motion.div whileHover={{ scale: 1.02 }} className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl flex items-center justify-center" style={{ background: "var(--primary)" }}>
@@ -174,7 +166,6 @@ export default function RoleDetailPage() {
                         <h2 className="text-lg sm:text-xl font-semibold leading-6" style={{ color: "var(--text-primary)" }}>
                             {role.name}
                         </h2>
-                        {/* Subjudul responsif */}
                         <div className="text-sm leading-5 sm:flex sm:flex-wrap sm:items-center sm:gap-2" style={{ color: "var(--text-secondary)" }}>
                             <span className="block sm:inline break-words">Created by {role.createdBy}</span>
                             <span className="hidden sm:inline" aria-hidden="true">•</span>
@@ -184,11 +175,10 @@ export default function RoleDetailPage() {
                 </div>
             </motion.section>
 
-            {/* ===== Content Grid ===== */}
             <form className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-                {/* Left column */}
+
                 <motion.section variants={fadeUp} initial="hidden" animate="show" className="xl:col-span-2 space-y-4 sm:space-y-6">
-                    {/* Overview */}
+
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6 space-y-4">
@@ -206,7 +196,6 @@ export default function RoleDetailPage() {
                         </div>
                     </div>
 
-                    {/* Permissions by Category */}
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -245,7 +234,6 @@ export default function RoleDetailPage() {
                                             </div>
                                         </div>
 
-                                        {/* Selected items (chips) */}
                                         <div className="px-3 sm:px-4 pb-3 sm:pb-4">
                                             <div className="flex flex-wrap gap-2">
                                                 {cat.selected.map((it) => (
@@ -271,9 +259,8 @@ export default function RoleDetailPage() {
                     </div>
                 </motion.section>
 
-                {/* Right column */}
                 <motion.aside variants={fadeUp} initial="hidden" animate="show" className="xl:col-span-1 space-y-4 sm:space-y-6">
-                    {/* Status */}
+
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -293,7 +280,6 @@ export default function RoleDetailPage() {
                         </div>
                     </div>
 
-                    {/* Meta */}
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -331,7 +317,6 @@ export default function RoleDetailPage() {
                 </motion.aside>
             </form>
 
-            {/* Sticky action bar (mobile) */}
             <div className="sticky bottom-0 left-0 right-0 mt-6 border-t backdrop-blur supports-[backdrop-filter]:bg-white/60 bg-white/90 sm:bg-transparent sm:border-0" style={{ borderColor: "var(--border-light)" }}>
                 <div className="max-w-screen-2xl mx-auto p-3 sm:p-0 sm:pt-6 flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3">
                     <motion.button
@@ -356,7 +341,6 @@ export default function RoleDetailPage() {
                 </div>
             </div>
 
-            {/* ===== Delete Confirm Modal ===== */}
             <AnimatePresence>
                 {confirmOpen && (
                     <>

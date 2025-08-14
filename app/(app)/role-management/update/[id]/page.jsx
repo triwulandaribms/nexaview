@@ -1,4 +1,3 @@
-// app/role-management/[id]/edit/page.jsx
 "use client";
 
 import React, { useMemo, useRef, useState } from "react";
@@ -25,7 +24,6 @@ import RoleSkeletonLoader from "@/app/components/RoleSkeletonLoader";
 const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.25 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } };
 
-// ===== Permission catalog (samakan dengan backend) =====
 const CATALOG = [
     {
         key: "users",
@@ -97,17 +95,15 @@ export default function EditRolePage() {
     const router = useRouter();
     const { id: roleId = "1" } = useParams() ?? {};
 
-    // ===== Form state =====
     const [roleName, setRoleName] = useState("");
     const [description, setDescription] = useState("");
     const [statusActive, setStatusActive] = useState(true);
     const [search, setSearch] = useState("");
-    const [selected, setSelected] = useState(new Set()); // permission keys
+    const [selected, setSelected] = useState(new Set()); 
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
-
-    // ===== Skeleton + Prefill mock (tanpa fetch API) =====
     const [forceSkeleton, setForceSkeleton] = useState(true);
+
     const timerRef = useRef(null);
     const hydratedRef = useRef(false);
 
@@ -117,7 +113,6 @@ export default function EditRolePage() {
         }, 1200);
     }
     if (!forceSkeleton && !hydratedRef.current) {
-        // Prefill contoh – ganti dengan data dari API
         const mock = {
             name: "Content Manager",
             description: "Can manage content and users",
@@ -131,7 +126,6 @@ export default function EditRolePage() {
         hydratedRef.current = true;
     }
 
-    // ===== Derived =====
     const filteredCatalog = useMemo(() => {
         const q = search.trim().toLowerCase();
         if (!q) return CATALOG;
@@ -145,7 +139,6 @@ export default function EditRolePage() {
 
     const selectedCount = selected.size;
 
-    // ===== Helpers =====
     const hasAllInCategory = (cat) => cat.items.every((it) => selected.has(it.key));
     const hasSomeInCategory = (cat) => cat.items.some((it) => selected.has(it.key));
 
@@ -176,7 +169,6 @@ export default function EditRolePage() {
         else selectAllInCategory(cat);
     }
 
-    // ===== Validation & Update =====
     function validate() {
         if (!roleName || roleName.trim().length < 3)
             return "Role name must be at least 3 characters.";
@@ -213,7 +205,6 @@ export default function EditRolePage() {
 
     if (forceSkeleton) return <RoleSkeletonLoader />;
 
-    // ===== UI =====
     return (
         <motion.main
             variants={pageFx}
@@ -221,7 +212,6 @@ export default function EditRolePage() {
             animate="show"
             className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)]"
         >
-            {/* Sticky Header */}
             <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8">
                 <motion.div
                     initial={{ opacity: 0, y: -16 }}
@@ -241,12 +231,8 @@ export default function EditRolePage() {
                         Edit role
                     </button>
                 </motion.div>
-
-                {/* soft gradient ke konten */}
-                {/* <div className="h-3 pointer-events-none bg-gradient-to-b from-black/5 to-transparent" /> */}
             </div>
 
-            {/* Info Header */}
             <motion.section
                 variants={fadeUp}
                 initial="hidden"
@@ -267,7 +253,6 @@ export default function EditRolePage() {
                         >
                             Edit Role
                         </h2>
-                        {/* Subjudul responsif */}
                         <div
                             className="text-sm leading-5 sm:flex sm:flex-wrap sm:items-center sm:gap-2"
                             style={{ color: "var(--text-secondary)" }}
@@ -286,7 +271,6 @@ export default function EditRolePage() {
                 </div>
             </motion.section>
 
-            {/* Error banner */}
             {errorMsg && (
                 <motion.div
                     variants={fadeUp}
@@ -303,16 +287,13 @@ export default function EditRolePage() {
                 </motion.div>
             )}
 
-            {/* Form Grid */}
             <form onSubmit={handleUpdate} className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-                {/* Left */}
                 <motion.section
                     variants={fadeUp}
                     initial="hidden"
                     animate="show"
                     className="xl:col-span-2 space-y-4 sm:space-y-6"
                 >
-                    {/* Role Info */}
                     <div
                         className="rounded-lg border"
                         style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}
@@ -366,7 +347,6 @@ export default function EditRolePage() {
                         </div>
                     </div>
 
-                    {/* Permissions */}
                     <div
                         className="rounded-lg border"
                         style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}
@@ -393,7 +373,6 @@ export default function EditRolePage() {
                                 </div>
                             </div>
 
-                            {/* Search */}
                             <div className="relative mb-4">
                                 <Search
                                     className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4"
@@ -413,7 +392,6 @@ export default function EditRolePage() {
                                 />
                             </div>
 
-                            {/* Categories */}
                             <div className="space-y-4">
                                 {filteredCatalog.map((cat) => {
                                     const all = hasAllInCategory(cat);
@@ -493,7 +471,6 @@ export default function EditRolePage() {
                                                 </div>
                                             </div>
 
-                                            {/* Items */}
                                             <div className="px-3 sm:px-4 pb-3 sm:pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                                 {cat.items.map((it) => {
                                                     const checked = selected.has(it.key);
@@ -554,14 +531,12 @@ export default function EditRolePage() {
                     </div>
                 </motion.section>
 
-                {/* Right */}
                 <motion.aside
                     variants={fadeUp}
                     initial="hidden"
                     animate="show"
                     className="xl:col-span-1 space-y-4 sm:space-y-6"
                 >
-                    {/* Status */}
                     <div
                         className="rounded-lg border"
                         style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}
@@ -604,7 +579,6 @@ export default function EditRolePage() {
                         </div>
                     </div>
 
-                    {/* Meta */}
                     <div
                         className="rounded-lg border"
                         style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}
@@ -643,7 +617,6 @@ export default function EditRolePage() {
                 </motion.aside>
             </form>
 
-            {/* Sticky action bar (mobile-first) */}
             <div
                 className="sticky bottom-0 left-0 right-0 mt-6 border-t backdrop-blur supports-[backdrop-filter]:bg-white/60 bg-white/90 sm:bg-transparent sm:border-0"
                 style={{ borderColor: "var(--border-light)" }}

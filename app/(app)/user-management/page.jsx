@@ -1,4 +1,3 @@
-// app/user-management/page.jsx
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -22,7 +21,6 @@ import { useRouter } from "next/navigation";
 import Alert from "@/app/components/Alert";
 import CollectionSkeleton from "@/app/components/CollectionSkeleton";
 
-// ===== Framer Motion variants =====
 const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.3 } } };
 const listFx = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const cardFx = { hidden: { opacity: 0, scale: 0.96, y: 8 }, show: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.22 } } };
@@ -30,24 +28,20 @@ const cardFx = { hidden: { opacity: 0, scale: 0.96, y: 8 }, show: { opacity: 1, 
 export default function UserManagement() {
     const router = useRouter();
 
-    // ===== Dummy users (tanpa fetch) =====
     const [users, setUsers] = useState([
         { id: 1, name: "John Doe", email: "john@example.com", role: "Admin", created_at: "2025-08-13" },
         { id: 2, name: "Jane Smith", email: "jane@example.com", role: "Member", created_at: "2025-08-12" },
     ]);
 
-    // ===== UI state =====
     const [searchTerm, setSearchTerm] = useState("");
     const [viewMode, setViewMode] = useState("grid");
     const [isLoading, setIsLoading] = useState(true);
 
-    // delete modal states
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [deleting, setDeleting] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
 
-    // ===== Paksa skeleton N ms (tanpa useEffect untuk delay) =====
     const FORCE_SKELETON_MS = 1500;
     const [forceSkeleton, setForceSkeleton] = useState(true);
     const forceTimerRef = useRef(null);
@@ -58,14 +52,12 @@ export default function UserManagement() {
         }, FORCE_SKELETON_MS);
     }
 
-    // ===== Derived =====
     const filteredUsers = users.filter(
         (u) =>
             u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             u.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // ===== Handlers =====
     function openEdit(user) {
         if (!user?.id) return;
         router.push(`/user-management/update/${user.id}`);
@@ -78,7 +70,6 @@ export default function UserManagement() {
         if (!deleting) setConfirmOpen(false);
     }
 
-    // Esc untuk menutup modal (seperti KB)
     useEffect(() => {
         function onKey(e) {
             if (e.key === "Escape") closeDelete();
@@ -92,7 +83,7 @@ export default function UserManagement() {
         setDeleting(true);
         setErrorMsg("");
         try {
-            // TODO: sambungkan ke API kamu (mis: await userApi.remove(selectedUser.id))
+
             setUsers((list) => list.filter((u) => u.id !== selectedUser.id));
         } catch (e) {
             setErrorMsg(e?.message || "Failed to delete user");
@@ -102,7 +93,6 @@ export default function UserManagement() {
         }
     }
 
-    // ===== Skeleton (early return ala KB) =====
     if (isLoading || forceSkeleton) {
         return (
             <motion.main variants={pageFx} initial="hidden" animate="show" className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]">
@@ -111,12 +101,10 @@ export default function UserManagement() {
         );
     }
 
-    // ===== Content =====
     return (
         <motion.main variants={pageFx} initial="hidden" animate="show" className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]">
             {errorMsg && <Alert variant="error" onDismiss={() => setErrorMsg("")}>{errorMsg}</Alert>}
 
-            {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
                     User Management
@@ -133,7 +121,6 @@ export default function UserManagement() {
                 </motion.button>
             </div>
 
-            {/* Search + View toggle */}
             <div className="flex items-center justify-between mb-6">
                 <div className="relative max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--text-tertiary)" }} />
@@ -318,11 +305,33 @@ export default function UserManagement() {
                     </motion.button>
                 </motion.div>
             )}
-            {/* ===== Delete Modal (persis gaya KB) ===== */}
+
+
+            {filteredUsers.length === 0 && searchTerm && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="p-8 rounded-lg border text-center"
+                    style={{
+                        background: "var(--surface-elevated)",
+                        borderColor: "var(--border-light)",
+                        color: "var(--text-primary)",
+                    }}
+                >
+                    <h3 className="text-lg font-medium mb-2">
+                        No user found
+                    </h3>
+                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                        No user found matching "{searchTerm}"
+                    </p>
+                </motion.div>
+            )}
+
+            {/*  Delete Modal */}
             <AnimatePresence>
                 {confirmOpen && (
                     <>
-                        {/* Overlay */}
                         <motion.div
                             key="overlay"
                             initial={{ opacity: 0 }}
@@ -333,7 +342,6 @@ export default function UserManagement() {
                             onClick={closeDelete}
                         />
 
-                        {/* Dialog (bottom-sheet di mobile, center di desktop) */}
                         <motion.div
                             key="dialog"
                             role="dialog"
@@ -353,7 +361,6 @@ export default function UserManagement() {
                                     borderColor: "var(--border-light)",
                                 }}
                             >
-                                {/* Header */}
                                 <div className="flex items-center gap-3 px-5 pt-5">
                                     <div className="p-2 rounded-xl" style={{ background: "var(--surface-secondary)" }}>
                                         <AlertTriangle className="h-5 w-5" style={{ color: "var(--primary)" }} />
@@ -363,7 +370,6 @@ export default function UserManagement() {
                                     </h2>
                                 </div>
 
-                                {/* Body */}
                                 <div className="px-5 pt-3 pb-5">
                                     <p id="delete-desc" className="text-sm" style={{ color: "var(--text-secondary)" }}>
                                         This action cannot be undone. You will delete:
@@ -379,9 +385,8 @@ export default function UserManagement() {
                                         </div>
                                     </div>
 
-                                    {/* Actions */}
                                     <div className="mt-5 grid grid-cols-1 sm:flex sm:justify-end gap-2 sm:gap-3">
-                                        {/* Cancel */}
+
                                         <motion.button
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}
@@ -401,7 +406,6 @@ export default function UserManagement() {
                                             <span>Cancel</span>
                                         </motion.button>
 
-                                        {/* Delete */}
                                         <motion.button
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}

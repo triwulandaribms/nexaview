@@ -3,18 +3,8 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Edit, X, Check, Loader2 } from "lucide-react";
 
-/**
- * EditDokumenModal – quick-edit metadata (name, categories, tags)
- * Mobile-first (≥320 px) & desktop ready.
- *
- * Props
- *  open   : boolean          → modal visibility
- *  doc    : { name:string, categories:string[], tags:string[] } | null
- *  onSave : (updatedDoc) => Promise<void>|void
- *  onClose: () => void
- */
 export default function EditDokumenModal({ open, doc, onSave, onClose }) {
-  /* ───────────── State ───────────── */
+
   const [name, setName]       = useState("");
   const [categories, setCats] = useState([]);
   const [tags, setTags]       = useState([]);
@@ -22,7 +12,6 @@ export default function EditDokumenModal({ open, doc, onSave, onClose }) {
   const [newTag, setNewTag]   = useState("");
   const [saving, setSaving]   = useState(false);
 
-  /* Sync ketika modal dibuka */
   useEffect(() => {
     if (open && doc) {
       setName(doc.name ?? "");
@@ -33,11 +22,9 @@ export default function EditDokumenModal({ open, doc, onSave, onClose }) {
     }
   }, [open, doc]);
 
-  /* ───────────── Helpers ───────────── */
   const pushIfNotEmpty = (v, updater) => v.trim() && updater(p => [...p, v.trim()]);
   const removeIdx      = (idx, updater) => updater(p => p.filter((_, i) => i !== idx));
 
-  /* ───────────── Save ───────────── */
   const handleSubmit = async e => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -50,7 +37,6 @@ export default function EditDokumenModal({ open, doc, onSave, onClose }) {
     }
   };
 
-  /* ───────────── UI ───────────── */
   return (
     <AnimatePresence>
       {open && (

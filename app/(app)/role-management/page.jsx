@@ -1,4 +1,3 @@
-// app/role-management/page.jsx
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -22,7 +21,6 @@ import { useRouter } from "next/navigation";
 import Alert from "@/app/components/Alert";
 import CollectionSkeleton from "@/app/components/CollectionSkeleton";
 
-// ===== Framer Motion variants =====
 const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.3 } } };
 const listFx = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const cardFx = { hidden: { opacity: 0, scale: 0.96, y: 8 }, show: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.22 } } };
@@ -30,23 +28,20 @@ const cardFx = { hidden: { opacity: 0, scale: 0.96, y: 8 }, show: { opacity: 1, 
 export default function RoleManagement() {
   const router = useRouter();
 
-  // ===== Dummy roles =====
   const [roles, setRoles] = useState([
     { id: 1, name: "Admin", permissions_count: 12, members_count: 3, created_at: "2025-08-10" },
     { id: 2, name: "Member", permissions_count: 5, members_count: 42, created_at: "2025-08-12" },
   ]);
-  // ===== UI state =====
+
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid");
   const [isLoading, setIsLoading] = useState(true);
 
-  // delete modal states
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // ===== Paksa skeleton N ms (tanpa useEffect untuk delay) =====
   const FORCE_SKELETON_MS = 1500;
   const [forceSkeleton, setForceSkeleton] = useState(true);
   const forceTimerRef = useRef(null);
@@ -56,11 +51,8 @@ export default function RoleManagement() {
       setIsLoading(false);
     }, FORCE_SKELETON_MS);
   }
-
-  // ===== Derived =====
   const filteredRoles = roles.filter((r) => r.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  // ===== Handlers =====
   function openEdit(role) {
     if (!role?.id) return;
     router.push(`/role-management/update/${role.id}`);
@@ -73,22 +65,19 @@ export default function RoleManagement() {
     if (!deleting) setConfirmOpen(false);
   }
 
-  // Esc untuk menutup modal (pola sama seperti KB)
   useEffect(() => {
     function onKey(e) {
       if (e.key === "Escape") closeDelete();
     }
     if (confirmOpen) window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [confirmOpen, deleting]); // :contentReference[oaicite:2]{index=2}
+  }, [confirmOpen, deleting]); 
 
   async function handleConfirmDelete() {
     if (!selectedRole?.id || deleting) return;
     setDeleting(true);
     setErrorMsg("");
     try {
-      // TODO: sambungkan API-mu di sini (mis. await roleApi.remove(selectedRole.id))
-      // Demo: hapus dari list
       setRoles((list) => list.filter((r) => r.id !== selectedRole.id));
     } catch (e) {
       setErrorMsg(e?.message || "Failed to delete role");
@@ -98,7 +87,6 @@ export default function RoleManagement() {
     }
   }
 
-  // ===== Skeleton (early return, seperti KB) =====
   if (isLoading || forceSkeleton) {
     return (
       <motion.main variants={pageFx} initial="hidden" animate="show" className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]">
@@ -107,12 +95,10 @@ export default function RoleManagement() {
     );
   }
 
-  // ===== Content =====
   return (
     <motion.main variants={pageFx} initial="hidden" animate="show" className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]">
       {errorMsg && <Alert variant="error" onDismiss={() => setErrorMsg("")}>{errorMsg}</Alert>}
 
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
           Role Management
@@ -129,7 +115,6 @@ export default function RoleManagement() {
         </motion.button>
       </div>
 
-      {/* Search + View toggle */}
       <div className="flex items-center justify-between mb-6">
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--text-tertiary)" }} />
@@ -173,7 +158,6 @@ export default function RoleManagement() {
         </div>
       </div>
 
-      {/* Grid / List */}
       <LayoutGroup>
         <AnimatePresence mode="wait">
           {viewMode === "grid" ? (
@@ -316,11 +300,30 @@ export default function RoleManagement() {
         </motion.div>
       )}
 
-      {/* dialog delete yah gays */}
+      {filteredRoles.length === 0 && searchTerm && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="p-8 rounded-lg border text-center"
+          style={{
+            background: "var(--surface-elevated)",
+            borderColor: "var(--border-light)",
+            color: "var(--text-primary)",
+          }}
+        >
+          <h3 className="text-lg font-medium mb-2">
+            No role found
+          </h3>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            No role found matching "{searchTerm}"
+          </p>
+        </motion.div>
+      )}
+
       <AnimatePresence>
         {confirmOpen && (
           <>
-            {/* Overlay */}
             <motion.div
               key="overlay"
               initial={{ opacity: 0 }}
@@ -331,7 +334,6 @@ export default function RoleManagement() {
               onClick={closeDelete}
             />
 
-            {/* Dialog */}
             <motion.div
               key="dialog"
               role="dialog"
@@ -351,7 +353,6 @@ export default function RoleManagement() {
                   borderColor: "var(--border-light)",
                 }}
               >
-                {/* Header */}
                 <div className="flex items-center gap-3 px-5 pt-5">
                   <div className="p-2 rounded-xl" style={{ background: "var(--surface-secondary)" }}>
                     <AlertTriangle className="h-5 w-5" style={{ color: "var(--primary)" }} />
@@ -361,7 +362,6 @@ export default function RoleManagement() {
                   </h2>
                 </div>
 
-                {/* Body */}
                 <div className="px-5 pt-3 pb-5">
                   <p id="delete-desc" className="text-sm" style={{ color: "var(--text-secondary)" }}>
                     This action cannot be undone. You will delete:
@@ -377,9 +377,7 @@ export default function RoleManagement() {
                     </div>
                   </div>
 
-                  {/* Actions */}
                   <div className="mt-5 grid grid-cols-1 sm:flex sm:justify-end gap-2 sm:gap-3">
-                    {/* Cancel */}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -399,7 +397,6 @@ export default function RoleManagement() {
                       <span>Cancel</span>
                     </motion.button>
 
-                    {/* Delete */}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}

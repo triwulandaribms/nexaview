@@ -1,4 +1,3 @@
-// app/role-management/create/page.jsx
 "use client";
 
 import React, { useMemo, useRef, useState } from "react";
@@ -25,7 +24,6 @@ import RoleSkeletonLoader from "@/app/components/RoleSkeletonLoader";
 const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.25 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } };
 
-// ---- sample permission catalog (sesuaikan dgn backend kamu) ----
 const CATALOG = [
     {
         key: "users",
@@ -95,23 +93,18 @@ const CATALOG = [
 
 export default function CreateRolePage() {
     const router = useRouter();
-
-    // form states
     const [roleName, setRoleName] = useState("");
     const [description, setDescription] = useState("");
     const [statusActive, setStatusActive] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
-
     const [search, setSearch] = useState("");
-    const [selected, setSelected] = useState(new Set()); // of permission keys
-
+    const [selected, setSelected] = useState(new Set());
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
-
-    const currentUserEmail = "you@example.com"; // ganti dgn session?.user?.email jika ada
-
-    const FORCE_SKELETON_MS = 1500;
     const [forceSkeleton, setForceSkeleton] = useState(true);
+
+    const currentUserEmail = "you@example.com";
+    const FORCE_SKELETON_MS = 1500;
     const forceTimerRef = useRef(null);
     if (forceSkeleton && !forceTimerRef.current) {
         forceTimerRef.current = setTimeout(() => {
@@ -131,7 +124,6 @@ export default function CreateRolePage() {
 
     const selectedCount = selected.size;
 
-    // helpers
     const hasAllInCategory = (cat) =>
         cat.items.every((it) => selected.has(it.key));
     const hasSomeInCategory = (cat) =>
@@ -167,10 +159,8 @@ export default function CreateRolePage() {
         else selectAllInCategory(cat);
     }
 
-    // validation
     function validate() {
         if (!roleName || roleName.trim().length < 3) return "Role name must be at least 3 characters.";
-        // optional: require at least one permission
         // if (selected.size === 0) return "Please choose at least one permission.";
         return null;
     }
@@ -185,7 +175,6 @@ export default function CreateRolePage() {
         setSubmitting(true);
         setErrorMsg("");
         try {
-            // payload contoh:
             // const payload = {
             //   name: roleName.trim(),
             //   description: description.trim() || null,
@@ -214,7 +203,6 @@ export default function CreateRolePage() {
             animate="show"
             className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)]"
         >
-            {/* ===== Sticky Header ala KB ===== */}
             <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8">
                 <motion.div
                     initial={{ opacity: 0, y: -16 }}
@@ -237,8 +225,6 @@ export default function CreateRolePage() {
 
             </div>
 
-
-            {/* ===== Info Header ===== */}
             <motion.section variants={fadeUp} initial="hidden" animate="show" >
                 <div className="flex items-start gap-3 sm:gap-4 py-4 sm:py-5">
                     <motion.div whileHover={{ scale: 1.02 }} className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl flex items-center justify-center" style={{ background: "var(--primary)" }}>
@@ -248,7 +234,6 @@ export default function CreateRolePage() {
                         <h2 className="text-lg sm:text-xl font-semibold leading-6" style={{ color: "var(--text-primary)" }}>
                             New Role
                         </h2>
-                        {/* Subjudul responsif */}
                         <div
                             className="text-sm leading-5 sm:flex sm:flex-wrap sm:items-center sm:gap-2"
                             style={{ color: "var(--text-secondary)" }}
@@ -257,7 +242,6 @@ export default function CreateRolePage() {
                                 Created by {currentUserEmail}
                             </span>
 
-                            {/* dot pemisah hanya di ≥ sm */}
                             <span className="hidden sm:inline" aria-hidden="true">•</span>
 
                             <span className="block sm:inline whitespace-nowrap">
@@ -269,7 +253,6 @@ export default function CreateRolePage() {
                 </div>
             </motion.section>
 
-            {/* Error banner */}
             {errorMsg && (
                 <motion.div variants={fadeUp} initial="hidden" animate="show" className="mb-4 rounded-lg border px-4 py-3 text-sm"
                     style={{ background: "rgba(243, 18, 96, 0.06)", color: "var(--text-primary)", borderColor: "var(--border-light)" }}>
@@ -277,11 +260,9 @@ export default function CreateRolePage() {
                 </motion.div>
             )}
 
-            {/* ===== Form Grid ===== */}
             <form onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-                {/* Left: Role Info + Permissions */}
+
                 <motion.section variants={fadeUp} initial="hidden" animate="show" className="xl:col-span-2 space-y-4 sm:space-y-6">
-                    {/* Role Info */}
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -315,7 +296,6 @@ export default function CreateRolePage() {
                         </div>
                     </div>
 
-                    {/* Permissions */}
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -323,7 +303,6 @@ export default function CreateRolePage() {
                                 <h2 className="text-base sm:text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
                                     Permissions
                                 </h2>
-                                {/* quick summary pill */}
                                 <div className="hidden sm:inline-flex items-center gap-2 rounded-full px-3 h-8 text-sm"
                                     style={{ background: "var(--surface-secondary)", color: "var(--text-primary)", border: "1px solid var(--border-light)" }}>
                                     <ListChecks className="h-4 w-4" />
@@ -331,7 +310,6 @@ export default function CreateRolePage() {
                                 </div>
                             </div>
 
-                            {/* Search */}
                             <div className="relative mb-4">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--text-tertiary)" }} />
                                 <input
@@ -343,7 +321,6 @@ export default function CreateRolePage() {
                                 />
                             </div>
 
-                            {/* Categories */}
                             <div className="space-y-4">
                                 {filteredCatalog.map((cat) => {
                                     const all = hasAllInCategory(cat);
@@ -396,7 +373,6 @@ export default function CreateRolePage() {
                                                 </div>
                                             </div>
 
-                                            {/* Items */}
                                             <div className="px-3 sm:px-4 pb-3 sm:pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                                 {cat.items.map((it) => {
                                                     const checked = selected.has(it.key);
@@ -433,9 +409,8 @@ export default function CreateRolePage() {
                     </div>
                 </motion.section>
 
-                {/* Right: Status + Meta */}
                 <motion.aside variants={fadeUp} initial="hidden" animate="show" className="xl:col-span-1 space-y-4 sm:space-y-6">
-                    {/* Status */}
+
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -461,7 +436,6 @@ export default function CreateRolePage() {
                         </div>
                     </div>
 
-                    {/* Meta */}
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -489,7 +463,6 @@ export default function CreateRolePage() {
                 </motion.aside>
             </form>
 
-            {/* Sticky action bar (mobile-first) */}
             <div className="sticky bottom-0 left-0 right-0 mt-6 border-t backdrop-blur supports-[backdrop-filter]:bg-white/60 bg-white/90 sm:bg-transparent sm:border-0" style={{ borderColor: "var(--border-light)" }}>
                 <div className="max-w-screen-2xl mx-auto p-3 sm:p-0 sm:pt-6 flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3">
                     <motion.button

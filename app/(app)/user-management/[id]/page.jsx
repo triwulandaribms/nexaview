@@ -1,4 +1,3 @@
-// app/user-management/[id]/page.jsx
 "use client";
 
 import React, { useRef, useState } from "react";
@@ -8,7 +7,6 @@ import {
     Mail,
     Phone,
     Shield,
-    CalendarClock,
     PencilLine,
     Trash2,
     Loader2,
@@ -24,14 +22,9 @@ export default function UserDetailPage() {
     const params = useParams();
     const userId = params?.id || "1";
 
-    // ===== UI state =====
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
-
-    // ===== data state =====
     const [user, setUser] = useState(null);
-
-    // ===== forced skeleton 1.2s (tanpa useEffect) =====
     const [forceSkeleton, setForceSkeleton] = useState(true);
     const timerRef = useRef(null);
     const hydratedRef = useRef(false);
@@ -43,14 +36,13 @@ export default function UserDetailPage() {
     }
 
     if (!forceSkeleton && !hydratedRef.current) {
-        // Mock user (gampang diganti ke fetch API)
         const mock = {
             id: userId,
             fullName: "John Doe",
             email: "john@example.com",
             mobile: "+62 812-3456-7890",
             role: "Member",
-            status: "active", // "inactive"
+            status: "active",
             createdAt: "2025-08-10",
             updatedAt: "2025-08-13",
             lastLogin: "2025-08-12 14:20",
@@ -75,7 +67,6 @@ export default function UserDetailPage() {
             router.push("/user-management");
         } catch (e) {
             setDeleting(false);
-            // optionally show toast
         }
     }
 
@@ -83,7 +74,6 @@ export default function UserDetailPage() {
         router.push(`/user-management/update/${userId}`);
     }
 
-    // ====== Skeleton (ringan) ======
     if (forceSkeleton || !user) {
         return (
             <motion.main
@@ -92,7 +82,6 @@ export default function UserDetailPage() {
                 animate="show"
                 className="min-h-screen p-4 sm:p-6 lg:p-5 overflow-y-auto bg-[var(--background)]"
             >
-                {/* Sticky header */}
                 <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8">
                     <div className="px-4 sm:px-6 lg:px-8 py-3 border-b" style={{ borderColor: "var(--border-light)" }}>
                         <div className="flex items-center gap-3">
@@ -103,7 +92,6 @@ export default function UserDetailPage() {
                     <div className="h-3 pointer-events-none bg-gradient-to-b from-black/5 to-transparent" />
                 </div>
 
-                {/* Info header */}
                 <section >
                     <div className="flex items-start gap-3 sm:gap-4 py-4 sm:py-5">
                         <div className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl bg-gray-200 dark:bg-gray-400 animate-pulse" />
@@ -114,7 +102,6 @@ export default function UserDetailPage() {
                     </div>
                 </section>
 
-                {/* Grid */}
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
                     <div className="xl:col-span-2 space-y-4 sm:space-y-6">
                         <div className="rounded-lg border overflow-hidden" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
@@ -167,7 +154,6 @@ export default function UserDetailPage() {
             animate="show"
             className="min-h-screen p-4 sm:p-6 lg:p-5 overflow-y-auto bg-[var(--background)]"
         >
-            {/* ===== Sticky Header ===== */}
             <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8">
                 <motion.div
                     initial={{ opacity: 0, y: -16 }}
@@ -187,12 +173,8 @@ export default function UserDetailPage() {
                         User Details
                     </button>
                 </motion.div>
-
-                {/* soft gradient ke konten */}
-                {/* <div className="h-3 pointer-events-none bg-gradient-to-b from-black/5 to-transparent" /> */}
             </div>
 
-            {/* ===== Info Header ===== */}
             <motion.section variants={fadeUp} initial="hidden" animate="show"
             >
                 <div className="flex items-start gap-3 sm:gap-4 py-4 sm:py-5">
@@ -210,11 +192,8 @@ export default function UserDetailPage() {
                 </div>
             </motion.section>
 
-            {/* ===== Content Grid ===== */}
             <form className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-                {/* Left column */}
                 <motion.section variants={fadeUp} initial="hidden" animate="show" className="xl:col-span-2 space-y-4 sm:space-y-6">
-                    {/* Profile */}
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -223,7 +202,6 @@ export default function UserDetailPage() {
                             </h2>
 
                             <div className="space-y-5">
-                                {/* Full name */}
                                 <div className="flex items-start gap-3">
                                     <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ background: "var(--surface-secondary)" }}>
                                         <UserIcon className="h-5 w-5" style={{ color: "var(--text-secondary)" }} />
@@ -234,7 +212,6 @@ export default function UserDetailPage() {
                                     </div>
                                 </div>
 
-                                {/* Email */}
                                 <div className="flex items-start gap-3">
                                     <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ background: "var(--surface-secondary)" }}>
                                         <Mail className="h-5 w-5" style={{ color: "var(--text-secondary)" }} />
@@ -245,7 +222,6 @@ export default function UserDetailPage() {
                                     </div>
                                 </div>
 
-                                {/* Mobile */}
                                 <div className="flex items-start gap-3">
                                     <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ background: "var(--surface-secondary)" }}>
                                         <Phone className="h-5 w-5" style={{ color: "var(--text-secondary)" }} />
@@ -256,7 +232,6 @@ export default function UserDetailPage() {
                                     </div>
                                 </div>
 
-                                {/* Role */}
                                 <div className="flex items-start gap-3">
                                     <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ background: "var(--surface-secondary)" }}>
                                         <Shield className="h-5 w-5" style={{ color: "var(--text-secondary)" }} />
@@ -271,9 +246,7 @@ export default function UserDetailPage() {
                     </div>
                 </motion.section>
 
-                {/* Right column */}
                 <motion.aside variants={fadeUp} initial="hidden" animate="show" className="xl:col-span-1 space-y-4 sm:space-y-6">
-                    {/* Status */}
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -293,7 +266,6 @@ export default function UserDetailPage() {
                         </div>
                     </div>
 
-                    {/* Meta */}
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -323,7 +295,6 @@ export default function UserDetailPage() {
                 </motion.aside>
             </form>
 
-            {/* Sticky action bar (mobile) */}
             <div className="sticky bottom-0 left-0 right-0 mt-6 border-t backdrop-blur supports-[backdrop-filter]:bg-white/60 bg-white/90 sm:bg-transparent sm:border-0" style={{ borderColor: "var(--border-light)" }}>
                 <div className="max-w-screen-2xl mx-auto p-3 sm:p-0 sm:pt-6 flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3">
                     <motion.button
@@ -348,11 +319,9 @@ export default function UserDetailPage() {
                 </div>
             </div>
 
-            {/* ===== Delete Confirm Modal (mobile-bottom + desktop-centered) ===== */}
             <AnimatePresence>
                 {confirmOpen && (
                     <>
-                        {/* Overlay */}
                         <motion.div
                             key="overlay"
                             initial={{ opacity: 0 }}
@@ -362,7 +331,6 @@ export default function UserDetailPage() {
                             style={{ background: "rgba(0,0,0,0.5)" }}
                             onClick={closeDelete}
                         />
-                        {/* Dialog */}
                         <motion.div
                             key="dialog"
                             role="dialog"
@@ -379,7 +347,6 @@ export default function UserDetailPage() {
                                 className="w-full max-w-[28rem] sm:max-w-md rounded-2xl border shadow-xl"
                                 style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}
                             >
-                                {/* Header */}
                                 <div className="flex items-center gap-3 px-5 pt-5">
                                     <div className="p-2 rounded-xl" style={{ background: "var(--surface-secondary)" }}>
                                         <Trash2 className="h-5 w-5" style={{ color: "var(--primary)" }} />
@@ -389,7 +356,6 @@ export default function UserDetailPage() {
                                     </h2>
                                 </div>
 
-                                {/* Body */}
                                 <div className="px-5 pt-3 pb-5">
                                     <p id="delete-desc" className="text-sm" style={{ color: "var(--text-secondary)" }}>
                                         This action cannot be undone. You will delete:
@@ -405,9 +371,7 @@ export default function UserDetailPage() {
                                         </div>
                                     </div>
 
-                                    {/* Actions */}
                                     <div className="mt-5 grid grid-cols-1 sm:flex sm:justify-end gap-2 sm:gap-3">
-                                        {/* Cancel */}
                                         <motion.button
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}
@@ -426,7 +390,6 @@ export default function UserDetailPage() {
                                             Cancel
                                         </motion.button>
 
-                                        {/* Delete */}
                                         <motion.button
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}

@@ -1,4 +1,3 @@
-// app/user-management/[id]/edit/page.jsx
 "use client";
 
 import React, { useRef, useState } from "react";
@@ -12,7 +11,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
-import CreateUserSkeleton from "@/app/components/CreateUserSkeleton"; // reuse skeleton
+import CreateUserSkeleton from "@/app/components/CreateUserSkeleton"; 
 
 const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.25 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } };
@@ -22,22 +21,20 @@ export default function EditUserPage() {
     const params = useParams();
     const userId = params?.id || "1";
 
-    // ===== form state =====
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [mobile, setMobile] = useState("");
     const [role, setRole] = useState("Member");
     const [statusActive, setStatusActive] = useState(true);
 
-    const [password, setPassword] = useState("");          // optional on update
-    const [confirm, setConfirm] = useState("");          // optional on update
+    const [password, setPassword] = useState("");
+    const [confirm, setConfirm] = useState("");
     const [showPass, setShowPass] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
 
-    // ===== Skeleton gating (forced 1.5s) =====
     const [forceSkeleton, setForceSkeleton] = useState(true);
     const forceTimerRef = useRef(null);
     if (forceSkeleton && !forceTimerRef.current) {
@@ -46,7 +43,6 @@ export default function EditUserPage() {
         }, 1500);
     }
 
-    // ===== Mock "fetched" user (dipakai setelah skeleton hilang) =====
     const hydratedRef = useRef(false);
     if (!forceSkeleton && !hydratedRef.current) {
         const mockUser = {
@@ -65,7 +61,6 @@ export default function EditUserPage() {
         hydratedRef.current = true;
     }
 
-    // ===== helpers & validation =====
     const emailOk = (v) => /^\S+@\S+\.\S+$/.test(v);
     const phoneOk = (v) => /^[0-9+\-\s()]{8,20}$/.test(v.trim());
     const passOk = (v) => v.length >= 6;
@@ -75,7 +70,6 @@ export default function EditUserPage() {
         if (!emailOk(email)) return "Please enter a valid email address.";
         if (!phoneOk(mobile)) return "Please enter a valid mobile number.";
         if (!role) return "Role is required.";
-        // Password OPTIONAL on update – only validate if diisi
         if (password && !passOk(password)) return "Password must be at least 6 characters.";
         if (password || confirm) {
             if (password !== confirm) return "Password confirmation does not match.";
@@ -113,7 +107,7 @@ export default function EditUserPage() {
         return <CreateUserSkeleton />;
     }
 
-    const currentUserEmail = "you@example.com"; // ganti jika ada session
+    const currentUserEmail = "you@example.com";
 
     return (
         <motion.main
@@ -122,7 +116,6 @@ export default function EditUserPage() {
             animate="show"
             className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)]"
         >
-            {/* ===== Sticky Top Header ===== */}
             <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8">
                 <motion.div
                     initial={{ opacity: 0, y: -16 }}
@@ -142,12 +135,8 @@ export default function EditUserPage() {
                         Edit User
                     </button>
                 </motion.div>
-
-                {/* soft gradient ke konten */}
-                {/* <div className="h-3 pointer-events-none bg-gradient-to-b from-black/5 to-transparent" /> */}
             </div>
 
-            {/* ===== Info Header ===== */}
             <motion.section variants={fadeUp} initial="hidden" animate="show"
             >
                 <div className="flex items-start gap-3 sm:gap-4 py-4 sm:py-5">
@@ -169,7 +158,6 @@ export default function EditUserPage() {
                 </div>
             </motion.section>
 
-            {/* Error banner */}
             {errorMsg && (
                 <motion.div
                     variants={fadeUp}
@@ -182,11 +170,8 @@ export default function EditUserPage() {
                 </motion.div>
             )}
 
-            {/* ===== Form grid ===== */}
             <form onSubmit={handleUpdate} className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-                {/* Left column */}
                 <motion.section variants={fadeUp} initial="hidden" animate="show" className="xl:col-span-2 space-y-4 sm:space-y-6">
-                    {/* User Info */}
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -195,7 +180,6 @@ export default function EditUserPage() {
                             </h2>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {/* Full name */}
                                 <div className="flex flex-col gap-1.5 sm:col-span-2">
                                     <label className="text-sm" style={{ color: "var(--text-secondary)" }}>Full name</label>
                                     <input
@@ -213,7 +197,6 @@ export default function EditUserPage() {
                                     />
                                 </div>
 
-                                {/* Email */}
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-sm" style={{ color: "var(--text-secondary)" }}>Email</label>
                                     <input
@@ -232,7 +215,6 @@ export default function EditUserPage() {
                                     />
                                 </div>
 
-                                {/* Mobile number */}
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-sm" style={{ color: "var(--text-secondary)" }}>Mobile number</label>
                                     <input
@@ -252,7 +234,6 @@ export default function EditUserPage() {
                                     />
                                 </div>
 
-                                {/* Role */}
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-sm" style={{ color: "var(--text-secondary)" }}>Role</label>
                                     <select
@@ -276,7 +257,6 @@ export default function EditUserPage() {
                         </div>
                     </div>
 
-                    {/* Security (optional on update) */}
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -285,7 +265,6 @@ export default function EditUserPage() {
                             </h2>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                {/* Password */}
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-sm" style={{ color: "var(--text-secondary)" }}>Password (optional)</label>
                                     <div className="relative">
@@ -313,7 +292,6 @@ export default function EditUserPage() {
                                     </div>
                                 </div>
 
-                                {/* Confirm */}
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-sm" style={{ color: "var(--text-secondary)" }}>Confirm Password (optional)</label>
                                     <div className="relative">
@@ -345,9 +323,7 @@ export default function EditUserPage() {
                     </div>
                 </motion.section>
 
-                {/* Right column: Status + Meta */}
                 <motion.aside variants={fadeUp} initial="hidden" animate="show" className="xl:col-span-1 space-y-4 sm:space-y-6">
-                    {/* Status */}
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -373,7 +349,6 @@ export default function EditUserPage() {
                         </div>
                     </div>
 
-                    {/* Meta */}
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
@@ -399,7 +374,6 @@ export default function EditUserPage() {
                 </motion.aside>
             </form>
 
-            {/* Sticky action bar */}
             <div className="sticky bottom-0 left-0 right-0 mt-6 border-t  supports-[backdrop-filter]:bg-white/60 bg-white/90 sm:bg-transparent sm:border-0" style={{ borderColor: "var(--border-light)" }}>
                 <div className="max-w-screen-2xl mx-auto p-3 sm:p-0 sm:pt-6 flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3">
                     <motion.button
