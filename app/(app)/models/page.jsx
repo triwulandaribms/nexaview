@@ -1,22 +1,14 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Settings,
-  Info,
-  Bot,
-  Sparkles,
-  Rocket,
-  Zap,
-  Brain,
-  Database,
-  Check,
-  X,
-  RefreshCw,
-  Lock,
+  Settings, Info, Bot, Sparkles, Rocket, Zap, Brain, Database,
+  Check, X, RefreshCw, Lock
 } from "lucide-react";
+
 import PageHeader from "../../components/PageHeader";
 import ModelConfigModal from "../../components/ModelConfigModal";
 import { motion, AnimatePresence } from "framer-motion";
+import { mbApi } from "@/app/lib/modelBaseApi";
 
 export default function Models() {
   const [isLoading, setIsLoading] = useState(true);
@@ -24,30 +16,88 @@ export default function Models() {
   const [isModelConfigModalOpen, setIsModelConfigModalOpen] = useState(false);
   const [isAddModelModalOpen, setIsAddModelModalOpen] = useState(false);
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [isSavingApiKey, setIsSavingApiKey] = useState(false);
+  const [saveDone, setSaveDone] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [isPremiumModelSelected, setIsPremiumModelSelected] = useState(false);
   const [editedApiKey, setEditedApiKey] = useState("");
+  const [providers, setProviders] = useState([]);
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const handleModelClick = (model) => {
-    setSelectedModel(model);
-    setIsModelConfigModalOpen(true);
+  const iconMap = {
+    bot: Bot,
+    sparkles: Sparkles,
+    rocket: Rocket,
+    zap: Zap,
+    brain: Brain,
+    database: Database,
   };
+  const maskKey = (key) => {
+    if (!key) return null;
+    const tail = String(key).slice(-4);
+    return `••••${tail}`;
+  };
+
+  // const handleModelClick = (model) => {
+  //   setSelectedModel(model);
+  //   setIsModelConfigModalOpen(true);
+  // };
+
+  // setProviders((res?.data || []).map(p => ({
+  //   ...p,
+  //   connected: !!(p.apiKey || p.apiKeyPreview || p.connected),
+  // })));
 
   const handleSettingsClick = (provider) => {
     setSelectedProvider(provider);
     setEditedApiKey(provider.apiKey || "");
+    setIsSavingApiKey(false);
+    setSaveDone(false);
     setIsApiKeyModalOpen(true);
   };
 
+
   const [modelStates, setModelStates] = useState({});
 
-  // Simulate loading
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1200);
-    return () => clearTimeout(timer);
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    (async () => {
+      setIsLoading(true);
+      setErrorMsg("");
+
+      try {
+        const res = await mbApi.list({ signal });
+        if (!res || res.error) {
+          throw new Error(res?.error || "Gagal memuat dataset.");
+        }
+        console.log(res.data, " <===  check hasil nya ");
+        setProviders((res?.data || []).map(p => ({
+          ...p,
+          connected: !!(p.apiKey || p.apiKeyPreview || p.connected),
+        })));
+      } catch (e) {
+        if (e.name !== "AbortError") {
+          setErrorMsg(e?.message || "Terjadi kesalahan.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
   }, []);
+
+
+
+  // Simulate loading
+  // React.useEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     setIsLoading(false);
+  //   }, 1200);
+  //   return () => clearTimeout(timer);
+  // }, []);
 
   const toggleModel = (providerId, modelId) => {
     setModelStates((prev) => ({
@@ -56,78 +106,79 @@ export default function Models() {
     }));
   };
 
-  const providers = [
-    {
-      id: "openai",
-      name: "OpenAI",
-      icon: Bot,
-      connected: true,
-      apiKey: "sk-proj-N178KKtCZiPuR_7QUTLJVbnZO96QxOnFOMqLLJcrwMGhp6pX",
-      models: [
-        { id: "gpt-4", name: "gpt-4", enabled: true },
-        { id: "gpt-3.5-turbo-16k", name: "gpt-3.5-turbo-16k", enabled: true },
-        { id: "gpt-4o", name: "gpt-4o", enabled: true },
-      ],
-    },
-    {
-      id: "anthropic",
-      name: "Anthropic",
-      icon: Sparkles,
-      connected: false,
-      apiKey: "",
-      models: [
-        {
-          id: "claude-3-7-sonnet-20250219",
-          name: "claude-3-7-sonnet-20250219",
-          enabled: false,
-        },
-        {
-          id: "claude-3-5-sonnet-20241022",
-          name: "claude-3-5-sonnet-20241022",
-          enabled: false,
-        },
-        { id: "claude-3-sonnet", name: "Claude 3 Sonnet", enabled: false },
-        { id: "claude-3-haiku", name: "Claude 3 Haiku", enabled: false },
-      ],
-    },
-    {
-      id: "deepseek",
-      name: "Deepseek",
-      icon: Rocket,
-      connected: true,
-      apiKey: "sk-deepseek-example-key-123456789",
-      models: [{ id: "deepseek-chat", name: "deepseek-chat", enabled: true }],
-    },
-    {
-      id: "mistral",
-      name: "Mistral",
-      icon: Zap,
-      connected: false,
-      apiKey: "",
-      models: [],
-    },
-    {
-      id: "qwen",
-      name: "Qwen",
-      icon: Brain,
-      connected: true,
-      apiKey: "qwen-api-key-example-xyz789",
-      models: [
-        { id: "qwen2-7b-instruct", name: "qwen2-7b-instruct", enabled: true },
-        { id: "qwen-max", name: "qwen-max", enabled: true },
-      ],
-    },
-    {
-      id: "ollama",
-      name: "Ollama",
-      icon: Database,
-      connected: false,
-      apiKey: "",
-      models: [],
-    },
-  ];
+  // const providers = [
+  //   {
+  //     id: "openai",
+  //     name: "OpenAI",
+  //     icon: Bot,
+  //     connected: true,
+  //     apiKey: "sk-proj-N178KKtCZiPuR_7QUTLJVbnZO96QxOnFOMqLLJcrwMGhp6pX",
+  //     models: [
+  //       { id: "gpt-4", name: "gpt-4", enabled: true },
+  //       { id: "gpt-3.5-turbo-16k", name: "gpt-3.5-turbo-16k", enabled: true },
+  //       { id: "gpt-4o", name: "gpt-4o", enabled: true },
+  //     ],
+  //   },
+  //   {
+  //     id: "anthropic",
+  //     name: "Anthropic",
+  //     icon: Sparkles,
+  //     connected: true,
+  //     apiKey: "",
+  //     models: [
+  //       {
+  //         id: "claude-3-7-sonnet-20250219",
+  //         name: "claude-3-7-sonnet-20250219",
+  //         enabled: false,
+  //       },
+  //       {
+  //         id: "claude-3-5-sonnet-20241022",
+  //         name: "claude-3-5-sonnet-20241022",
+  //         enabled: false,
+  //       },
+  //       { id: "claude-3-sonnet", name: "Claude 3 Sonnet", enabled: false },
+  //       { id: "claude-3-haiku", name: "Claude 3 Haiku", enabled: false },
+  //     ],
+  //   },
+  //   {
+  //     id: "deepseek",
+  //     name: "Deepseek",
+  //     icon: Rocket,
+  //     connected: true,
+  //     apiKey: "sk-deepseek-example-key-123456789",
+  //     models: [{ id: "deepseek-chat", name: "deepseek-chat", enabled: true }],
+  //   },
+  //   {
+  //     id: "mistral",
+  //     name: "Mistral",
+  //     icon: Zap,
+  //     connected: true,
+  //     apiKey: "",
+  //     models: [],
+  //   },
+  //   {
+  //     id: "qwen",
+  //     name: "Qwen",
+  //     icon: Brain,
+  //     connected: true,
+  //     apiKey: "qwen-api-key-example-xyz789",
+  //     models: [
+  //       { id: "qwen2-7b-instruct", name: "qwen2-7b-instruct", enabled: true },
+  //       { id: "qwen-max", name: "qwen-max", enabled: true },
+  //     ],
+  //   },
+  //   {
+  //     id: "ollama",
+  //     name: "Ollama",
+  //     icon: Database,
+  //     connected: true,
+  //     apiKey: "",
+  //     models: [],
+  //   },
+  // ];
 
   // Skeleton Components
+
   const ProviderCardSkeleton = () => (
     <div
       className="rounded-xl border"
@@ -169,9 +220,9 @@ export default function Models() {
       </div>
 
       {/* Button Skeleton */}
-      <div className="p-4 pt-0">
+      {/* <div className="p-4 pt-0">
         <div className="w-full h-8 bg-gray-200 dark:bg-gray-400 rounded-lg animate-pulse" />
-      </div>
+      </div> */}
     </div>
   );
 
@@ -304,7 +355,10 @@ export default function Models() {
                             : "var(--text-secondary)",
                         }}
                       >
-                        <provider.icon className="h-4 w-4" />
+                        {(() => {
+                          const Icon = iconMap[provider.icon] || Bot;
+                          return <Icon className="h-4 w-4" />;
+                        })()}
                       </div>
                       <div>
                         <h3
@@ -315,11 +369,10 @@ export default function Models() {
                         </h3>
                         <div className="flex items-center gap-1 mt-0.5">
                           <div
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              provider.connected
-                                ? "bg-green-500"
-                                : "bg-gray-400"
-                            }`}
+                            className={`w-1.5 h-1.5 rounded-full ${provider.connected
+                              ? "bg-green-500"
+                              : "bg-gray-400"
+                              }`}
                           />
                           <span
                             className="text-xs"
@@ -331,25 +384,46 @@ export default function Models() {
                       </div>
                     </div>
 
-                    {provider.connected && (
+                    {/* Settings / Add API Key */}
+
+                    {/* Settings / Add API Key (selalu tampil) */}
+                    {provider.connected ? (
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleSettingsClick(provider)}
-                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        className="p-1.5 rounded-lg opacity-100 transition-opacity cursor-pointer"
                         style={{ color: "var(--text-secondary)" }}
+                        aria-label={`Settings ${provider.name}`}
+                        title="API Key / Settings"
                       >
                         <Settings className="h-3.5 w-3.5" />
                       </motion.button>
+                    ) : (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => handleSettingsClick(provider)}
+                        className="px-3 py-1.5 rounded-lg font-medium cursor-pointer"
+                        style={{ background: "var(--primary)", color: "white", border: "none" }}
+                        aria-label={`Add API Key for ${provider.name}`}
+                        title="Add API Key"
+                      >
+                        <div className="flex items-center gap-2 text-sm">
+                          <Settings className="h-3.5 w-3.5" />
+                          <span>Add API Key</span>
+                        </div>
+                      </motion.button>
                     )}
+
                   </div>
                 </div>
 
                 {/* Models Section */}
                 <div className="p-4">
-                  {provider.models.length > 0 ? (
+                  {provider?.models?.length > 0 ? (
                     <div className="space-y-2">
-                      {provider.models.slice(0, 4).map((model) => (
+                      {provider?.models.slice(0, 4).map((model) => (
                         <div
                           key={model.id}
                           className="flex items-center justify-between py-1"
@@ -371,37 +445,34 @@ export default function Models() {
                             whileTap={{ scale: 0.9 }}
                             onClick={() => toggleModel(provider.id, model.id)}
                             disabled={!provider.connected}
-                            className={`w-8 h-4 rounded-full transition-colors cursor-pointer flex items-center ${
-                              provider.connected &&
+                            className={`w-8 h-4 rounded-full transition-colors cursor-pointer flex items-center ${provider.connected &&
                               (modelStates[`${provider.id}-${model.id}`] ??
                                 model.enabled)
-                                ? "bg-green-500"
-                                : "bg-gray-300"
-                            } ${
-                              !provider.connected
+                              ? "bg-green-500"
+                              : "bg-gray-300"
+                              } ${!provider.connected
                                 ? "opacity-50 cursor-not-allowed"
                                 : ""
-                            }`}
+                              }`}
                           >
                             <div
-                              className={`w-3 h-3 bg-white rounded-full transition-transform ${
-                                provider.connected &&
+                              className={`w-3 h-3 bg-white rounded-full transition-transform ${provider.connected &&
                                 (modelStates[`${provider.id}-${model.id}`] ??
                                   model.enabled)
-                                  ? "translate-x-4"
-                                  : "translate-x-0.5"
-                              }`}
+                                ? "translate-x-4"
+                                : "translate-x-0.5"
+                                }`}
                             />
                           </motion.button>
                         </div>
                       ))}
-                      {provider.models.length > 4 && (
+                      {provider?.models?.length > 4 && (
                         <div className="pt-1">
                           <span
                             className="text-xs"
                             style={{ color: "var(--text-tertiary)" }}
                           >
-                            +{provider.models.length - 4} more models
+                            +{provider?.models?.length - 4} more models
                           </span>
                         </div>
                       )}
@@ -420,7 +491,7 @@ export default function Models() {
               </div>
 
               {/* Action Button */}
-              <div className="p-4 pt-0">
+              {/* <div className="p-4 pt-0">
                 {provider.connected ? (
                   <motion.button
                     whileHover={{ scale: 1.02 }}
@@ -452,16 +523,16 @@ export default function Models() {
                     Connect
                   </motion.button>
                 )}
-              </div>
+              </div> */}
             </motion.div>
           ))}
         </motion.div>
 
         {/* Add Model Modal */}
-        <AnimatePresence>
+        {/* <AnimatePresence>
           {isAddModelModalOpen && (
             <>
-              {/* Backdrop */}
+              Backdrop
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -474,7 +545,7 @@ export default function Models() {
                 }}
               />
 
-              {/* Modal */}
+              Modal
               <motion.div
                 initial={{ x: "100%" }}
                 animate={{ x: 0 }}
@@ -491,7 +562,7 @@ export default function Models() {
                   borderLeft: "1px solid var(--border-light)",
                 }}
               >
-                {/* Header */}
+                Header
                 <div
                   className="flex items-center justify-between p-6 border-b"
                   style={{ borderColor: "var(--border-light)" }}
@@ -516,10 +587,10 @@ export default function Models() {
                   </motion.button>
                 </div>
 
-                {/* Content */}
+                Content
                 <div className="flex-1 p-6 overflow-y-auto">
                   <div className="space-y-6">
-                    {/* Select Model Section */}
+                    Select Model Section
                     <div>
                       <div className="flex items-center justify-between mb-4">
                         <h3
@@ -539,11 +610,11 @@ export default function Models() {
                         </motion.button>
                       </div>
 
-                      {/* Model Options */}
+                      Model Options
                       <div className="space-y-3">
                         {selectedProvider && selectedProvider.connected ? (
                           <>
-                            {/* No Models Available Message */}
+                            No Models Available Message
                             <div
                               className="p-4 rounded-lg border border-dashed text-center"
                               style={{
@@ -557,7 +628,7 @@ export default function Models() {
                               </p>
                             </div>
 
-                            {/* Premium Model Option */}
+                            Premium Model Option
                             <div
                               className="p-4 rounded-lg border hover:bg-opacity-80 transition-colors"
                               style={{
@@ -620,7 +691,7 @@ export default function Models() {
                   </div>
                 </div>
 
-                {/* Footer */}
+                Footer
                 <div
                   className="p-6 border-t"
                   style={{ borderColor: "var(--border-light)" }}
@@ -659,7 +730,7 @@ export default function Models() {
               </motion.div>
             </>
           )}
-        </AnimatePresence>
+        </AnimatePresence> */}
 
         {/* API Key Modal */}
         <AnimatePresence>
@@ -742,7 +813,10 @@ export default function Models() {
                           onClick={() => {
                             setIsApiKeyModalOpen(false);
                             setEditedApiKey("");
+                            setIsSavingApiKey(false);
+                            setSaveDone(false);
                           }}
+
                           className="flex-1 py-3 px-4 rounded-lg font-medium border transition-colors"
                           style={{
                             borderColor: "var(--border-light)",
@@ -755,24 +829,36 @@ export default function Models() {
                         <motion.button
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => {
-                            // Here you would typically save the API key to your backend
-                            console.log(
-                              `Saving API key for ${selectedProvider?.name}:`,
-                              editedApiKey
-                            );
-                            setIsApiKeyModalOpen(false);
-                            setEditedApiKey("");
+                          disabled={isSavingApiKey || !editedApiKey?.trim()}
+                          onClick={async () => {
+                            if (!editedApiKey?.trim()) return;
+                            setIsSavingApiKey(true);
+                            setSaveDone(false);
+                            try {
+                              // TODO: panggil backend untuk simpan API key
+                              await new Promise(r => setTimeout(r, 800));
+                              setProviders(prev => prev.map(p => (
+                                p.id === selectedProvider?.id
+                                  ? { ...p, connected: true, apiKeyPreview: maskKey(editedApiKey) }
+                                  : p
+                              )));
+                              setSaveDone(true);
+                              await new Promise(r => setTimeout(r, 700));
+                              setIsApiKeyModalOpen(false);
+                              setEditedApiKey("");
+                            } finally {
+                              setIsSavingApiKey(false);
+                            }
                           }}
-                          className="flex-1 py-3 px-4 rounded-lg font-medium transition-colors"
-                          style={{
-                            background: "var(--primary)",
-                            color: "white",
-                            border: "none",
-                          }}
+                          className="flex-1 py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50"
+                          style={{ background: "var(--primary)", color: "white", border: "none" }}
                         >
-                          Save
+                          <div className="flex items-center justify-center gap-2">
+                            {isSavingApiKey ? <RefreshCw className="h-4 w-4 animate-spin" /> : (saveDone ? <Check className="h-4 w-4" /> : null)}
+                            <span>{saveDone ? "Saved" : (isSavingApiKey ? "Saving..." : "Save")}</span>
+                          </div>
                         </motion.button>
+
                       </div>
                     </div>
                   </div>

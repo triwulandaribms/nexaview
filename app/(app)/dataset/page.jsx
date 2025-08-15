@@ -88,27 +88,6 @@ export default function Datasets() {
     router.push("/dataset/update/" + idx);
   };
 
-  // 5️⃣ simpan perubahan
-  // const handleSave = (updated) => {
-  //   setDatasets((prev) => {
-  //     const next = [...prev];
-  //     next[editIndex] = updated;
-  //     return next;
-  //   });
-  // };
-
-  // const allFilteredDatasets = datasets?.filter(
-  //   (dataset) =>
-  //     dataset?.filename?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //     dataset?.type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //     dataset?.category?.some((cat) =>
-  //       cat?.toLowerCase().includes(searchTerm.toLowerCase())
-  //     ) ||
-  //     (dataset?.tags &&
-  //       dataset?.tags.some((tag) =>
-  //         tag.toLowerCase().includes(searchTerm.toLowerCase())
-  //       ))
-  // );
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };

@@ -1,6 +1,7 @@
 
 export async function request(path, { method = 'GET', body, headers, signal, cache } = {}) {
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+    console.log(path, " check isi nya apa yah a ? ");
 
     const res = await fetch(path, {
         method,
@@ -19,7 +20,7 @@ export async function request(path, { method = 'GET', body, headers, signal, cac
     try { json = await res.json(); } catch { }
 
     if (!res.ok) {
-        
+
         const msg = json?.error || json?.message || res.statusText || 'Request failed';
         const err = new Error(msg);
         err.status = res.status;
