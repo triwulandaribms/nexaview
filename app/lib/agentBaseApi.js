@@ -1,4 +1,3 @@
-// lib/knowledgeBaseApi.js
 import { request } from './http';
 
 const base = '/api/agent';
@@ -17,8 +16,9 @@ export const abApi = {
         return request(`${base}/${id}`, { method: 'DELETE', ...(opts || {}) });
     },
     create(payload, opts) {
-        return request(`${base}`, { method: 'POST', body: payload, ...(opts || {}) });
-    },
-    // opsional, kalau endpoint upload ada:
+        return request(base, {
+            method: "POST", body: payload, ...(opts || {}),
+        })
+    }
 
-};
+}

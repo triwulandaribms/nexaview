@@ -540,7 +540,7 @@ export default function Agents() {
                                   style={{ color: "var(--text-secondary)" }}
                                 >
                                   <Bot className="h-4 w-4" />
-                                  <span>{agent.model}</span>
+                                  <span>{agent?.default_model?.name || ""}</span>
                                 </div>
 
                                 <div

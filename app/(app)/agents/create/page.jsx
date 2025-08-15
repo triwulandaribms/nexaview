@@ -7,6 +7,7 @@ import {
   ChevronDown,
   Database,
   Globe,
+  Brain,
   Code,
   Check,
   AlertCircle,
@@ -20,6 +21,11 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { kbApi } from "@/app/lib/knowledgeBaseApi";
+import { mbApi } from "@/app/lib/modelBaseApi";
+import { abApi } from "@/app/lib/agentBaseApi";
+
+const ICONS = { Bot, Sparkles, Rocket, Zap, Brain, Database };
 
 export default function CreateAgent() {
   const router = useRouter();
@@ -33,61 +39,114 @@ export default function CreateAgent() {
   const [selectedProvider, setSelectedProvider] = useState("OpenAI");
   const [selectedDataSource, setSelectedDataSource] =
     useState("Knowledge Bases");
+  // KB state
+  const [kbLoading, setKbLoading] = useState(true);
+  const [kbError, setKbError] = useState("");
+  const [knowledgeBases, setKnowledgeBases] = useState([]);
+
   const [searchKnowledgeBases, setSearchKnowledgeBases] = useState("");
   const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState([]);
+  // Model Providers state
+  const [modelProviders, setModelProviders] = useState([]);
+  const [providersError, setProvidersError] = useState("");
 
-  const modelProviders = [
-    {
-      name: "OpenAI",
-      status: "Connected",
-      icon: Bot,
-      models: [
-        { id: "gpt-4", name: "gpt-4" },
-        { id: "gpt-3.5-turbo-16k", name: "gpt-3.5-turbo-16k" },
-        { id: "gpt-4o", name: "gpt-4o" },
-      ],
-    },
-    {
-      name: "Anthropic",
-      status: "Not configured",
-      icon: Sparkles,
-      models: [
-        {
-          id: "claude-3-7-sonnet-20250219",
-          name: "claude-3-7-sonnet-20250219",
-        },
-        {
-          id: "claude-3.5-sonnet-20241022",
-          name: "claude-3.5-sonnet-20241022",
-        },
-        { id: "claude-3-sonnet", name: "Claude 3 Sonnet" },
-        { id: "claude-3-haiku", name: "Claude 3 Haiku" },
-      ],
-    },
-    {
-      name: "Deepseek",
-      status: "Connected",
-      icon: Rocket,
-      models: [{ id: "deepseek-chat", name: "deepseek-chat" }],
-    },
-    {
-      name: "Qwen",
-      status: "Connected",
-      icon: Zap,
-      models: [
-        { id: "qwen2-7b-instruct", name: "qwen2-7b-instruct" },
-        { id: "qwen-max", name: "qwen-max" },
-      ],
-    },
-  ];
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitErr, setSubmitErr] = useState("");
 
-  const knowledgeBases = [
-    { id: "meeting", name: "Meeting", documents: 1 },
-    { id: "buka-finance", name: "BUKA Finance", documents: 4 },
-    { id: "goto-finance", name: "GoTo Finance", documents: 4 },
-    { id: "hukum", name: "Hukum", documents: 2 },
-    { id: "data-crm", name: "Data CRM", documents: 0 },
-  ];
+
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    (async () => {
+      setKbLoading(true);
+      setKbError("");
+      setProvidersError("");
+
+      try {
+        const [resKB, resMB] = await Promise.all([kbApi.all({ signal }), mbApi.list({ signal })]);
+
+        if (!resKB || resKB.error) throw new Error(resKB?.error || "Failed to load knowledge bases.");
+        const rawKB = Array.isArray(resKB.data) ? resKB.data : [];
+        const mappedkb = rawKB.map((it, i) => ({
+          id: it.id ?? String(i),
+          name: it.name ?? `KB ${i + 1}`,
+          documents:
+            typeof it.docs_count === "number"
+              ? it.docs_count
+              : Array.isArray(it.documents)
+                ? it.documents.length
+                : 0,
+          description: it.description ?? "",
+          color: it.color ?? "#4F46E5",
+          createdAt: it.created_at ?? null,
+          updatedAt: it.updated_at ?? null,
+          roles: Array.isArray(it.roles) ? it.roles : [],
+          _raw: it,
+        }));
+        setKnowledgeBases(mappedkb);
+
+        if (!resMB || resMB.error) throw new Error(resMB?.error || "Failed to load model providers.");
+        const mbRaw = Array.isArray(resMB.data) ? resMB.data : [];
+        const order = ["openai", "anthropic", "deepseek", "mistral", "qwen", "ollama"];
+        const iconMap = {
+          openai: "Bot",
+          anthropic: "Sparkles",
+          deepseek: "Rocket",
+          mistral: "Zap",
+          qwen: "Brain",
+          ollama: "Database",
+        };
+
+        const toIconKey = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "Bot");
+        const mappedProviders = (Array.isArray(mbRaw) ? mbRaw : [])
+          .map((p) => {
+            const hasKey = !!p.apiKeyPreview;                     // configured?
+
+            const iconName = iconMap[p.id] ?? toIconKey(p.icon) ?? "Bot";
+
+            const rawModels = Array.isArray(p.models) ? p.models : [];
+
+            // jika Not configured => tampilkan semua model (selama punya id & name)
+            // jika Connected      => hanya model enabled=true (dan tetap butuh id & name)
+            const models = rawModels.filter(
+              (m) => m && m.id && m.name && (hasKey ? m.enabled === true : true)
+            );
+
+            return {
+              ...p,
+              icon: iconName,                                      // simpan string nama ikon
+              connected: hasKey,                                   // false kalau belum ada API key
+              status: hasKey ? "Connected" : "Not configured",
+              models,
+            };
+          })
+          .sort((a, b) => {
+            const ia = order.indexOf(a.id);
+            const ib = order.indexOf(b.id);
+            if (ia !== -1 && ib !== -1) return ia - ib;
+            if (ia !== -1) return -1;
+            if (ib !== -1) return 1;
+            return (a.name || "").localeCompare(b.name || "");
+          });
+        const res = await abApi.detail("752f63e8-902a-4f80-a924-de8dd272155c", { signal });
+        console.log(res.data);
+
+        setModelProviders(mappedProviders);
+
+      } catch (e) {
+        if (e.name !== "AbortError") {
+          if (!kbError) setKbError(e?.message || "Unexpected error.");
+          if (!providersError) setProvidersError(e?.message || "Unexpected error.");
+        }
+      } finally {
+        setKbLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, []);
 
   const dataSourceOptions = [
     {
@@ -129,18 +188,75 @@ export default function CreateAgent() {
   };
 
   const handleCreateAgent = () => {
-    // Handle agent creation logic here
-    console.log({
-      agentName,
-      description,
-      systemPrompt,
-      selectedModel,
-      selectedProvider,
-      selectedDataSource,
-      selectedKnowledgeBases,
-    });
-    router.push("/agents");
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    (async () => {
+      setIsSubmitting(true);
+      setSubmitErr("");
+
+      try {
+        // cari provider & model yang dipilih
+        const prov =
+          modelProviders.find((p) => p.models.some((m) => m.id === selectedModel)) ||
+          modelProviders.find((p) => p.id === selectedProviderId) ||
+          null;
+
+        const providerId = (prov?.id || "").toLowerCase();
+        const mdl = prov?.models.find((m) => m.id === selectedModel) || null;
+
+        const kbList =
+          selectedDataSource === "Knowledge Bases"
+            ? knowledgeBases
+              .filter((kb) => selectedKnowledgeBases.includes(kb.id))
+              .map((kb) => ({
+                name: kb.name,
+                description: kb.description || "",
+                documentCount:
+                  typeof kb.documents === "number" ? kb.documents : 0,
+              }))
+            : [];
+        const DATA_SOURCE_KEY = {
+          "Knowledge Bases": "knowledge-bases",
+          "Database Connections": "database-connections",
+          "API Features": "api-features",
+        };
+        const chosenType = DATA_SOURCE_KEY[selectedDataSource] || "";
+
+        const payload = {
+          name: agentName.trim(),
+          description: description.trim(),
+          system_prompt: systemPrompt,
+          color: "#4F46E5",
+          default_model: {
+            providerId,
+            id: selectedModel,
+            name: mdl?.name || selectedModel,
+          },
+          knowledgebases: kbList,
+          databases: [],            // sesuai permintaanmu
+          features_knowledge: [],   // sesuai permintaanmu
+          // optional saja; backend kamu juga set ini otomatis dari KB length
+          data_source_type: chosenType ? [chosenType] : [],
+        };
+
+        if (!payload.name) throw new Error("Please provide an agent name.");
+        if (!payload.default_model.providerId || !payload.default_model.id) {
+          throw new Error("Please select a model.");
+        }
+
+        const res = await abApi.create(payload, { signal });
+        if (!res || res.error) throw new Error(res?.error || "Failed to create agent.");
+
+        router.push("/agents");
+      } catch (e) {
+        if (e.name !== "AbortError") setSubmitErr(e?.message || "Terjadi kesalahan.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    })();
   };
+
 
   // Skeleton Components
   const FormFieldSkeleton = ({ rows = 1 }) => (
@@ -150,9 +266,8 @@ export default function CreateAgent() {
         <div className="h-12 w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse" />
       ) : (
         <div
-          className={`h-${
-            rows * 6
-          } w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse`}
+          className={`h-${rows * 6
+            } w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse`}
         />
       )}
     </div>
@@ -515,11 +630,10 @@ export default function CreateAgent() {
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           onClick={() => setSelectedDataSource(option.id)}
-                          className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${
-                            selectedDataSource === option.id
-                              ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                              : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
-                          }`}
+                          className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${selectedDataSource === option.id
+                            ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                            : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                            }`}
                           style={{
                             background:
                               selectedDataSource === option.id
@@ -668,10 +782,12 @@ export default function CreateAgent() {
                               className="p-2 rounded-lg"
                               style={{ background: "var(--surface-secondary)" }}
                             >
-                              <provider.icon
-                                className="h-5 w-5"
-                                style={{ color: "var(--text-primary)" }}
-                              />
+                              <div className="p-2 rounded-lg" style={{ background: "var(--surface-secondary)" }}>
+                                {(() => {
+                                  const Icon = ICONS[provider.icon] || Bot;
+                                  return <Icon className="h-5 w-5" style={{ color: "var(--text-primary)" }} />;
+                                })()}
+                              </div>
                             </div>
                             <h4
                               className="font-medium"
@@ -680,11 +796,10 @@ export default function CreateAgent() {
                               {provider.name}
                             </h4>
                             <span
-                              className={`text-xs px-3 py-1 rounded-full font-medium ${
-                                provider.status === "Connected"
-                                  ? "bg-green-50 text-green-600 border border-green-200"
-                                  : "bg-gray-50 text-gray-600 border border-gray-200"
-                              }`}
+                              className={`text-xs px-3 py-1 rounded-full font-medium ${provider.status === "Connected"
+                                ? "bg-green-50 text-green-600 border border-green-200"
+                                : "bg-gray-50 text-gray-600 border border-gray-200"
+                                }`}
                             >
                               {provider.status}
                             </span>
@@ -694,15 +809,13 @@ export default function CreateAgent() {
                             {provider.models.map((model) => (
                               <label
                                 key={model.id}
-                                className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${
-                                  selectedModel === model.id
-                                    ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                                    : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
-                                } ${
-                                  provider.status !== "Connected"
+                                className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${selectedModel === model.id
+                                  ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                                  : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                                  } ${provider.status !== "Connected"
                                     ? "opacity-50 cursor-not-allowed"
                                     : ""
-                                }`}
+                                  }`}
                                 style={{
                                   background:
                                     selectedModel === model.id
@@ -729,11 +842,10 @@ export default function CreateAgent() {
                                   }}
                                 />
                                 <span
-                                  className={`text-sm font-medium flex-1 ${
-                                    provider.status !== "Connected"
-                                      ? "text-gray-400"
-                                      : ""
-                                  }`}
+                                  className={`text-sm font-medium flex-1 ${provider.status !== "Connected"
+                                    ? "text-gray-400"
+                                    : ""
+                                    }`}
                                   style={{
                                     color:
                                       provider.status !== "Connected"
@@ -853,9 +965,8 @@ export default function CreateAgent() {
                       style={{ color: "var(--text-secondary)" }}
                     >
                       {selectedKnowledgeBases.length > 0
-                        ? `${selectedKnowledgeBases.length} knowledge base${
-                            selectedKnowledgeBases.length !== 1 ? "s" : ""
-                          } selected`
+                        ? `${selectedKnowledgeBases.length} knowledge base${selectedKnowledgeBases.length !== 1 ? "s" : ""
+                        } selected`
                         : "No data sources selected"}
                     </p>
                   </div>
@@ -900,22 +1011,29 @@ export default function CreateAgent() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleCreateAgent}
-                disabled={!agentName.trim() || !description.trim()}
+                disabled={isSubmitting || !agentName.trim() || !description.trim() || !selectedModel}
                 className="px-6 py-3 md:px-4 md:py-2 text-sm md:text-sm font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 w-full justify-center cursor-pointer"
                 style={{
                   background:
-                    agentName.trim() && description.trim()
+                    !isSubmitting && agentName.trim() && description.trim() && selectedModel
                       ? "var(--primary)"
                       : "var(--surface-secondary)",
                   color:
-                    agentName.trim() && description.trim()
+                    !isSubmitting && agentName.trim() && description.trim() && selectedModel
                       ? "var(--text-inverse)"
                       : "var(--text-secondary)",
                 }}
               >
-                Create Agent
+                {isSubmitting ? "Creating..." : "Create Agent"}
                 <ChevronDown className="h-4 w-4 rotate-[-90deg]" />
               </motion.button>
+
+              {submitErr && (
+                <p className="mt-2 text-xs" style={{ color: "var(--danger)" }}>
+                  {submitErr}
+                </p>
+              )}
+
             </div>
           </motion.div>
         </div>
