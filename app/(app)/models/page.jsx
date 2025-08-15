@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from "react";
 import {
   Settings, Info, Bot, Sparkles, Rocket, Zap, Brain, Database,
-  Check, X, RefreshCw, Lock
+  RefreshCw, Check, Lock as LockIcon
 } from "lucide-react";
+
 
 import PageHeader from "../../components/PageHeader";
 import ModelConfigModal from "../../components/ModelConfigModal";
@@ -23,6 +24,11 @@ export default function Models() {
   const [editedApiKey, setEditedApiKey] = useState("");
   const [providers, setProviders] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
+  const [modelStates, setModelStates] = useState({});
+  const [toggling, setToggling] = useState({});
+  const [phase, setPhase] = useState("save");
+  const [isGenerating, setIsGenerating] = useState(false);
+
 
   const iconMap = {
     bot: Bot,
@@ -30,152 +36,47 @@ export default function Models() {
     rocket: Rocket,
     zap: Zap,
     brain: Brain,
-    database: Database,
+    database: Database
   };
-  const maskKey = (key) => {
-    if (!key) return null;
-    const tail = String(key).slice(-4);
-    return `••••${tail}`;
-  };
-
-  // const handleModelClick = (model) => {
-  //   setSelectedModel(model);
-  //   setIsModelConfigModalOpen(true);
-  // };
-
-  // setProviders((res?.data || []).map(p => ({
-  //   ...p,
-  //   connected: !!(p.apiKey || p.apiKeyPreview || p.connected),
-  // })));
 
   const handleSettingsClick = (provider) => {
     setSelectedProvider(provider);
-    setEditedApiKey(provider.apiKey || "");
+    setEditedApiKey(provider.apiKeyPreview || "");
+    setPhase(provider.connected ? "save" : "generate");
     setIsSavingApiKey(false);
+    setIsGenerating(false);
     setSaveDone(false);
     setIsApiKeyModalOpen(true);
   };
 
-
-  const [modelStates, setModelStates] = useState({});
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-
-    (async () => {
-      setIsLoading(true);
-      setErrorMsg("");
-
-      try {
-        const res = await mbApi.list({ signal });
-        if (!res || res.error) {
-          throw new Error(res?.error || "Gagal memuat dataset.");
-        }
-        console.log(res.data, " <===  check hasil nya ");
-        setProviders((res?.data || []).map(p => ({
-          ...p,
-          connected: !!(p.apiKey || p.apiKeyPreview || p.connected),
-        })));
-      } catch (e) {
-        if (e.name !== "AbortError") {
-          setErrorMsg(e?.message || "Terjadi kesalahan.");
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-
-    return () => controller.abort();
-  }, []);
+  const handleToggleModel = async (providerId, model) => {
+    const key = `${providerId}-${model.id}`;
+    const current = modelStates[key] ?? model.enabled;
+    const next = !current;
+    console.log(model);
 
 
+    // optimistic
+    setModelStates((prev) => ({ ...prev, [key]: next }));
+    setToggling((prev) => ({ ...prev, [key]: true }));
 
-  // Simulate loading
-  // React.useEffect(() => {
-  //   const timer = setTimeout(() => {
-  //     setIsLoading(false);
-  //   }, 1200);
-  //   return () => clearTimeout(timer);
-  // }, []);
-
-  const toggleModel = (providerId, modelId) => {
-    setModelStates((prev) => ({
-      ...prev,
-      [`${providerId}-${modelId}`]: !prev[`${providerId}-${modelId}`],
-    }));
+    try {
+      const controller = new AbortController();
+      const res = await mbApi.toggle(
+        { id: model._id },
+        { providerId, modelId: model.id, enabled: next },
+        { signal: controller.signal }
+      );
+      if (res?.error) throw new Error(res.error);
+    } catch (e) {
+      // revert kalau gagal
+      setModelStates((prev) => ({ ...prev, [key]: current }));
+    } finally {
+      setToggling((prev) => ({ ...prev, [key]: false }));
+    }
   };
 
-  // const providers = [
-  //   {
-  //     id: "openai",
-  //     name: "OpenAI",
-  //     icon: Bot,
-  //     connected: true,
-  //     apiKey: "sk-proj-N178KKtCZiPuR_7QUTLJVbnZO96QxOnFOMqLLJcrwMGhp6pX",
-  //     models: [
-  //       { id: "gpt-4", name: "gpt-4", enabled: true },
-  //       { id: "gpt-3.5-turbo-16k", name: "gpt-3.5-turbo-16k", enabled: true },
-  //       { id: "gpt-4o", name: "gpt-4o", enabled: true },
-  //     ],
-  //   },
-  //   {
-  //     id: "anthropic",
-  //     name: "Anthropic",
-  //     icon: Sparkles,
-  //     connected: true,
-  //     apiKey: "",
-  //     models: [
-  //       {
-  //         id: "claude-3-7-sonnet-20250219",
-  //         name: "claude-3-7-sonnet-20250219",
-  //         enabled: false,
-  //       },
-  //       {
-  //         id: "claude-3-5-sonnet-20241022",
-  //         name: "claude-3-5-sonnet-20241022",
-  //         enabled: false,
-  //       },
-  //       { id: "claude-3-sonnet", name: "Claude 3 Sonnet", enabled: false },
-  //       { id: "claude-3-haiku", name: "Claude 3 Haiku", enabled: false },
-  //     ],
-  //   },
-  //   {
-  //     id: "deepseek",
-  //     name: "Deepseek",
-  //     icon: Rocket,
-  //     connected: true,
-  //     apiKey: "sk-deepseek-example-key-123456789",
-  //     models: [{ id: "deepseek-chat", name: "deepseek-chat", enabled: true }],
-  //   },
-  //   {
-  //     id: "mistral",
-  //     name: "Mistral",
-  //     icon: Zap,
-  //     connected: true,
-  //     apiKey: "",
-  //     models: [],
-  //   },
-  //   {
-  //     id: "qwen",
-  //     name: "Qwen",
-  //     icon: Brain,
-  //     connected: true,
-  //     apiKey: "qwen-api-key-example-xyz789",
-  //     models: [
-  //       { id: "qwen2-7b-instruct", name: "qwen2-7b-instruct", enabled: true },
-  //       { id: "qwen-max", name: "qwen-max", enabled: true },
-  //     ],
-  //   },
-  //   {
-  //     id: "ollama",
-  //     name: "Ollama",
-  //     icon: Database,
-  //     connected: true,
-  //     apiKey: "",
-  //     models: [],
-  //   },
-  // ];
+
 
   // Skeleton Components
 
@@ -238,6 +139,38 @@ export default function Models() {
       ))}
     </motion.div>
   );
+
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    (async () => {
+      setIsLoading(true);
+      setErrorMsg("");
+
+      try {
+        const res = await mbApi.list({ signal });
+        if (!res || res.error) {
+          throw new Error(res?.error || "Gagal memuat dataset.");
+        }
+        console.log(res.data, " <===  check hasil nya ");
+        setProviders((res?.data || []).map(p => ({
+          ...p,
+          connected: !!(p.apiKey || p.apiKeyPreview || p.connected),
+        })));
+
+      } catch (e) {
+        if (e.name !== "AbortError") {
+          setErrorMsg(e?.message || "Terjadi kesalahan.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+
+    return () => controller.abort();
+  }, []);
 
   if (isLoading) {
     return (
@@ -367,7 +300,7 @@ export default function Models() {
                         >
                           {provider.name}
                         </h3>
-                        <div className="flex items-center gap-1 mt-0.5">
+                        {/* <div className="flex items-center gap-1 mt-0.5">
                           <div
                             className={`w-1.5 h-1.5 rounded-full ${provider.connected
                               ? "bg-green-500"
@@ -380,7 +313,7 @@ export default function Models() {
                           >
                             {provider.connected ? "Connected" : "Not connected"}
                           </span>
-                        </div>
+                        </div> */}
                       </div>
                     </div>
 
@@ -388,17 +321,16 @@ export default function Models() {
 
                     {/* Settings / Add API Key (selalu tampil) */}
                     {provider.connected ? (
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
+                      <button
                         onClick={() => handleSettingsClick(provider)}
-                        className="p-1.5 rounded-lg opacity-100 transition-opacity cursor-pointer"
+                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 focus:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-200"
                         style={{ color: "var(--text-secondary)" }}
                         aria-label={`Settings ${provider.name}`}
                         title="API Key / Settings"
                       >
                         <Settings className="h-3.5 w-3.5" />
-                      </motion.button>
+                      </button>
+
                     ) : (
                       <motion.button
                         whileHover={{ scale: 1.02 }}
@@ -440,30 +372,31 @@ export default function Models() {
                           >
                             {model.name}
                           </span>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() => toggleModel(provider.id, model.id)}
-                            disabled={!provider.connected}
-                            className={`w-8 h-4 rounded-full transition-colors cursor-pointer flex items-center ${provider.connected &&
-                              (modelStates[`${provider.id}-${model.id}`] ??
-                                model.enabled)
-                              ? "bg-green-500"
-                              : "bg-gray-300"
-                              } ${!provider.connected
-                                ? "opacity-50 cursor-not-allowed"
-                                : ""
-                              }`}
-                          >
-                            <div
-                              className={`w-3 h-3 bg-white rounded-full transition-transform ${provider.connected &&
-                                (modelStates[`${provider.id}-${model.id}`] ??
-                                  model.enabled)
-                                ? "translate-x-4"
-                                : "translate-x-0.5"
-                                }`}
-                            />
-                          </motion.button>
+                          {(() => {
+                            const key = `${provider.id}-${model.id}`;
+                            const isOn = (modelStates[key] ?? model.enabled) === true;
+                            const busy = !!toggling[key];
+
+                            return (
+                              <motion.button
+                                whileHover={{ scale: provider.connected && !busy ? 1.1 : 1 }}
+                                whileTap={{ scale: provider.connected && !busy ? 0.9 : 1 }}
+                                onClick={() => handleToggleModel(provider.id, model)}
+                                disabled={!provider.connected || busy}
+                                aria-label={`Toggle ${model.name}`}
+                                aria-pressed={isOn}
+                                aria-busy={busy}
+                                className={`w-8 h-4 rounded-full transition-colors flex items-center ${isOn ? "bg-green-500" : "bg-gray-300"
+                                  } ${!provider.connected || busy ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                              >
+                                <div
+                                  className={`w-3 h-3 bg-white rounded-full transition-transform ${isOn ? "translate-x-4" : "translate-x-0.5"
+                                    }`}
+                                />
+                              </motion.button>
+                            );
+                          })()}
+
                         </div>
                       ))}
                       {provider?.models?.length > 4 && (
@@ -793,7 +726,8 @@ export default function Models() {
                             borderColor: "var(--border-light)",
                           }}
                         >
-                          <Lock className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                          <LockIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+
                           <input
                             type="text"
                             value={editedApiKey}
@@ -835,17 +769,25 @@ export default function Models() {
                             setIsSavingApiKey(true);
                             setSaveDone(false);
                             try {
-                              // TODO: panggil backend untuk simpan API key
-                              await new Promise(r => setTimeout(r, 800));
-                              setProviders(prev => prev.map(p => (
+                              const controller = new AbortController();
+                              const res = await mbApi.saveKey(
+                                { providerId: selectedProvider?.id, api_key: editedApiKey, },
+                                { signal: controller.signal }
+                              );
+                              if (res?.error) throw new Error(res.error);
+
+                              // update UI jadi connected + tampil mask
+                              setProviders(prev => prev.map(p =>
                                 p.id === selectedProvider?.id
-                                  ? { ...p, connected: true, apiKeyPreview: maskKey(editedApiKey) }
+                                  ? { ...p, connected: true, apiKeyPreview: editedApiKey }
                                   : p
-                              )));
+                              ));
                               setSaveDone(true);
-                              await new Promise(r => setTimeout(r, 700));
+                              await new Promise(r => setTimeout(r, 400));
                               setIsApiKeyModalOpen(false);
                               setEditedApiKey("");
+                            } catch (e) {
+                              console.error(e);
                             } finally {
                               setIsSavingApiKey(false);
                             }
@@ -858,6 +800,7 @@ export default function Models() {
                             <span>{saveDone ? "Saved" : (isSavingApiKey ? "Saving..." : "Save")}</span>
                           </div>
                         </motion.button>
+
 
                       </div>
                     </div>

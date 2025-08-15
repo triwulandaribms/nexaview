@@ -37,7 +37,7 @@ export async function GET() {
                     id: pid,
                     name: PROVIDER_NAME[pid] || pid,
                     icon: PROVIDER_ICON[pid] || "bot",
-                    connected: false,
+                    connected: true,
                     apiKey: null,
                     apiKeyPreview: item.api_key_preview ?? null,
                     models: [],
