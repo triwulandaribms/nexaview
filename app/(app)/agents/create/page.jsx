@@ -102,22 +102,20 @@ export default function CreateAgent() {
         const toIconKey = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "Bot");
         const mappedProviders = (Array.isArray(mbRaw) ? mbRaw : [])
           .map((p) => {
-            const hasKey = !!p.apiKeyPreview;                     // configured?
+            const hasKey = !!p.apiKeyPreview;                   
 
             const iconName = iconMap[p.id] ?? toIconKey(p.icon) ?? "Bot";
 
             const rawModels = Array.isArray(p.models) ? p.models : [];
 
-            // jika Not configured => tampilkan semua model (selama punya id & name)
-            // jika Connected      => hanya model enabled=true (dan tetap butuh id & name)
             const models = rawModels.filter(
               (m) => m && m.id && m.name && (hasKey ? m.enabled === true : true)
             );
 
             return {
               ...p,
-              icon: iconName,                                      // simpan string nama ikon
-              connected: hasKey,                                   // false kalau belum ada API key
+              icon: iconName,                                    
+              connected: hasKey,                                  
               status: hasKey ? "Connected" : "Not configured",
               models,
             };
@@ -130,8 +128,6 @@ export default function CreateAgent() {
             if (ib !== -1) return 1;
             return (a.name || "").localeCompare(b.name || "");
           });
-        const res = await abApi.detail("752f63e8-902a-4f80-a924-de8dd272155c", { signal });
-        console.log(res.data);
 
         setModelProviders(mappedProviders);
 
@@ -234,9 +230,8 @@ export default function CreateAgent() {
             name: mdl?.name || selectedModel,
           },
           knowledgebases: kbList,
-          databases: [],            // sesuai permintaanmu
-          features_knowledge: [],   // sesuai permintaanmu
-          // optional saja; backend kamu juga set ini otomatis dari KB length
+          databases: [],          
+          features_knowledge: [],  
           data_source_type: chosenType ? [chosenType] : [],
         };
 

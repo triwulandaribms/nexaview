@@ -53,7 +53,6 @@ export default function Models() {
     const key = `${providerId}-${model.id}`;
     const current = modelStates[key] ?? model.enabled;
     const next = !current;
-    console.log(model);
 
 
     // optimistic
@@ -69,7 +68,6 @@ export default function Models() {
       );
       if (res?.error) throw new Error(res.error);
     } catch (e) {
-      // revert kalau gagal
       setModelStates((prev) => ({ ...prev, [key]: current }));
     } finally {
       setToggling((prev) => ({ ...prev, [key]: false }));
@@ -154,7 +152,6 @@ export default function Models() {
         if (!res || res.error) {
           throw new Error(res?.error || "Gagal memuat dataset.");
         }
-        console.log(res.data, " <===  check hasil nya ");
         setProviders((res?.data || []).map(p => ({
           ...p,
           connected: !!(p.apiKey || p.apiKeyPreview || p.connected),

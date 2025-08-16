@@ -2,12 +2,6 @@ import { cookies } from "next/headers";
 import axios from "axios";
 import { ok, fail, normalizeAxiosError } from "@/app/lib/utils";
 
-/**
- * PUT /api/model/provider/:id
- * Simpan/ubah API key atau pengaturan provider.
- * Body bebas (diserahkan ke upstream). Jika kamu kirim { apiKey },
- * otomatis dipetakan ke { api_key }.
- */
 export async function PUT(req, { params }) {
     const baseURL = process.env.API_BASE_URL;
     if (!baseURL) return fail("Server configuration error. Please contact administrator.", 500);
@@ -21,9 +15,7 @@ export async function PUT(req, { params }) {
     } catch {
         body = {};
     }
-    console.log(body);
 
-    // Map camelCase -> snake_case jika upstream pakai api_key
     if (body.apiKey && body.api_key === undefined) {
         body.api_key = body.apiKey;
         delete body.D;

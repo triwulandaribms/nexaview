@@ -265,9 +265,7 @@ export default function KnowledgeBase() {
   //   if (!editForm.name.trim()) return; // validasi sederhana
   //   setSaving(true);
   //   try {
-  //     // TODO: panggil API update milikmu di sini
-  //     // await fetch(`/api/knowledge-base/${selectedKB.id}`, { method:"PATCH", body: JSON.stringify(editForm) })
-  //     await new Promise(r => setTimeout(r, 800)); // simulasi
+  //  await new Promise(r => setTimeout(r, 800)); // simulasi
   //   } finally {
   //     setSaving(false);
   //     setEditOpen(false);

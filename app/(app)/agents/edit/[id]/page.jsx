@@ -18,10 +18,17 @@ import {
   Server,
   FileText,
   Save,
+  Brain,
   Trash2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
+import { kbApi } from "@/app/lib/knowledgeBaseApi";
+import { mbApi } from "@/app/lib/modelBaseApi";
+import { abApi } from "@/app/lib/agentBaseApi";
+import ConfirmDeleteModalAgent from "@/app/components/ConfirmDeleteModalAgent";
+
+const ICONS = { Bot, Sparkles, Rocket, Zap, Brain, Database };
 
 export default function EditAgent() {
   const router = useRouter();
@@ -41,59 +48,14 @@ export default function EditAgent() {
     useState("Knowledge Bases");
   const [searchKnowledgeBases, setSearchKnowledgeBases] = useState("");
   const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitErr, setSubmitErr] = useState("");
 
-  const modelProviders = [
-    {
-      name: "OpenAI",
-      status: "Connected",
-      icon: Bot,
-      models: [
-        { id: "gpt-4", name: "gpt-4" },
-        { id: "gpt-3.5-turbo-16k", name: "gpt-3.5-turbo-16k" },
-        { id: "gpt-4o", name: "gpt-4o" },
-      ],
-    },
-    {
-      name: "Anthropic",
-      status: "Not configured",
-      icon: Sparkles,
-      models: [
-        {
-          id: "claude-3-7-sonnet-20250219",
-          name: "claude-3-7-sonnet-20250219",
-        },
-        {
-          id: "claude-3.5-sonnet-20241022",
-          name: "claude-3.5-sonnet-20241022",
-        },
-        { id: "claude-3-sonnet", name: "Claude 3 Sonnet" },
-        { id: "claude-3-haiku", name: "Claude 3 Haiku" },
-      ],
-    },
-    {
-      name: "Deepseek",
-      status: "Connected",
-      icon: Rocket,
-      models: [{ id: "deepseek-chat", name: "deepseek-chat" }],
-    },
-    {
-      name: "Qwen",
-      status: "Connected",
-      icon: Zap,
-      models: [
-        { id: "qwen2-7b-instruct", name: "qwen2-7b-instruct" },
-        { id: "qwen-max", name: "qwen-max" },
-      ],
-    },
-  ];
+  const [modelProviders, setModelProviders] = useState([]);
+  const [knowledgeBases, setKnowledgeBases] = useState([]);
 
-  const knowledgeBases = [
-    { id: "meeting", name: "Meeting", documents: 1 },
-    { id: "buka-finance", name: "BUKA Finance", documents: 4 },
-    { id: "goto-finance", name: "GoTo Finance", documents: 4 },
-    { id: "hukum", name: "Hukum", documents: 2 },
-    { id: "data-crm", name: "Data CRM", documents: 0 },
-  ];
+  const [delOpen, setDelOpen] = useState(false);
+  const [delLoading, setDelLoading] = useState(false);
 
   const dataSourceOptions = [
     {
@@ -128,49 +90,122 @@ export default function EditAgent() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Simulate fetching agent data
   useEffect(() => {
-    const fetchAgentData = async () => {
-      try {
-        setLoading(true);
-        // Simulate API call - replace with actual API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+    const controller = new AbortController();
+    const { signal } = controller;
 
-        // Mock data - replace with actual API response
-        const agentData = {
-          id: agentId,
-          name: "Technical Support Assistant",
-          description:
-            "A specialized agent for handling technical support queries and troubleshooting customer issues.",
-          systemPrompt:
-            "You are a knowledgeable technical support assistant. Help users resolve their technical issues with patience and clear explanations. Always ask for clarification when needed and provide step-by-step solutions.",
-          model: "gpt-4",
-          provider: "OpenAI",
-          dataSource: "Knowledge Bases",
-          knowledgeBases: ["meeting", "buka-finance"],
-          createdAt: "2024-01-15T10:30:00Z",
-          updatedAt: "2024-01-20T14:45:00Z",
+    (async () => {
+      try {
+        const [resKB, resMB] = await Promise.all([
+          kbApi.all({ signal }),
+          mbApi.list({ signal }),
+        ]);
+
+        // KB
+        const kbRaw = Array.isArray(resKB?.data) ? resKB.data : [];
+        const mappedKB = kbRaw.map((it, i) => ({
+          id: it.id ?? String(i),
+          name: it.name ?? `KB ${i + 1}`,
+          documents:
+            typeof it.docs_count === "number"
+              ? it.docs_count
+              : Array.isArray(it.documents)
+                ? it.documents.length
+                : 0,
+          description: it.description ?? "",
+        }));
+        setKnowledgeBases(mappedKB);
+
+        // Providers
+        const iconName = {
+          openai: "Bot",
+          anthropic: "Sparkles",
+          deepseek: "Rocket",
+          mistral: "Zap",
+          qwen: "Brain",
+          ollama: "Database",
         };
 
-        setAgentName(agentData.name);
-        setDescription(agentData.description);
-        setSystemPrompt(agentData.systemPrompt);
-        setSelectedModel(agentData.model);
-        setSelectedProvider(agentData.provider);
-        setSelectedDataSource(agentData.dataSource);
-        setSelectedKnowledgeBases(agentData.knowledgeBases);
-      } catch (error) {
-        console.error("Error fetching agent data:", error);
-        // Handle error - maybe redirect back or show error message
+        const mbRaw = Array.isArray(resMB?.data) ? resMB.data : [];
+        const mappedProviders = mbRaw.map((p) => {
+          const hasKey = !!p.apiKeyPreview;
+          const models = (Array.isArray(p.models) ? p.models : []).filter((m) =>
+            hasKey ? m.enabled === true : (m && m.id && m.name)
+          );
+          return {
+            id: p.id,
+            name: p.name,
+            icon: iconName[p.id] || "Bot",
+            status: hasKey ? "Connected" : "Not configured",
+            models,
+          };
+        });
+
+        setModelProviders(mappedProviders);
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      controller.abort("effect disposed");
+    };
+  }, []);
+
+
+
+  // Simulate fetching agent data
+  useEffect(() => {
+    if (!agentId) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    (async () => {
+      try {
+        const res = await abApi.detail(agentId, { signal });
+        const a = res?.data || {};
+
+        setAgentName(a.name || "");
+        setDescription(a.description || "");
+        setSystemPrompt(a.system_prompt || "");
+
+        setSelectedModel(a?.default_model?.id || "");
+
+        const providerId = String(a?.default_model?.providerId || "").toLowerCase();
+        const providerNameMap = {
+          openai: "OpenAI",
+          anthropic: "Anthropic",
+          deepseek: "DeepSeek",
+          mistral: "Mistral",
+          qwen: "Qwen",
+          ollama: "Ollama",
+        };
+        setSelectedProvider(providerNameMap[providerId] || providerId || "");
+
+        const type = (Array.isArray(a.data_source_type) ? a.data_source_type[0] : "") || "";
+        const typeMap = {
+          "knowledge-bases": "Knowledge Bases",
+          "database-connections": "Database Connections",
+          "api-features": "API Features",
+        };
+        setSelectedDataSource(typeMap[type] || "Knowledge Bases");
+
+        const kbNames = Array.isArray(a.knowledgebases) ? a.knowledgebases.map((k) => k.name) : [];
+        setSelectedKnowledgeBases(
+          knowledgeBases.filter((kb) => kbNames.includes(kb.name)).map((kb) => kb.id)
+        );
+      } catch (e) {
+        if (e?.name === "AbortError" || e?.code === "ERR_CANCELED") return;
+        setKbError(e?.message || "Unexpected error.");
+        setProvidersError(e?.message || "Unexpected error.");
       } finally {
         setLoading(false);
       }
-    };
+    })();
 
-    if (agentId) {
-      fetchAgentData();
-    }
-  }, [agentId]);
+    return () => controller.abort();
+  }, [agentId, knowledgeBases]);
+
 
   const handleKnowledgeBaseToggle = (kbId) => {
     setSelectedKnowledgeBases((prev) =>
@@ -178,52 +213,114 @@ export default function EditAgent() {
     );
   };
 
-  const handleUpdateAgent = async () => {
-    try {
-      // Handle agent update logic here
-      const updateData = {
-        agentName,
-        description,
-        systemPrompt,
-        selectedModel,
-        selectedProvider,
-        selectedDataSource,
-        selectedKnowledgeBases,
-      };
+  const handleUpdateAgent = () => {
+    const controller = new AbortController();
+    const { signal } = controller;
 
-      console.log("Updating agent:", updateData);
+    (async () => {
+      try {
+        setIsSubmitting(true);
+        setSubmitErr("");
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+        const providerIdMap = {
+          OpenAI: "openai",
+          Anthropic: "anthropic",
+          DeepSeek: "deepseek",
+          Deepseek: "deepseek",
+          Qwen: "qwen",
+          Mistral: "mistral",
+          Ollama: "ollama",
+        };
+        const providerId = providerIdMap[selectedProvider] || "";
 
-      // Redirect back to agents list or agent detail
-      router.push(`/agents/${agentId}`);
-    } catch (error) {
-      console.error("Error updating agent:", error);
-    }
+        const mdl =
+          modelProviders
+            .find((p) => p.name === selectedProvider)
+            ?.models.find((m) => m.id === selectedModel) || null;
+
+        const DATA_SOURCE_KEY = {
+          "Knowledge Bases": "knowledge-bases",
+          "Database Connections": "database-connections",
+          "API Features": "api-features",
+        };
+        const chosenType = DATA_SOURCE_KEY[selectedDataSource] || "";
+
+        const kbList =
+          selectedDataSource === "Knowledge Bases"
+            ? knowledgeBases
+              .filter((kb) => selectedKnowledgeBases.includes(kb.id))
+              .map((kb) => ({
+                name: kb.name,
+                description: kb.description || "",
+                documentCount:
+                  typeof kb.documents === "number" ? kb.documents : 0,
+              }))
+            : [];
+
+        const payload = {
+          name: agentName.trim(),
+          description: description.trim(),
+          system_prompt: systemPrompt,
+          color: "#4F46E5",
+          default_model: {
+            providerId,
+            id: selectedModel,
+            name: mdl?.name || selectedModel,
+          },
+          knowledgebases: kbList,
+          databases: [],
+          features_knowledge: [],
+          data_source_type: chosenType ? [chosenType] : [],
+        };
+
+        if (!payload.name) throw new Error("Please provide an agent name.");
+        if (!payload.default_model.providerId || !payload.default_model.id) {
+          throw new Error("Please select a model.");
+        }
+
+        const res = await abApi.update(agentId, payload, { signal });
+        if (!res || res.error) throw new Error(res?.error || "Failed to update agent.");
+
+        router.push(`/agents/${agentId}`);
+      } catch (e) {
+        if (e.name !== "AbortError") setSubmitErr(e?.message || "Unexpected error.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    })();
   };
 
-  const handleDeleteAgent = async () => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this agent? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
 
-    try {
-      // Handle agent deletion logic here
-      console.log("Deleting agent:", agentId);
+  const openDelete = () => setDelOpen(true);
+  const closeDelete = () => { if (!delLoading) setDelOpen(false); };
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+  const handleDeleteAgent = () => {
+    const controller = new AbortController();
+    const { signal } = controller;
 
-      // Redirect back to agents list
-      router.push("/agents");
-    } catch (error) {
-      console.error("Error deleting agent:", error);
-    }
+    (async () => {
+      try {
+        setDelLoading(true);
+        if (abApi?.remove) {
+          const res = await abApi.remove(agentId, { signal });
+          if (!res || res.error) throw new Error(res?.error || "Failed to delete agent.");
+        } else {
+          const r = await fetch(`/api/agent/${agentId}`, { method: "DELETE", signal });
+          if (!r.ok) throw new Error("Failed to delete agent.");
+        }
+
+        router.push("/agents");
+      } catch (e) {
+        if (e?.name !== "AbortError" && e?.code !== "ERR_CANCELED") {
+          console.error(e);
+        }
+      } finally {
+        setDelLoading(false);
+        setDelOpen(false);
+      }
+    })();
+
+    return () => controller.abort();
   };
 
   // Skeleton Components
@@ -234,9 +331,8 @@ export default function EditAgent() {
         <div className="h-12 w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse" />
       ) : (
         <div
-          className={`h-${
-            rows * 6
-          } w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse`}
+          className={`h-${rows * 6
+            } w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse`}
         />
       )}
     </div>
@@ -459,7 +555,7 @@ export default function EditAgent() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={handleDeleteAgent}
+                onClick={openDelete}
                 className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
               >
                 <Trash2 className="h-5 w-5" />
@@ -624,11 +720,10 @@ export default function EditAgent() {
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           onClick={() => setSelectedDataSource(option.id)}
-                          className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${
-                            selectedDataSource === option.id
-                              ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                              : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
-                          }`}
+                          className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${selectedDataSource === option.id
+                            ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                            : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                            }`}
                           style={{
                             background:
                               selectedDataSource === option.id
@@ -777,10 +872,10 @@ export default function EditAgent() {
                               className="p-2 rounded-lg"
                               style={{ background: "var(--surface-secondary)" }}
                             >
-                              <provider.icon
-                                className="h-5 w-5"
-                                style={{ color: "var(--text-primary)" }}
-                              />
+                              {(() => {
+                                const Icon = ICONS[provider.icon] || Bot;
+                                return <Icon className="h-5 w-5" style={{ color: "var(--text-primary)" }} />;
+                              })()}
                             </div>
                             <h4
                               className="font-medium"
@@ -789,11 +884,10 @@ export default function EditAgent() {
                               {provider.name}
                             </h4>
                             <span
-                              className={`text-xs px-3 py-1 rounded-full font-medium ${
-                                provider.status === "Connected"
-                                  ? "bg-green-50 text-green-600 border border-green-200"
-                                  : "bg-gray-50 text-gray-600 border border-gray-200"
-                              }`}
+                              className={`text-xs px-3 py-1 rounded-full font-medium ${provider.status === "Connected"
+                                ? "bg-green-50 text-green-600 border border-green-200"
+                                : "bg-gray-50 text-gray-600 border border-gray-200"
+                                }`}
                             >
                               {provider.status}
                             </span>
@@ -803,15 +897,13 @@ export default function EditAgent() {
                             {provider.models.map((model) => (
                               <label
                                 key={model.id}
-                                className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${
-                                  selectedModel === model.id
-                                    ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                                    : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
-                                } ${
-                                  provider.status !== "Connected"
+                                className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${selectedModel === model.id
+                                  ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                                  : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                                  } ${provider.status !== "Connected"
                                     ? "opacity-50 cursor-not-allowed"
                                     : ""
-                                }`}
+                                  }`}
                                 style={{
                                   background:
                                     selectedModel === model.id
@@ -838,11 +930,10 @@ export default function EditAgent() {
                                   }}
                                 />
                                 <span
-                                  className={`text-sm font-medium flex-1 ${
-                                    provider.status !== "Connected"
-                                      ? "text-gray-400"
-                                      : ""
-                                  }`}
+                                  className={`text-sm font-medium flex-1 ${provider.status !== "Connected"
+                                    ? "text-gray-400"
+                                    : ""
+                                    }`}
                                   style={{
                                     color:
                                       provider.status !== "Connected"
@@ -962,9 +1053,8 @@ export default function EditAgent() {
                       style={{ color: "var(--text-secondary)" }}
                     >
                       {selectedKnowledgeBases.length > 0
-                        ? `${selectedKnowledgeBases.length} knowledge base${
-                            selectedKnowledgeBases.length !== 1 ? "s" : ""
-                          } selected`
+                        ? `${selectedKnowledgeBases.length} knowledge base${selectedKnowledgeBases.length !== 1 ? "s" : ""
+                        } selected`
                         : "No data sources selected"}
                     </p>
                   </div>
@@ -1009,27 +1099,31 @@ export default function EditAgent() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleUpdateAgent}
-                disabled={!agentName.trim() || !description.trim()}
-                className="px-6 py-3 md:px-4 md:py-2 text-sm md:text-sm font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 w-full justify-center cursor-pointer"
+                disabled={isSubmitting || !agentName.trim() || !description.trim()}
+                className="w-full px-6 py-3 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center cursor-pointer"
                 style={{
                   background:
-                    agentName.trim() && description.trim()
+                    !isSubmitting && agentName.trim() && description.trim()
                       ? "var(--primary)"
                       : "var(--surface-secondary)",
                   color:
-                    agentName.trim() && description.trim()
+                    !isSubmitting && agentName.trim() && description.trim()
                       ? "var(--text-inverse)"
                       : "var(--text-secondary)",
                 }}
               >
-                <Save className="h-4 w-4" />
-                Update Agent
+                {isSubmitting ? "Saving..." : "Update Agent"}
               </motion.button>
+              {submitErr && (
+                <p className="mt-2 text-xs" style={{ color: "var(--danger)" }}>
+                  {submitErr}
+                </p>
+              )}
 
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleDeleteAgent}
+                onClick={openDelete}
                 className="px-6 py-3 md:px-4 md:py-2 text-sm font-medium rounded-xl transition-all flex items-center gap-2 w-full justify-center text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 cursor-pointer"
               >
                 <Trash2 className="h-4 w-4" />
@@ -1039,6 +1133,22 @@ export default function EditAgent() {
           </motion.div>
         </div>
       </div>
+
+      <ConfirmDeleteModalAgent
+        open={delOpen}
+        loading={delLoading}
+        title="Delete Agent?"
+        description="This action cannot be undone. You will permanently delete:"
+        item={{
+          name: agentName || "Agent",
+          meta: [`Model: ${selectedModel || "-"} (${selectedProvider || "-"})`],
+        }}
+        onClose={closeDelete}
+        onConfirm={handleDeleteAgent}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
+
     </motion.main>
   );
 }

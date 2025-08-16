@@ -60,8 +60,8 @@ export default function KnowledgeBaseDetails() {
   const [newDocCat, setNewDocCat] = useState("");
   const [newDocTag, setNewDocTag] = useState("");
   const [availableDatasets, setAvailableDatasets] = useState([]);
-  const [selectedIds, setSelectedIds] = useState([]); // id dataset terpilih
-  const [query, setQuery] = useState(""); // pencarian/filter
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [query, setQuery] = useState(""); 
 
   const MAX_SIZE = 25 * 1024 * 1024; // 25MB
   const ACCEPT = [
@@ -290,7 +290,6 @@ export default function KnowledgeBaseDetails() {
         .map(t => t.trim())
         .filter(Boolean);
 
-      // Update list dokumen di state
       setKnowledgeBase(kb => {
         const docs = [...kb.documents];
         docs[docIndex] = {
@@ -323,7 +322,6 @@ export default function KnowledgeBaseDetails() {
     if (!editForm.name.trim()) return;
     setSaving(true);
     try {
-      // TODO: ganti dengan API PATCH kamu
       // await fetch(`/api/knowledge-base/${knowledgeBase.id}`, { method: "PATCH", body: JSON.stringify(editForm) })
       await new Promise(r => setTimeout(r, 600));
       setKnowledgeBase(kb => ({ ...kb, name: editForm.name, email: editForm.email }));
@@ -347,29 +345,21 @@ export default function KnowledgeBaseDetails() {
     (async () => {
       try {
         const { data } = await dsApi.list({ signal });
-
-        // 1) Normalisasi sumber data API → array dokumen
         const apiDocsRaw = data?.documents ?? data?.items ?? data ?? [];
         const apiDocs = Array.isArray(apiDocsRaw) ? apiDocsRaw : [];
 
-        // 2) Ambil dokumen dari KB (aman saat null/undefined)
         const kbDocs = Array.isArray(knowledgeBase?.documents) ? knowledgeBase.documents : [];
 
-        // 3) Kalau KB kosong → tampilkan semua
         if (kbDocs.length === 0) {
-          console.log(`API docs: ${apiDocs.length} (KB kosong, tampilkan semua)`);
           setAvailableDatasets(apiDocs);
           return;
         }
 
-        // 4) Normalisasi ID ke string untuk menghindari mismatch tipe
         const toKey = v => (v === undefined || v === null ? "" : String(v));
         const existingIds = new Set(kbDocs.map(d => toKey(d.id)).filter(Boolean));
 
-        // 5) Filter: buang yang ID-nya sudah ada di KB
         const filtered = apiDocs.filter(d => !existingIds.has(toKey(d.id)));
 
-        // 6) Log bantu debug
         console.table({
           api_docs: apiDocs.length,
           kb_docs: kbDocs.length,
@@ -377,8 +367,6 @@ export default function KnowledgeBaseDetails() {
           shown: filtered.length,
         });
 
-        // 7) (opsional) fallback: kalau filtered kosong padahal apiDocs ada,
-        // kemungkinan ID tidak konsisten → coba longgar pakai filename juga
         const result =
           filtered.length === 0 && apiDocs.length > 0
             ? apiDocs.filter(d => {
@@ -1122,7 +1110,6 @@ export default function KnowledgeBaseDetails() {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      // TODO: ganti jadi link asli jika ada URL dokumen
                       onClick={() => alert("Demo: Buka dokumen")}
                       className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl font-medium transition-all"
                       style={{ background: "var(--primary)", color: "var(--text-inverse)" }}
@@ -1134,7 +1121,6 @@ export default function KnowledgeBaseDetails() {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      // TODO: ganti jadi download asli jika ada URL file
                       onClick={() => alert("Demo: Download dokumen")}
                       className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl border font-medium transition-all"
                       style={{ background: "var(--surface-elevated)", color: "var(--text-primary)", borderColor: "var(--border-light)" }}

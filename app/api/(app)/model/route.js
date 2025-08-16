@@ -26,8 +26,7 @@ export async function GET() {
         });
 
         const list = Array.isArray(data?.data) ? data.data : [];
-        console.log(list);
-
+ 
         const byProvider = {};
 
         for (const item of list) {

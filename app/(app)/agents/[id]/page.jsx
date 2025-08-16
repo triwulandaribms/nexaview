@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
+import { abApi } from "@/app/lib/agentBaseApi";
+import ConfirmDeleteModalAgent from "@/app/components/ConfirmDeleteModalAgent";
 
 export default function AgentDetail() {
   const router = useRouter();
@@ -43,96 +45,76 @@ export default function AgentDetail() {
   const [isSending, setIsSending] = useState(false);
   const [searchSessions, setSearchSessions] = useState("");
   const [timeFilter, setTimeFilter] = useState("All time");
+  const [agent, setAgent] = useState(null);
+  const currentId = agent?.id || params?.id;
   const messagesEndRef = useRef(null);
 
-  console.log(params);
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
 
-  // Mock data - in real app, this would be fetched based on the ID
-  const agents = [
-    {
-      id: 1,
-      name: "Meeting Summary",
-      description:
-        "AI agent for summarizing meeting content and extracting key insights",
-      dataSources: "Knowledge Bases",
-      timestamp: "26 Jun 2025 11:50",
-      model: "gpt-4",
-      knowledgeBases: 1,
-      sessions: 1,
-      createdBy: "demo@ifabula.com",
-      agentId: "685cd1a963c8c5e9bec2993d",
-      systemPrompt: "Berikan Hasil analisa dari meeting",
-    },
-    {
-      id: 2,
-      name: "Agent testing pinter",
-      description:
-        "Agent testing pinter untuk melakukan pencarian data di internet",
-      dataSources: "Knowledge Bases",
-      timestamp: "11 Jun 2025 14:24",
-      model: "gpt-4o",
-      knowledgeBases: 1,
-      sessions: 2,
-      createdBy: "demo@ifabula.com",
-      agentId: "685cd1a963c8c5e9bec2993d",
-      systemPrompt: "Analyze and search for internet data efficiently",
-    },
-    {
-      id: 3,
-      name: "Credit Analyst",
-      description: "Advanced AI agent for credit analysis and risk assessment",
-      dataSources: "Knowledge Bases",
-      timestamp: "24 Jun 2025 09:34",
-      model: "qwen-max",
-      knowledgeBases: 2,
-      sessions: 5,
-      createdBy: "demo@ifabula.com",
-      agentId: "685cd1a963c8c5e9bec2993d",
-      systemPrompt: "Provide comprehensive credit analysis and risk evaluation",
-    },
-    {
-      id: 4,
-      name: "Agent Summary",
-      description:
-        "General purpose summarization agent for various content types",
-      dataSources: "Knowledge Bases",
-      timestamp: "17 Jun 2025 12:00",
-      model: "gpt-4o",
-      knowledgeBases: 2,
-      sessions: 3,
-      createdBy: "demo@ifabula.com",
-      agentId: "685cd1a963c8c5e9bec2993d",
-      systemPrompt: "Summarize content effectively across different domains",
-    },
-    {
-      id: 5,
-      name: "Assistant Hukum",
-      description: "Legal assistant AI for Indonesian law and regulations",
-      dataSources: "Knowledge Bases",
-      timestamp: "16 May 2025 17:10",
-      model: "gpt-4o",
-      knowledgeBases: 1,
-      sessions: 1,
-      createdBy: "demo@ifabula.com",
-      agentId: "685cd1a963c8c5e9bec2993d",
-      systemPrompt: "Provide legal assistance based on Indonesian law",
-    },
-    {
-      id: 6,
-      name: "Agent Whatsapp",
-      description: "WhatsApp integration agent with API features",
-      dataSources: "API Features",
-      timestamp: "11 Jun 2025 18:00",
-      model: "gpt-4o",
-      apiFeatures: 4,
-      sessions: 7,
-      createdBy: "demo@ifabula.com",
-      agentId: "685cd1a963c8c5e9bec2993d",
-      systemPrompt: "Handle WhatsApp integrations and messaging workflows",
-    },
-  ];
+    (async () => {
+      try {
+        const res = await abApi.detail(params.id, { signal });
+        const a = res?.data || {};
+        const dataSourceLabel = (() => {
+          const t = (a.data_source_type && a.data_source_type[0]) || "";
+          if (t === "knowledge-bases") return "Knowledge Bases";
+          if (t === "database-connections") return "Database Connections";
+          if (t === "api-features") return "API Features";
+          return "-";
+        })();
 
-  const agent = agents.find((a) => a.id === parseInt(params.id)) || agents[0];
+        const mapped = {
+          id: a.id,
+          name: a.name || "-",
+          description: a.description || "",
+          dataSources: dataSourceLabel,
+          timestamp: a.created_at
+            ? new Date(a.created_at).toLocaleString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+            : "-",
+          model: a?.default_model?.id || "-",
+          knowledgeBases: Array.isArray(a.knowledgebases)
+            ? a.knowledgebases.length
+            : 0,
+          sessions: a.sessions_count ?? 0,
+          createdBy: a.created_by_name || a.created_by || "-",
+          agentId: a.id || "-",
+          systemPrompt: a.system_prompt || "",
+          kbDetails: Array.isArray(a.knowledgebases)
+            ? a.knowledgebases.map((k) => ({
+              name: k.name,
+              description: k.description || "",
+              docs:
+                typeof k.documentCount === "number"
+                  ? k.documentCount
+                  : typeof k.docs === "number"
+                    ? k.docs
+                    : 0,
+              category: "General",
+            }))
+            : [],
+        };
+
+        setAgent(mapped);
+      } catch (e) {
+        if (e?.name === "AbortError" || e?.code === "ERR_CANCELED") return;
+        console.error(e);
+      } finally {
+        setIsLoading(false);
+      }
+    })();
+
+    return () => controller.abort("overview unmount");
+  }, [params.id]);
+
+
 
   const tabs = ["Overview", "Chat", "Sessions"];
 
@@ -140,14 +122,14 @@ export default function AgentDetail() {
   const sessions = [
     {
       id: 1,
-      title: `Chat with ${agent.name}`,
+      title: `Chat with ${agent?.name}`,
       messages: 2,
       lastActive: "23 Jun 2025 11:36",
       date: new Date("2025-06-23T11:36:00"),
     },
     {
       id: 2,
-      title: `Chat with ${agent.name}`,
+      title: `Chat with ${agent?.name}`,
       messages: 24,
       lastActive: "11 Jun 2025 23:52",
       date: new Date("2025-06-11T23:52:00"),
@@ -275,34 +257,49 @@ export default function AgentDetail() {
   });
 
   const knowledgeBaseDetails =
-    agent.dataSources === "Knowledge Bases"
-      ? [
-          {
-            name: agent.name.includes("Meeting")
-              ? "Meeting"
-              : agent.name.includes("Credit")
-              ? "Financial Data"
-              : agent.name.includes("Hukum")
-              ? "Legal Documents"
-              : "General Knowledge",
-            description: agent.name.includes("Meeting")
-              ? "Meeting transcripts and summaries"
-              : agent.name.includes("Credit")
-              ? "Credit analysis and financial documents"
-              : agent.name.includes("Hukum")
-              ? "Indonesian legal regulations and cases"
-              : "General knowledge base documents",
-            docs: agent.knowledgeBases || 1,
-            category: agent.name.includes("Meeting")
-              ? "General"
-              : agent.name.includes("Credit")
-              ? "Finance"
-              : agent.name.includes("Hukum")
-              ? "Legal"
-              : "General",
-          },
-        ]
+    agent?.dataSources === "Knowledge Bases"
+      ? Array.isArray(agent?.kbDetails)
+        ? agent.kbDetails
+        : []
       : [];
+
+  // Delete modal state
+  const [delOpen, setDelOpen] = useState(false);
+  const [delLoading, setDelLoading] = useState(false);
+
+  const openDelete = () => setDelOpen(true);
+  const closeDelete = () => { if (!delLoading) setDelOpen(false); };
+
+  const confirmDelete = () => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    (async () => {
+      try {
+        setDelLoading(true);
+
+        if (abApi?.remove) {
+          const res = await abApi.remove(currentId, { signal });
+          if (!res || res.error) throw new Error(res?.error || "Failed to delete agent.");
+        } else {
+          const r = await fetch(`/api/agent/${currentId}`, { method: "DELETE", signal });
+          if (!r.ok) throw new Error("Failed to delete agent.");
+        }
+
+        router.push("/agents");
+      } catch (e) {
+        if (e?.name !== "AbortError" && e?.code !== "ERR_CANCELED") {
+          console.error(e);
+        }
+      } finally {
+        setDelLoading(false);
+        setDelOpen(false);
+      }
+    })();
+
+    return () => controller.abort();
+  };
+
 
   // Skeleton Components
   const HeaderSkeleton = () => (
@@ -521,7 +518,7 @@ export default function AgentDetail() {
                     className="text-2xl font-bold mb-1"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    {agent.name}
+                    {agent?.name || "-"}
                   </h1>
                   <div
                     className="flex items-center gap-4 text-sm"
@@ -529,15 +526,15 @@ export default function AgentDetail() {
                   >
                     <span className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      Created {agent.timestamp}
+                      Created {agent?.timestamp || ""}
                     </span>
                     <span className="flex items-center gap-1">
                       <User className="h-4 w-4" />
-                      {agent.createdBy}
+                      {agent?.createdBy || ""}
                     </span>
                     <span className="flex items-center gap-1">
                       <FileText className="h-4 w-4" />
-                      {agent.agentId}
+                      {agent?.agentId || ""}
                     </span>
                   </div>
                 </div>
@@ -552,6 +549,7 @@ export default function AgentDetail() {
                     borderColor: "var(--border-light)",
                     color: "var(--text-secondary)",
                   }}
+                  onClick={() => router.push(`/agents/edit/${currentId}`)}
                 >
                   <Edit className="h-4 w-4" />
                 </motion.button>
@@ -564,6 +562,7 @@ export default function AgentDetail() {
                     borderColor: "var(--border-light)",
                     color: "var(--text-secondary)",
                   }}
+                  onClick={openDelete}
                 >
                   <Trash2 className="h-4 w-4" />
                 </motion.button>
@@ -644,7 +643,7 @@ export default function AgentDetail() {
                     Knowledge Bases
                   </h3>
                   <p className="text-2xl font-bold text-white mb-1">
-                    {agent.knowledgeBases}
+                    {agent?.knowledgeBases || 0}
                   </p>
                   <p className="text-xs text-white/80">
                     {knowledgeBaseDetails.length > 0
@@ -675,7 +674,7 @@ export default function AgentDetail() {
                     Sessions
                   </h3>
                   <p className="text-2xl font-bold text-white">
-                    {agent.sessions || 1}
+                    {agent?.sessions || 0}
                   </p>
                 </motion.div>
 
@@ -700,7 +699,7 @@ export default function AgentDetail() {
                   <h3 className="text-base font-semibold text-white mb-1">
                     AI Model
                   </h3>
-                  <p className="text-xl font-bold text-white">{agent.model}</p>
+                  <p className="text-xl font-bold text-white">{agent?.model || "-"}</p>
                 </motion.div>
               </div>
             </motion.div>
@@ -716,9 +715,8 @@ export default function AgentDetail() {
                   className="text-xl font-semibold"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  {agent.dataSources === "Knowledge Bases"
-                    ? "Knowledge Base Details"
-                    : "API Features"}
+                  {agent?.dataSources === "Knowledge Bases" ? "Knowledge Base Details" : "API Features"}
+
                 </h2>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -750,7 +748,7 @@ export default function AgentDetail() {
                         >
                           <Database className="h-5 w-5 text-white" />
                         </div>
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0">
                           <h3
                             className="font-semibold mb-1"
                             style={{ color: "var(--text-primary)" }}
@@ -759,10 +757,16 @@ export default function AgentDetail() {
                           </h3>
                           <p
                             className="text-sm mb-2"
-                            style={{ color: "var(--text-secondary)" }}
+                            style={{
+                              color: "var(--text-secondary)",
+                              overflowWrap: "anywhere",
+                              wordBreak: "break-word",
+                              whiteSpace: "normal"
+                            }}
                           >
-                            {kb.description}
+                            {kb?.description}
                           </p>
+
                           <div className="flex items-center gap-4 text-xs">
                             <span
                               className="px-2 py-1 rounded-md font-medium"
@@ -805,7 +809,7 @@ export default function AgentDetail() {
                       className="text-sm"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      This agent uses {agent.apiFeatures || 0} API features for
+                      This agent uses {agent?.apiFeatures || 0} API features for
                       enhanced functionality
                     </p>
                   </div>
@@ -853,7 +857,7 @@ export default function AgentDetail() {
                     className="text-sm"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    {agent.description || "-"}
+                    {agent?.description || "-"}
                   </p>
                 </div>
                 <div
@@ -873,7 +877,7 @@ export default function AgentDetail() {
                     className="text-sm"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    {agent.systemPrompt}
+                    {agent?.systemPrompt || ""}
                   </p>
                 </div>
               </div>
@@ -898,7 +902,7 @@ export default function AgentDetail() {
                       color: "var(--primary)",
                     }}
                   >
-                    {agent.dataSources}
+                    {agent?.dataSources}
                   </span>
                 </div>
               </div>
@@ -955,14 +959,12 @@ export default function AgentDetail() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className={`flex ${
-                    message.type === "user" ? "justify-end" : "justify-start"
-                  }`}
+                  className={`flex ${message.type === "user" ? "justify-end" : "justify-start"
+                    }`}
                 >
                   <div
-                    className={`max-w-[70%] ${
-                      message.type === "user" ? "order-2" : "order-1"
-                    }`}
+                    className={`max-w-[70%] ${message.type === "user" ? "order-2" : "order-1"
+                      }`}
                   >
                     {message.type !== "user" && (
                       <div className="flex items-center gap-2 mb-1">
@@ -981,18 +983,17 @@ export default function AgentDetail() {
                       </div>
                     )}
                     <div
-                      className={`p-3 rounded-lg ${
-                        message.type === "user"
-                          ? "rounded-br-sm"
-                          : "rounded-bl-sm"
-                      }`}
+                      className={`p-3 rounded-lg ${message.type === "user"
+                        ? "rounded-br-sm"
+                        : "rounded-bl-sm"
+                        }`}
                       style={{
                         background:
                           message.type === "user"
                             ? "var(--primary)"
                             : message.type === "system"
-                            ? "var(--surface-secondary)"
-                            : "var(--surface-secondary)",
+                              ? "var(--surface-secondary)"
+                              : "var(--surface-secondary)",
                         color:
                           message.type === "user"
                             ? "var(--text-inverse)"
@@ -1004,9 +1005,8 @@ export default function AgentDetail() {
                       </p>
                       <div className="flex items-center justify-between mt-2">
                         <span
-                          className={`text-xs ${
-                            message.type === "user" ? "text-white/70" : ""
-                          }`}
+                          className={`text-xs ${message.type === "user" ? "text-white/70" : ""
+                            }`}
                           style={{
                             color:
                               message.type === "user"
@@ -1023,11 +1023,10 @@ export default function AgentDetail() {
                             onClick={() =>
                               navigator.clipboard.writeText(message.content)
                             }
-                            className={`ml-2 p-1 rounded ${
-                              message.type === "user"
-                                ? "hover:bg-white/20"
-                                : "hover:bg-gray-100"
-                            }`}
+                            className={`ml-2 p-1 rounded ${message.type === "user"
+                              ? "hover:bg-white/20"
+                              : "hover:bg-gray-100"
+                              }`}
                           >
                             <Copy className="h-3 w-3" />
                           </motion.button>
@@ -1471,6 +1470,26 @@ export default function AgentDetail() {
           </motion.div>
         )}
       </motion.div>
+
+      <ConfirmDeleteModalAgent
+        open={delOpen}
+        loading={delLoading}
+        title="Delete Agent?"
+        description="This action cannot be undone. You will permanently delete:"
+        item={{
+          name: agent?.name,
+          meta: [
+            agent?.createdBy || "Unknown",
+            agent?.timestamp || "-",
+            `${agent?.knowledgeBases || 0} KB`,
+          ],
+        }}
+        onClose={closeDelete}
+        onConfirm={confirmDelete}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
+
     </motion.main>
   );
 }

@@ -13,11 +13,15 @@ import {
   Database,
   User,
   Bot,
+  AlertTriangle,
+  X,
+  Loader2,
 } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { abApi } from "@/app/lib/agentBaseApi";
+import ConfirmDeleteModalAgent from "@/app/components/ConfirmDeleteModalAgent";
 
 export default function Agents() {
   const [activeTab, setActiveTab] = useState("My agents");
@@ -30,6 +34,54 @@ export default function Agents() {
 
   // const tabs = ["My agents", "Favourite agents"];
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState(null);
+
+  const openDelete = (agent) => {
+    setSelectedAgent(agent);
+    setConfirmOpen(true);
+  };
+  const closeDelete = () => {
+    if (!deleting) {
+      setConfirmOpen(false);
+      setSelectedAgent(null);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (!selectedAgent) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    (async () => {
+      try {
+        setDeleting(true);
+
+        if (abApi.remove) {
+          const res = await abApi.remove(selectedAgent.id, { signal });
+          if (!res || res.error) throw new Error(res?.error || "Failed to delete agent.");
+        } else {
+          const r = await fetch(`/api/agent/${selectedAgent.id}`, { method: "DELETE", signal });
+          if (!r.ok) throw new Error("Failed to delete agent.");
+        }
+
+        setAgents((prev) => prev.filter((a) => a.id !== selectedAgent.id));
+        setConfirmOpen(false);
+        setSelectedAgent(null);
+      } catch (e) {
+        if (e?.name !== "AbortError" && e?.code !== "ERR_CANCELED") {
+          setErrorMsg(e?.message || "Terjadi kesalahan saat menghapus agent.");
+          console.error(e);
+        }
+      } finally {
+        setDeleting(false);
+      }
+    })();
+
+    return () => controller.abort();
+  };
 
   // Simulate data loading
   useEffect(() => {
@@ -46,7 +98,6 @@ export default function Agents() {
         if (!res || res.error) {
           throw new Error(res?.error || "Gagal memuat dataset.");
         }
-        console.log(res.data, " <===  check hasil nya ");
 
 
         setAgents(res?.data);
@@ -64,85 +115,15 @@ export default function Agents() {
     };
   }, []);
 
-  // useEffect(() => {
-  //   const timer = setTimeout(() => {
-  //     setIsLoading(false);
-  //   }, 1200);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, []);
 
 
-  //   return () => clearTimeout(timer);
-  // }, []);
-
-
-  const agents2 = [
-    {
-      id: 1,
-      name: "Meeting Summary",
-      description: "-",
-      dataSources: "Knowledge Bases",
-      timestamp: "26 Jun 2025 11:50",
-      model: "gpt-4",
-      knowledgeBases: 1,
-      createdBy: "demo@ifabula.com",
-      icon: "🤖",
-    },
-    {
-      id: 2,
-      name: "Agent testing pinter",
-      description:
-        "Agent testing pinter untuk melakukan pencarian data di internet",
-      dataSources: "Knowledge Bases",
-      timestamp: "11 Jun 2025 14:24",
-      model: "gpt-4o",
-      knowledgeBases: 1,
-      createdBy: "demo@ifabula.com",
-      icon: "🤖",
-    },
-    {
-      id: 3,
-      name: "Credit Analyst",
-      description: "-",
-      dataSources: "Knowledge Bases",
-      timestamp: "24 Jun 2025 09:34",
-      model: "qwen-max",
-      knowledgeBases: 2,
-      createdBy: "demo@ifabula.com",
-      icon: "🤖",
-    },
-    {
-      id: 4,
-      name: "Agent Summary",
-      description: "-",
-      dataSources: "Knowledge Bases",
-      timestamp: "17 Jun 2025 12:00",
-      model: "gpt-4o",
-      knowledgeBases: 2,
-      createdBy: "demo@ifabula.com",
-      icon: "🤖",
-    },
-    {
-      id: 5,
-      name: "Assistant Hukum",
-      description: "-",
-      dataSources: "Knowledge Bases",
-      timestamp: "16 May 2025 17:10",
-      model: "gpt-4o",
-      knowledgeBases: 1,
-      createdBy: "demo@ifabula.com",
-      icon: "🤖",
-    },
-    {
-      id: 6,
-      name: "Agent Whatsapp",
-      description: "revision 6",
-      dataSources: "API Features",
-      timestamp: "11 Jun 2025 18:00",
-      model: "gpt-4o",
-      apiFeatures: 4,
-      createdBy: "demo@ifabula.com",
-      icon: "🤖",
-    },
-  ];
 
   // Skeleton Components
   const HeaderSkeleton = () => (
@@ -472,6 +453,7 @@ export default function Agents() {
                                   whileTap={{ scale: 0.9 }}
                                   className="p-1 rounded hover:bg-gray-100 cursor-pointer"
                                   style={{ color: "var(--text-secondary)" }}
+                                  onClick={() => openDelete(agent)}
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </motion.button>
@@ -562,7 +544,7 @@ export default function Agents() {
                                   style={{ color: "var(--text-secondary)" }}
                                 >
                                   <User className="h-4 w-4" />
-                                  <span>Created by {agent.created_at}</span>
+                                  <span>Created by {agent?.created_by_name || "-"}</span>
                                 </div>
                               </div>
                             </div>
@@ -641,6 +623,7 @@ export default function Agents() {
                                 whileTap={{ scale: 0.9 }}
                                 className="p-1 rounded hover:bg-gray-100 cursor-pointer"
                                 style={{ color: "var(--text-secondary)" }}
+                                onClick={() => openDelete(agent)}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </motion.button>
@@ -763,6 +746,27 @@ export default function Agents() {
           </div>
         )}
       </motion.div>
+      <ConfirmDeleteModalAgent
+        open={confirmOpen}
+        loading={deleting}
+        title="Delete Agent?"
+        description="This action cannot be undone. You will permanently delete:"
+        item={{
+          name: selectedAgent?.name,
+          meta: [
+            selectedAgent?.created_by_name || "Unknown",
+            selectedAgent?.created_at || "-",
+            Array.isArray(selectedAgent?.knowledgebases)
+              ? `${selectedAgent.knowledgebases.length} KB`
+              : "0 KB",
+          ],
+        }}
+        onClose={closeDelete}
+        onConfirm={handleConfirmDelete}
+        confirmText="Delete"
+        cancelText="Cancel"
+      />
+
     </motion.main>
   );
 }

@@ -23,14 +23,6 @@ export async function GET() {
             timeout: 30_000,
             validateStatus: s => s >= 200 && s < 300,
         });
-        // console.log(data , " check data nya apa yah yah ");
-
-        // const transformed = (Array.isArray(data) ? data : []).map((item) => ({
-        //     ...item,
-        //     created_at: formatDate(item.created_at),
-        //     updated_at: formatDate(item.updated_at),
-        // }));
-
         return ok('Fetched model list successfully.', data.data ?? []);
     } catch (err) {
         const { code, msg } = normalizeAxiosError(err, 'Failed to fetch models');
