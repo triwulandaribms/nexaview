@@ -51,6 +51,26 @@ export default function UserDetailPage() {
         hydratedRef.current = true;
     }
 
+    //   useEffect(() => {
+    //     async function fetchUserData() {
+    //         try {
+
+    //             const controllerRef = new AbortController();
+    //             const { signal } = controllerRef;
+
+    //             const response = await ubApi.detail(userId, signal);
+    //             console.log(response);
+    //             setUser(response.data);
+    //             setLoading(false);
+    //         } catch (err) {
+    //             setError("A network issue occurred. Please check your connection and try again.");
+    //             setLoading(false);
+    //         }
+    //     }
+
+    //     fetchUserData();
+    // }, [userId]);
+
     function openDelete() { setConfirmOpen(true); }
     function closeDelete() {
         if (deleting) return;

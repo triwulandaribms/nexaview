@@ -20,6 +20,7 @@ import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Alert from "@/app/components/Alert";
 import CollectionSkeleton from "@/app/components/CollectionSkeleton";
+import { ubApi } from "@/app/lib/userBaseApi";
 
 const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.3 } } };
 const listFx = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
@@ -28,10 +29,7 @@ const cardFx = { hidden: { opacity: 0, scale: 0.96, y: 8 }, show: { opacity: 1, 
 export default function UserManagement() {
     const router = useRouter();
 
-    const [users, setUsers] = useState([
-        { id: 1, name: "John Doe", email: "john@example.com", role: "Admin", created_at: "2025-08-13" },
-        { id: 2, name: "Jane Smith", email: "jane@example.com", role: "Member", created_at: "2025-08-12" },
-    ]);
+    const [users, setUsers] = useState([]);
 
     const [searchTerm, setSearchTerm] = useState("");
     const [viewMode, setViewMode] = useState("grid");
@@ -42,9 +40,10 @@ export default function UserManagement() {
     const [deleting, setDeleting] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
 
-    const FORCE_SKELETON_MS = 1500;
     const [forceSkeleton, setForceSkeleton] = useState(true);
+    const FORCE_SKELETON_MS = 1500;
     const forceTimerRef = useRef(null);
+
     if (forceSkeleton && !forceTimerRef.current) {
         forceTimerRef.current = setTimeout(() => {
             setForceSkeleton(false);
@@ -52,15 +51,9 @@ export default function UserManagement() {
         }, FORCE_SKELETON_MS);
     }
 
-    const filteredUsers = users.filter(
-        (u) =>
-            u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            u.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
     function openEdit(user) {
         if (!user?.id) return;
-        router.push(`/user-management/update/${user.id}`);
+        router.push(`/user-management/update/${user?.id}`);
     }
     function openDelete(user) {
         setSelectedUser(user);
@@ -79,12 +72,12 @@ export default function UserManagement() {
     }, [confirmOpen, deleting]);
 
     async function handleConfirmDelete() {
-        if (!selectedUser?.id || deleting) return;
+        if (!selectedUser?.iid || deleting) return;
         setDeleting(true);
         setErrorMsg("");
         try {
 
-            setUsers((list) => list.filter((u) => u.id !== selectedUser.id));
+            setUsers((list) => list.filter((u) => u?.id !== selectedUser?.id));
         } catch (e) {
             setErrorMsg(e?.message || "Failed to delete user");
         } finally {
@@ -92,6 +85,43 @@ export default function UserManagement() {
             setConfirmOpen(false);
         }
     }
+
+    const controllerRef = useRef(null);
+
+    useEffect(() => {
+        const fetchUsers = async () => {
+            controllerRef.current = new AbortController();
+            const { signal } = controllerRef.current;
+
+            try {
+                const usersData = await ubApi.list(signal);
+                setUsers(usersData?.data || []);
+                console.log(usersData?.data || []);
+
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    setErrorMsg(error.message);
+                }
+            } finally {
+                setIsLoading(false);
+                setForceSkeleton(false);
+            }
+        };
+
+        fetchUsers();
+
+        return () => {
+            if (controllerRef.current) {
+                controllerRef.current.abort();
+            }
+        };
+    }, []);
+
+    const filteredUsers = users.filter(
+        (u) =>
+            u?.name?.toLowerCase().includes(searchTerm?.toLowerCase()) ||
+            u?.email?.toLowerCase().includes(searchTerm?.toLowerCase())
+    );
 
     if (isLoading || forceSkeleton) {
         return (
@@ -101,9 +131,10 @@ export default function UserManagement() {
         );
     }
 
+
+
     return (
         <motion.main variants={pageFx} initial="hidden" animate="show" className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]">
-            {errorMsg && <Alert variant="error" onDismiss={() => setErrorMsg("")}>{errorMsg}</Alert>}
 
             <div className="flex items-center justify-between mb-8">
                 <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
@@ -120,6 +151,7 @@ export default function UserManagement() {
                     New User
                 </motion.button>
             </div>
+            {errorMsg && <Alert variant="error" onDismiss={() => setErrorMsg("")}>{errorMsg}</Alert>}
 
             <div className="flex items-center justify-between mb-6">
                 <div className="relative max-w-md">
@@ -139,9 +171,9 @@ export default function UserManagement() {
                     />
                 </div>
 
-                <div className="flex items-center rounded-md border overflow-hidden" style={{ borderColor: "var(--border-light)" }}>
+                <div className="flex  items-center rounded-md border overflow-hidden" style={{ borderColor: "var(--border-light)" }}>
                     <button
-                        className="px-3 py-2 flex items-center"
+                        className="px-3 py-2  cursor-pointer flex items-center"
                         style={{
                             background: viewMode === "list" ? "var(--primary)" : "var(--surface-elevated)",
                             color: viewMode === "list" ? "var(--text-inverse)" : "var(--text-secondary)",
@@ -151,7 +183,7 @@ export default function UserManagement() {
                         <List className="h-4 w-4" />
                     </button>
                     <button
-                        className="px-3 py-2 border-l flex items-center"
+                        className="px-3  cursor-pointer py-2 border-l flex items-center"
                         style={{
                             background: viewMode === "grid" ? "var(--primary)" : "var(--surface-elevated)",
                             color: viewMode === "grid" ? "var(--text-inverse)" : "var(--text-secondary)",
@@ -171,7 +203,7 @@ export default function UserManagement() {
                         <motion.div key="grid" variants={listFx} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                             {filteredUsers.map((user) => (
                                 <motion.div
-                                    key={user.id}
+                                    key={user?.id}
                                     layout
                                     variants={cardFx}
                                     whileHover={{ scale: 1.01 }}
@@ -207,7 +239,7 @@ export default function UserManagement() {
                                         <motion.button
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}
-                                            onClick={() => router.push(`/user-management/${user.id}`)}
+                                            onClick={() => router.push(`/user-management/${user?.id}`)}
                                             className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
                                             style={{ background: "var(--surface-secondary)", color: "var(--text-primary)", border: "1px solid var(--border-light)" }}
                                         >

@@ -23,7 +23,14 @@ export async function GET() {
             timeout: 30_000,
             validateStatus: s => s >= 200 && s < 300,
         });
-        return ok('Fetched model list successfully.', data.data ?? []);
+
+
+        const formatted = data.data.map((item) => ({
+            ...item,
+            created_at: formatDate(item.created_at),
+            updated_at: formatDate(item.updated_at),
+        }));
+        return ok('Fetched model list successfully.', formatted ?? []);
     } catch (err) {
         const { code, msg } = normalizeAxiosError(err, 'Failed to fetch models');
         return fail(msg, code);

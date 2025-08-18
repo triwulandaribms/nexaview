@@ -6,7 +6,7 @@ export async function PUT(req, { params }) {
     const baseURL = process.env.API_BASE_URL;
     if (!baseURL) return fail("Server configuration error. Please contact administrator.", 500);
 
-    const id = params?.id;
+    const id = await params?.id;
     if (!id) return fail("Missing provider id.", 400);
 
     let body = {};
@@ -44,7 +44,7 @@ export async function PUT(req, { params }) {
         return ok("Provider updated successfully.", data);
     } catch (err) {
         console.log(err, " chek cok");
-        
+
         const { code, msg } = normalizeAxiosError(err, "Failed to update provider");
         return fail(msg, code);
     }
