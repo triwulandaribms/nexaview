@@ -11,6 +11,7 @@ export async function GET(_req, { params }) {
 
   const token = cookieStore.get('token')?.value;
   const idToken = cookieStore.get('id_token')?.value;
+
   try {
     const { data } = await axios.get(`${baseURL}/api/users/${id}`, {
       headers: {
@@ -23,22 +24,17 @@ export async function GET(_req, { params }) {
       validateStatus: s => s >= 200 && s < 300,
     });
 
-    const kb = data?.data ?? data ?? {};
+    const user = data?.data ?? data ?? {};
 
     const transformed = {
-      ...kb,
-      created_at: formatDate(kb.created_at),
-      updated_at: formatDate(kb.updated_at),
-      documents: (kb?.documents || []).map(doc => ({
-        ...doc,
-        created_at: formatDate(doc.created_at),
-        updated_at: formatDate(doc.updated_at),
-      })),
+      ...user,
+      created_at: formatDate(user.created_at),
+      updated_at: formatDate(user.updated_at),
     };
 
-    return ok('Fetched knowledge base detail successfully.', transformed);
+    return ok('Fetched user detail successfully.', transformed);
   } catch (err) {
-    const { code, msg } = normalizeAxiosError(err, 'Failed to fetch detail');
+    const { code, msg } = normalizeAxiosError(err, 'Failed to fetch user details');
     return fail(msg, code);
   }
 }
@@ -55,7 +51,7 @@ export async function PUT(req, { params }) {
   const body = await req.json();
 
   try {
-    const { data } = await axios.put(`${baseURL}/api/knowledge_bases/${id}`, body, {
+    const { data } = await axios.put(`${baseURL}/api/users/${id}`, body, {
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -65,9 +61,10 @@ export async function PUT(req, { params }) {
       timeout: 30_000,
       validateStatus: s => s >= 200 && s < 300,
     });
-    return ok('Knowledge base updated successfully.', data);
+
+    return ok('User updated successfully.', data);
   } catch (err) {
-    const { code, msg } = normalizeAxiosError(err, 'Failed to update');
+    const { code, msg } = normalizeAxiosError(err, 'Failed to update user');
     return fail(msg, code);
   }
 }
@@ -83,7 +80,7 @@ export async function DELETE(_req, { params }) {
   const idToken = cookieStore.get('id_token')?.value;
 
   try {
-    await axios.delete(`${baseURL}/api/knowledge_bases/${id}`, {
+    await axios.delete(`${baseURL}/api/users/${id}`, {
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -94,9 +91,9 @@ export async function DELETE(_req, { params }) {
       validateStatus: s => s >= 200 && s < 300,
     });
 
-    return ok('Knowledge base deleted successfully.', null);
+    return ok('User deleted successfully.', null);
   } catch (err) {
-    const { code, msg } = normalizeAxiosError(err, 'Failed to delete');
+    const { code, msg } = normalizeAxiosError(err, 'Failed to delete user');
     return fail(msg, 200);
   }
 }

@@ -10,6 +10,7 @@ import PageHeader from "../../components/PageHeader";
 import ModelConfigModal from "../../components/ModelConfigModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { mbApi } from "@/app/lib/modelBaseApi";
+import Alert from "@/app/components/Alert";
 
 export default function Models() {
   const [isLoading, setIsLoading] = useState(true);
@@ -68,7 +69,11 @@ export default function Models() {
       );
       if (res?.error) throw new Error(res.error);
     } catch (e) {
+
       setModelStates((prev) => ({ ...prev, [key]: current }));
+      const errorMessage = e?.message || e?.error || "An unknown error occurred.";
+
+      setErrorMsg(errorMessage)
     } finally {
       setToggling((prev) => ({ ...prev, [key]: false }));
     }
@@ -225,11 +230,14 @@ export default function Models() {
           />
         </div>
         {/* Info Banner */}
+
+        {errorMsg && <Alert variant="error" onDismiss={() => setErrorMsg("")}>{errorMsg}</Alert>}
+
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-6 p-4 rounded-lg border"
+          className={`mb-6 p-4 rounded-lg border ${errorMsg ? 'hidden' : 'flex'}`}
           style={{
             background: "var(--primary-light)",
             borderColor: "var(--primary)",

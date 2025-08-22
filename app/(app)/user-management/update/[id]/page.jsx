@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     Save,
     Loader2,
@@ -11,7 +11,9 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
-import CreateUserSkeleton from "@/app/components/CreateUserSkeleton"; 
+import CreateUserSkeleton from "@/app/components/CreateUserSkeleton";
+import { ubApi } from "@/app/lib/userBaseApi";
+import Alert from "@/app/components/Alert";
 
 const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.25 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } };
@@ -43,23 +45,32 @@ export default function EditUserPage() {
         }, 1500);
     }
 
-    const hydratedRef = useRef(false);
-    if (!forceSkeleton && !hydratedRef.current) {
-        const mockUser = {
-            id: userId,
-            fullName: "John Doe",
-            email: "john@example.com",
-            mobile: "+62 812-3456-7890",
-            role: "Admin",
-            statusActive: true,
-        };
-        setFullName(mockUser.fullName);
-        setEmail(mockUser.email);
-        setMobile(mockUser.mobile);
-        setRole(mockUser.role);
-        setStatusActive(mockUser.statusActive);
-        hydratedRef.current = true;
-    }
+    useEffect(() => {
+        async function fetchUserData() {
+            try {
+                const controllerRef = new AbortController();
+                const { signal } = controllerRef;
+
+                const response = await ubApi.detail(userId, signal);
+
+                const userData = response?.data || {};
+                setFullName(userData.first_name + (userData.last_name || ""));
+                setEmail(userData.email ?? "")
+                setMobile(userData.mobile_number ?? "")
+
+                setRole(String(userData?.mu_mr_id ?? ''));
+                setStatusActive(userData.status == "Active" ? true : false);
+
+                setForceSkeleton(false);
+            } catch (err) {
+                setErrorMsg("A network issue occurred. Please check your connection and try again.");
+                setForceSkeleton(false);
+            }
+        }
+
+        fetchUserData();
+    }, [userId]);
+
 
     const emailOk = (v) => /^\S+@\S+\.\S+$/.test(v);
     const phoneOk = (v) => /^[0-9+\-\s()]{8,20}$/.test(v.trim());
@@ -87,14 +98,19 @@ export default function EditUserPage() {
         setSubmitting(true);
         setErrorMsg("");
         try {
-            // const payload = {
-            //   id: userId,
-            //   full_name: fullName,
-            //   email, mobile, role,
-            //   status: statusActive ? "active" : "inactive",
-            //   ...(password ? { password } : {}),
-            // };
-            // await userApi.update(userId, payload);
+
+            const payload = {
+                id: userId,
+                full_name: fullName,
+                email, mobile,
+                role: role == 1 ? "MASTER" : "USER",
+                status: statusActive ? "Active" : "Inactive",
+                mu_mr_id: parseInt(role),
+                mobile_number: mobile,
+
+            };
+
+            await ubApi.update(userId, payload);
             await new Promise((r) => setTimeout(r, 800));
             router.push("/user-management");
         } catch (e) {
@@ -107,14 +123,12 @@ export default function EditUserPage() {
         return <CreateUserSkeleton />;
     }
 
-    const currentUserEmail = "you@example.com";
-
     return (
         <motion.main
             variants={pageFx}
             initial="hidden"
             animate="show"
-            className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)]"
+            className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)] overflow-x-hidden"
         >
             <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8">
                 <motion.div
@@ -152,23 +166,14 @@ export default function EditUserPage() {
                             Update User
                         </h2>
                         <p className="text-sm truncate" style={{ color: "var(--text-secondary)" }}>
-                            Editing ID: {userId} • Current role: {role}
+                            Editing ID: {userId} • Current role: {role == 1 ? "Master" : role == 2 ? "User" : ""}
                         </p>
                     </div>
                 </div>
             </motion.section>
 
-            {errorMsg && (
-                <motion.div
-                    variants={fadeUp}
-                    initial="hidden"
-                    animate="show"
-                    className="mb-4 rounded-lg border px-4 py-3 text-sm"
-                    style={{ background: "rgba(243, 18, 96, 0.06)", color: "var(--text-primary)", borderColor: "var(--border-light)" }}
-                >
-                    {errorMsg}
-                </motion.div>
-            )}
+            {errorMsg && <Alert variant="error" onDismiss={() => setErrorMsg("")}>{errorMsg}</Alert>}
+
 
             <form onSubmit={handleUpdate} className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
                 <motion.section variants={fadeUp} initial="hidden" animate="show" className="xl:col-span-2 space-y-4 sm:space-y-6">
@@ -247,17 +252,20 @@ export default function EditUserPage() {
                                             "--tw-ring-color": "var(--primary)",
                                         }}
                                     >
-                                        <option>Admin</option>
-                                        <option>Member</option>
-                                        <option>Viewer</option>
-                                        <option>Custom</option>
+                                        <option value="1" selected={role == "1"}>
+                                            Master
+                                        </option>
+                                        <option value="2" selected={role == "2"}>
+                                            User
+                                        </option>
                                     </select>
+
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
+                    {/* <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
                             <h2 className="text-base sm:text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
@@ -320,7 +328,7 @@ export default function EditUserPage() {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> */}
                 </motion.section>
 
                 <motion.aside variants={fadeUp} initial="hidden" animate="show" className="xl:col-span-1 space-y-4 sm:space-y-6">
@@ -333,7 +341,7 @@ export default function EditUserPage() {
                             <motion.button
                                 type="button"
                                 whileTap={{ scale: 0.98 }}
-                                onClick={() => setStatusActive((s) => !s)}
+                                onClick={() => { setStatusActive((s) => !s) }}
                                 className="flex items-center justify-between gap-3 w-full rounded-lg border px-3 py-3"
                                 style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)", color: "var(--text-primary)" }}
                             >

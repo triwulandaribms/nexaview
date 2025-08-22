@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     ChevronLeft,
     Save,
@@ -20,76 +20,13 @@ import {
 import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
 import RoleSkeletonLoader from "@/app/components/RoleSkeletonLoader";
+import { rbApi } from "@/app/lib/rolesBaseApi";
+import { menusbApi } from "@/app/lib/menusBaseApi";
 
 const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.25 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } };
 
-const CATALOG = [
-    {
-        key: "users",
-        label: "Users",
-        icon: <UserIcon className="h-4 w-4" />,
-        items: [
-            { key: "users.view", label: "View users" },
-            { key: "users.create", label: "Create users" },
-            { key: "users.edit", label: "Edit users" },
-            { key: "users.delete", label: "Delete users" },
-        ],
-    },
-    {
-        key: "roles",
-        label: "Roles",
-        icon: <Shield className="h-4 w-4" />,
-        items: [
-            { key: "roles.view", label: "View roles" },
-            { key: "roles.create", label: "Create roles" },
-            { key: "roles.edit", label: "Edit roles" },
-            { key: "roles.delete", label: "Delete roles" },
-        ],
-    },
-    {
-        key: "knowledge",
-        label: "Knowledge Base",
-        icon: <FileText className="h-4 w-4" />,
-        items: [
-            { key: "kb.view", label: "View collections" },
-            { key: "kb.create", label: "Create collections" },
-            { key: "kb.edit", label: "Edit collections" },
-            { key: "kb.delete", label: "Delete collections" },
-        ],
-    },
-    {
-        key: "settings",
-        label: "Settings & Security",
-        icon: <Settings className="h-4 w-4" />,
-        items: [
-            { key: "settings.read", label: "Read settings" },
-            { key: "settings.write", label: "Update settings" },
-            { key: "audit.read", label: "View audit logs" },
-            { key: "security.manage", label: "Manage security" },
-        ],
-    },
-    {
-        key: "data",
-        label: "Data & Integrations",
-        icon: <Database className="h-4 w-4" />,
-        items: [
-            { key: "data.read", label: "Read data" },
-            { key: "data.write", label: "Write data" },
-            { key: "api.read", label: "API read" },
-            { key: "api.write", label: "API write" },
-        ],
-    },
-    {
-        key: "public",
-        label: "Public / External",
-        icon: <Globe className="h-4 w-4" />,
-        items: [
-            { key: "public.share", label: "Share externally" },
-            { key: "public.embed", label: "Embed widgets" },
-        ],
-    },
-];
+
 
 export default function EditRolePage() {
     const router = useRouter();
@@ -99,75 +36,132 @@ export default function EditRolePage() {
     const [description, setDescription] = useState("");
     const [statusActive, setStatusActive] = useState(true);
     const [search, setSearch] = useState("");
-    const [selected, setSelected] = useState(new Set()); 
+    const [selected, setSelected] = useState(new Set());
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const [forceSkeleton, setForceSkeleton] = useState(true);
-
+    const [loading, setLoading] = useState(true);
+    const [catalog, setCatalog] = useState([]);
     const timerRef = useRef(null);
     const hydratedRef = useRef(false);
+
 
     if (forceSkeleton && !timerRef.current) {
         timerRef.current = setTimeout(() => {
             setForceSkeleton(false);
         }, 1200);
     }
-    if (!forceSkeleton && !hydratedRef.current) {
-        const mock = {
-            name: "Content Manager",
-            description: "Can manage content and users",
-            status: "active",
-            permissions: ["users.view", "users.edit", "kb.view", "kb.edit", "roles.view"],
-        };
-        setRoleName(mock.name);
-        setDescription(mock.description);
-        setStatusActive(mock.status === "active");
-        setSelected(new Set(mock.permissions));
-        hydratedRef.current = true;
-    }
 
     const filteredCatalog = useMemo(() => {
         const q = search.trim().toLowerCase();
-        if (!q) return CATALOG;
-        return CATALOG.map((cat) => ({
+        if (!q) return catalog;
+        return catalog.map(cat => ({
             ...cat,
-            items: cat.items.filter(
-                (it) => it.label.toLowerCase().includes(q) || it.key.toLowerCase().includes(q)
-            ),
-        })).filter((cat) => cat.items.length > 0);
-    }, [search]);
+            items: cat.items.filter(it => it.label.toLowerCase().includes(q) || it.key.toLowerCase().includes(q)),
+        })).filter(cat => cat.items.length > 0);
+    }, [search, catalog]);
+
 
     const selectedCount = selected.size;
 
-    const hasAllInCategory = (cat) => cat.items.every((it) => selected.has(it.key));
-    const hasSomeInCategory = (cat) => cat.items.some((it) => selected.has(it.key));
+    const togglePermission = (data) => {
+        setSelected((prevSelected) => {
+            const newSelected = new Set(prevSelected);
+            const [menuId, action] = data?.key.split('.');
 
-    function togglePermission(key) {
-        setSelected((prev) => {
-            const next = new Set(prev);
-            if (next.has(key)) next.delete(key);
-            else next.add(key);
+            const permission = data.permission.toUpperCase();
+
+            const hasPermission = Array.from(newSelected).some(item =>
+                item.menu_uid === menuId && item.mrm_permission.includes(permission)
+            );
+
+            if (hasPermission) {
+                Array.from(newSelected).forEach(item => {
+                    if (item.menu_uid == menuId && item.mrm_permission.includes(permission)) {
+
+                        const updatedPermission = item.mrm_permission.replace(permission, '').trim();
+
+                        if (updatedPermission) {
+                            newSelected.delete(item);
+                            newSelected.add({
+                                ...item,
+                                mrm_permission: updatedPermission,
+                            });
+                        } else {
+                            newSelected.delete(item);
+                        }
+                    }
+                });
+            } else {
+                newSelected.add({
+                    menu_uid: menuId,
+                    action: data.key.split(".")[1],
+                    mrm_permission: permission,
+                });
+            }
+
+            return newSelected;
+        });
+    };
+
+    const selectAllInCategory = (cat) => {
+        setSelected((prevSelected) => {
+            const next = new Set(prevSelected);
+            const existingItem = Array.from(next).find(item => item.menu_uid === cat.key);
+
+            if (existingItem) {
+                next.delete(existingItem);
+                next.add({
+                    ...existingItem,
+                    mrm_permission: "CRUD",
+                });
+            } else {
+                next.add({
+                    menu_name: cat.label || "",
+                    mrm_permission: "CRUD",
+                    menu_uid: cat.key
+                });
+            }
+
             return next;
         });
-    }
-    function selectAllInCategory(cat) {
-        setSelected((prev) => {
-            const next = new Set(prev);
-            cat.items.forEach((it) => next.add(it.key));
+    };
+
+    const clearAllInCategory = (cat) => {
+        setSelected((prevSelected) => {
+            const next = new Set(prevSelected);
+            const existingItem = Array.from(next).find(item => item.menu_uid === cat.key);
+            if (existingItem) {
+                next.delete(existingItem);
+            }
             return next;
         });
-    }
-    function clearAllInCategory(cat) {
-        setSelected((prev) => {
-            const next = new Set(prev);
-            cat.items.forEach((it) => next.delete(it.key));
-            return next;
-        });
-    }
-    function toggleCategory(cat) {
-        if (hasAllInCategory(cat)) clearAllInCategory(cat);
-        else selectAllInCategory(cat);
-    }
+    };
+
+
+
+    const hasAllInCategory = (cat) => {
+        const existingItem = Array.from(selected).find(item => item.menu_uid === cat.key);
+        if (existingItem?.mrm_permission.includes("CRUD")) {
+            return true;
+        } else {
+            return false;
+        }
+
+    };
+
+    const hasSomeInCategory = (cat) => {
+        return cat.items.some((it) => selected.has(it.key));
+    };
+
+    const handleSelectAll = (cat) => {
+        if (hasAllInCategory(cat)) {
+            clearAllInCategory(cat);
+        } else {
+            selectAllInCategory(cat);
+        }
+    };
+
 
     function validate() {
         if (!roleName || roleName.trim().length < 3)
@@ -177,6 +171,7 @@ export default function EditRolePage() {
 
     async function handleUpdate(e) {
         e.preventDefault();
+
         if (submitting) return;
 
         const err = validate();
@@ -188,29 +183,113 @@ export default function EditRolePage() {
         setSubmitting(true);
         setErrorMsg("");
         try {
-            // const payload = {
-            //   name: roleName.trim(),
-            //   description: description.trim() || null,
-            //   status: statusActive ? "active" : "inactive",
-            //   permissions: Array.from(selected),
-            // };
-            // await roleApi.update(roleId, payload);
-            await new Promise((r) => setTimeout(r, 900));
+            const permissionMap = {};
+
+            Array.from(selected).forEach((key) => {
+                const menuUid = key.menu_uid;
+                const permission = key.mrm_permission || "";
+
+                if (!permissionMap[menuUid]) {
+                    permissionMap[menuUid] = new Set();
+                }
+
+                permissionMap[menuUid].add(permission);
+            });
+
+            const permissions = Object.keys(permissionMap).map((menuUid) => {
+                const permissionString = Array.from(permissionMap[menuUid]).join('');
+                return { id: menuUid, permission: permissionString };
+            });
+
+            const payload = {
+                name: roleName.trim(),
+                description: description.trim() || null,
+                status: statusActive ? "active" : "inactive",
+                permissions: permissions,
+            };
+
+            const controller = new AbortController();
+            const { signal } = controller;
+            await rbApi.update(roleId, payload, { signal });
+
+            await new Promise((r) => setTimeout(r, 1000));
+
             router.push("/role-management");
         } catch (e) {
             setErrorMsg(e?.message || "Failed to update role.");
             setSubmitting(false);
+        } finally {
+            setSubmitting(false);
         }
     }
 
-    if (forceSkeleton) return <RoleSkeletonLoader />;
+
+    useEffect(() => {
+        async function fetchRoleDetails() {
+            if (!forceSkeleton && !hydratedRef.current) {
+                try {
+                    setLoading(true);
+                    const controllerRef = new AbortController();
+                    const { signal } = controllerRef;
+                    const { data } = await rbApi.detail(roleId, signal);
+
+                    if (data) {
+                        setRoleName(data.mr_name || "");
+                        setDescription(data.mr_description || "");
+                        setStatusActive(data.status === "active");
+                        setSelected(new Set(data.permissions || []));
+                        hydratedRef.current = true;
+                    } else {
+                        setErrorMsg("Role not found.");
+                    }
+                } catch (error) {
+                    setErrorMsg("Failed to fetch role details.");
+                } finally {
+                    setLoading(false);
+                }
+            }
+        }
+
+        async function fetchCatalogData() {
+            try {
+                const controllerRef = new AbortController();
+                const { signal } = controllerRef;
+                const { data } = await menusbApi.list(signal);
+
+                const transformedData = (data?.menus || []).map(item => ({
+                    key: item.mm_uid,
+                    label: item.mm_name,
+                    icon: <Shield className="h-4 w-4" />,
+                    items: [
+                        { key: `${item.mm_uid}.create`, label: "Create", permission: "c" },
+                        { key: `${item.mm_uid}.read`, label: "Read", permission: "r" },
+                        { key: `${item.mm_uid}.update`, label: "Update", permission: "u" },
+                        { key: `${item.mm_uid}.delete`, label: "Delete", permission: "d" },
+                    ]
+                }));
+
+                if (transformedData) {
+                    setCatalog(transformedData);
+                } else {
+                    setErrorMsg("Failed to fetch catalog data.");
+                }
+            } catch (error) {
+                setErrorMsg("Failed to fetch catalog data.");
+            }
+        }
+
+        fetchRoleDetails();
+        fetchCatalogData();
+    }, [roleId, forceSkeleton]);
+
+    if (loading || forceSkeleton) return <RoleSkeletonLoader />;
 
     return (
         <motion.main
             variants={pageFx}
             initial="hidden"
             animate="show"
-            className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)]"
+            className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)] overflow-x-hidden"
         >
             <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8">
                 <motion.div
@@ -462,7 +541,7 @@ export default function EditRolePage() {
                                                         whileHover={{ scale: 1.02 }}
                                                         whileTap={{ scale: 0.98 }}
                                                         type="button"
-                                                        onClick={() => toggleCategory(cat)}
+                                                        onClick={() => handleSelectAll(cat)}
                                                         className="text-sm px-3 py-1.5 rounded-lg"
                                                         style={{ background: "var(--primary)", color: "var(--text-inverse)" }}
                                                     >
@@ -473,7 +552,12 @@ export default function EditRolePage() {
 
                                             <div className="px-3 sm:px-4 pb-3 sm:pb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                                 {cat.items.map((it) => {
-                                                    const checked = selected.has(it.key);
+                                                    const [menuId, action] = it.key.split('.');
+                                                    const hasMenuId = Array.from(selected).some(item => {
+                                                        return item.menu_uid == menuId && item.mrm_permission.toLowerCase().includes(it.permission.toLowerCase());
+                                                    });
+                                                    const checked = hasMenuId;
+
                                                     return (
                                                         <label
                                                             key={it.key}
@@ -491,7 +575,7 @@ export default function EditRolePage() {
                                                             <input
                                                                 type="checkbox"
                                                                 checked={checked}
-                                                                onChange={() => togglePermission(it.key)}
+                                                                onChange={() => togglePermission(it)}
                                                                 className="hidden"
                                                             />
                                                             {checked ? (
@@ -537,7 +621,7 @@ export default function EditRolePage() {
                     animate="show"
                     className="xl:col-span-1 space-y-4 sm:space-y-6"
                 >
-                    <div
+                    {/* <div
                         className="rounded-lg border"
                         style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}
                     >
@@ -577,7 +661,7 @@ export default function EditRolePage() {
                                 </span>
                             </motion.button>
                         </div>
-                    </div>
+                    </div> */}
 
                     <div
                         className="rounded-lg border"

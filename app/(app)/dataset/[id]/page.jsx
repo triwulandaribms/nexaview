@@ -45,6 +45,8 @@ export default function DatasetDetail() {
 
       try {
         const res = await dsApi.detail(id, { signal });
+        console.log(res);
+        
         if (!res || res.error) {
           throw new Error(res?.error || "Gagal memuat dataset.");
         }
@@ -715,7 +717,7 @@ export default function DatasetDetail() {
             </div>
 
             {/* AI Summary Section */}
-            <motion.div
+            {/* <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.4 }}
@@ -828,7 +830,7 @@ export default function DatasetDetail() {
                   </div>
                 )}
               </div>
-            </motion.div>
+            </motion.div> */}
           </div>
         )}
       </motion.div>

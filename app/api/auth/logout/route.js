@@ -9,10 +9,9 @@ export async function POST() {
     const cookieStore = cookies();
     const baseURL = process.env.API_BASE_URL;
 
-    const accessToken = cookieStore.get("token")?.value;
-    const idToken = cookieStore.get("id_token")?.value;
+    const accessToken = cookieStore.get("token").value;
+    const idToken = cookieStore.get("id_token").value;
 
-    // Kirim request logout ke API eksternal
     await axios.post(`${baseURL}/api/auth/logout`, null, {
       headers: {
         Authorization: `Bearer ${accessToken || ''}`,
@@ -37,7 +36,6 @@ export async function POST() {
 
     return response;
   } catch (error) {
-    console.error("Logout error ==>> ", error?.response?.data || error.message);
 
     return NextResponse.json(
       {

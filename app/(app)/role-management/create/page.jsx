@@ -1,95 +1,16 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
-import {
-    ChevronLeft,
-    Save,
-    Loader2,
-    Shield,
-    Search,
-    CheckSquare,
-    Square,
-    ListChecks,
-    Settings,
-    User as UserIcon,
-    FileText,
-    Lock,
-    Database,
-    Globe,
-} from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, Save, Loader2, Shield, Search, CheckSquare, Square, ListChecks, Settings, User as UserIcon, FileText, Lock, Database, Globe } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import RoleSkeletonLoader from "@/app/components/RoleSkeletonLoader";
+import { menusbApi } from "@/app/lib/menusBaseApi";
+import { rbApi } from "@/app/lib/rolesBaseApi";
+import Alert from "@/app/components/Alert";
 
 const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.25 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } };
-
-const CATALOG = [
-    {
-        key: "users",
-        label: "Users",
-        icon: <UserIcon className="h-4 w-4" />,
-        items: [
-            { key: "users.view", label: "View users" },
-            { key: "users.create", label: "Create users" },
-            { key: "users.edit", label: "Edit users" },
-            { key: "users.delete", label: "Delete users" },
-        ],
-    },
-    {
-        key: "roles",
-        label: "Roles",
-        icon: <Shield className="h-4 w-4" />,
-        items: [
-            { key: "roles.view", label: "View roles" },
-            { key: "roles.create", label: "Create roles" },
-            { key: "roles.edit", label: "Edit roles" },
-            { key: "roles.delete", label: "Delete roles" },
-        ],
-    },
-    {
-        key: "knowledge",
-        label: "Knowledge Base",
-        icon: <FileText className="h-4 w-4" />,
-        items: [
-            { key: "kb.view", label: "View collections" },
-            { key: "kb.create", label: "Create collections" },
-            { key: "kb.edit", label: "Edit collections" },
-            { key: "kb.delete", label: "Delete collections" },
-        ],
-    },
-    {
-        key: "settings",
-        label: "Settings & Security",
-        icon: <Settings className="h-4 w-4" />,
-        items: [
-            { key: "settings.read", label: "Read settings" },
-            { key: "settings.write", label: "Update settings" },
-            { key: "audit.read", label: "View audit logs" },
-            { key: "security.manage", label: "Manage security" },
-        ],
-    },
-    {
-        key: "data",
-        label: "Data & Integrations",
-        icon: <Database className="h-4 w-4" />,
-        items: [
-            { key: "data.read", label: "Read data" },
-            { key: "data.write", label: "Write data" },
-            { key: "api.read", label: "API read" },
-            { key: "api.write", label: "API write" },
-        ],
-    },
-    {
-        key: "public",
-        label: "Public / External",
-        icon: <Globe className="h-4 w-4" />,
-        items: [
-            { key: "public.share", label: "Share externally" },
-            { key: "public.embed", label: "Embed widgets" },
-        ],
-    },
-];
 
 export default function CreateRolePage() {
     const router = useRouter();
@@ -102,6 +23,7 @@ export default function CreateRolePage() {
     const [submitting, setSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const [forceSkeleton, setForceSkeleton] = useState(true);
+    const [catalogData, setCatalogData] = useState([]);
 
     const currentUserEmail = "you@example.com";
     const FORCE_SKELETON_MS = 1500;
@@ -113,14 +35,45 @@ export default function CreateRolePage() {
         }, FORCE_SKELETON_MS);
     }
 
+    useEffect(() => {
+        async function fetchRoles() {
+            try {
+                const controllerRef = new AbortController();
+                const { signal } = controllerRef;
+                const { data } = await menusbApi.list(signal);     
+
+                const transformedData = (data?.menus || []).map(item => ({
+                    key: item.mm_uid,
+                    label: item.mm_name,
+                    icon: <Shield className="h-4 w-4" />,
+                    items: [
+                        { key: `${item.mm_uid}.create`, label: "Create" },
+                        { key: `${item.mm_uid}.read`, label: "Read" },
+                        { key: `${item.mm_uid}.update`, label: "Update" },
+                        { key: `${item.mm_uid}.delete`, label: "Delete" },
+                    ]
+                }));
+
+                setCatalogData(transformedData);
+
+            } catch (error) {
+                setErrorMsg("Your network is unstable, please refresh the page.");
+            } finally {
+                setIsLoading(false);
+            }
+        }
+
+        fetchRoles();
+    }, []);
+
     const filteredCatalog = useMemo(() => {
         const q = search.trim().toLowerCase();
-        if (!q) return CATALOG;
-        return CATALOG.map(cat => ({
+        if (!q) return catalogData;
+        return catalogData.map(cat => ({
             ...cat,
             items: cat.items.filter(it => it.label.toLowerCase().includes(q) || it.key.toLowerCase().includes(q)),
         })).filter(cat => cat.items.length > 0);
-    }, [search]);
+    }, [search, catalogData]);
 
     const selectedCount = selected.size;
 
@@ -161,7 +114,6 @@ export default function CreateRolePage() {
 
     function validate() {
         if (!roleName || roleName.trim().length < 3) return "Role name must be at least 3 characters.";
-        // if (selected.size === 0) return "Please choose at least one permission.";
         return null;
     }
 
@@ -170,25 +122,74 @@ export default function CreateRolePage() {
         if (submitting) return;
 
         const err = validate();
-        if (err) { setErrorMsg(err); return; }
+        if (err) {
+            setErrorMsg(err);
+            return;
+        }
 
         setSubmitting(true);
         setErrorMsg("");
         try {
-            // const payload = {
-            //   name: roleName.trim(),
-            //   description: description.trim() || null,
-            //   status: statusActive ? "active" : "inactive",
-            //   permissions: Array.from(selected),
-            // };
-            // await roleApi.create(payload);
+            const permissionMap = {};
+
+            Array.from(selected).forEach((key) => {
+                const [id, action] = key.split(".");
+
+                let permission = "";
+                switch (action) {
+                    case "read":
+                        permission = "R";
+                        break;
+                    case "create":
+                        permission = "C";
+                        break;
+                    case "update":
+                        permission = "U";
+                        break;
+                    case "delete":
+                        permission = "D";
+                        break;
+                    default:
+                        permission = "UNKNOWN";
+                }
+
+                if (!permissionMap[id]) {
+                    permissionMap[id] = new Set();
+                }
+                permissionMap[id].add(permission);
+            });
+
+            const permissions = Object.keys(permissionMap).map((id) => {
+                const permissionString = Array.from(permissionMap[id]).join('');
+                return { id, permission: permissionString };
+            });
+
+            const payload = {
+                name: roleName.trim(),
+                description: description.trim() || null,
+                status: statusActive ? "active" : "inactive",
+                permissions: permissions,
+            };
+
+            const controller = new AbortController();
+            const { signal } = controller;
+
+            // Panggil API untuk membuat role baru dan berikan signal
+            await rbApi.create(payload, { signal });
+
+
             await new Promise((r) => setTimeout(r, 900));
+
             router.push("/role-management");
+
         } catch (e) {
             setErrorMsg(e?.message || "Failed to create role.");
             setSubmitting(false);
+        } finally {
+            setSubmitting(false);
         }
     }
+
 
     if (isLoading || forceSkeleton) {
         return (
@@ -201,7 +202,7 @@ export default function CreateRolePage() {
             variants={pageFx}
             initial="hidden"
             animate="show"
-            className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)]"
+            className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)] overflow-x-hidden"
         >
             <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8">
                 <motion.div
@@ -252,16 +253,13 @@ export default function CreateRolePage() {
                     </div>
                 </div>
             </motion.section>
-
             {errorMsg && (
-                <motion.div variants={fadeUp} initial="hidden" animate="show" className="mb-4 rounded-lg border px-4 py-3 text-sm"
-                    style={{ background: "rgba(243, 18, 96, 0.06)", color: "var(--text-primary)", borderColor: "var(--border-light)" }}>
+                <Alert variant="error" autoDismiss={true} onDismiss={() => setErrorMsg('')}>
                     {errorMsg}
-                </motion.div>
+                </Alert>
             )}
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-
                 <motion.section variants={fadeUp} initial="hidden" animate="show" className="xl:col-span-2 space-y-4 sm:space-y-6">
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
@@ -410,8 +408,7 @@ export default function CreateRolePage() {
                 </motion.section>
 
                 <motion.aside variants={fadeUp} initial="hidden" animate="show" className="xl:col-span-1 space-y-4 sm:space-y-6">
-
-                    <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
+                    {/* <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
                             <h2 className="text-base sm:text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
@@ -434,7 +431,7 @@ export default function CreateRolePage() {
                                 </span>
                             </motion.button>
                         </div>
-                    </div>
+                    </div> */}
 
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />

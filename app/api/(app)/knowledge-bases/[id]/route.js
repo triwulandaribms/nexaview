@@ -9,8 +9,8 @@ export async function GET(_req, { params }) {
 
   const cookieStore = await cookies();
 
-  const token = cookieStore.get('token')?.value;
-  const idToken = cookieStore.get('id_token')?.value;
+  const token = cookieStore.get('acces_token').value;
+  const idToken = cookieStore.get('id_token').value;
   try {
     const { data } = await axios.get(`${baseURL}/api/knowledge_bases/${id}`, {
       headers: {
@@ -50,8 +50,8 @@ export async function PUT(req, { params }) {
 
   const cookieStore = await cookies();
 
-  const token = cookieStore.get('token')?.value;
-  const idToken = cookieStore.get('id_token')?.value;
+  const token = cookieStore.get('acces_token').value;
+  const idToken = cookieStore.get('id_token').value;
   const body = await req.json();
 
   try {
@@ -79,8 +79,8 @@ export async function DELETE(_req, { params }) {
 
   const cookieStore = await cookies();
 
-  const token = cookieStore.get('token')?.value;
-  const idToken = cookieStore.get('id_token')?.value;
+  const token = cookieStore.get('acces_token').value;
+  const idToken = cookieStore.get('id_token').value;
 
   try {
     await axios.delete(`${baseURL}/api/knowledge_bases/${id}`, {

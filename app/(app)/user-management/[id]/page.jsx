@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     ChevronLeft,
     User as UserIcon,
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
+import { ubApi } from "@/app/lib/userBaseApi";
 
 const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.25 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } };
@@ -26,6 +27,8 @@ export default function UserDetailPage() {
     const [deleting, setDeleting] = useState(false);
     const [user, setUser] = useState(null);
     const [forceSkeleton, setForceSkeleton] = useState(true);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
     const timerRef = useRef(null);
     const hydratedRef = useRef(false);
 
@@ -35,41 +38,38 @@ export default function UserDetailPage() {
         }, 1200);
     }
 
-    if (!forceSkeleton && !hydratedRef.current) {
-        const mock = {
-            id: userId,
-            fullName: "John Doe",
-            email: "john@example.com",
-            mobile: "+62 812-3456-7890",
-            role: "Member",
-            status: "active",
-            createdAt: "2025-08-10",
-            updatedAt: "2025-08-13",
-            lastLogin: "2025-08-12 14:20",
-        };
-        setUser(mock);
-        hydratedRef.current = true;
-    }
+    useEffect(() => {
+        async function fetchUserData() {
+            try {
+                const controllerRef = new AbortController();
+                const { signal } = controllerRef;
 
-    //   useEffect(() => {
-    //     async function fetchUserData() {
-    //         try {
+                const response = await ubApi.detail(userId, signal);
+                
+                const userData = response?.data || {};  
+                const user = {
+                    id: userData.id || "-",
+                    fullName: `${userData.first_name || "-"} ${userData.last_name || ""}`,
+                    email: userData.email || "-",
+                    mobile: userData.mobile_number || "-",
+                    role: userData.role_name || "-",
+                    status:  "active",
+                    createdAt: userData.created_at || "-",
+                    updatedAt: userData.updated_at || "-",
+                    lastLogin: userData.last_login || "-",
+                };
 
-    //             const controllerRef = new AbortController();
-    //             const { signal } = controllerRef;
+                setUser(user); 
+                setLoading(false);
+            } catch (err) {
+                setError("A network issue occurred. Please check your connection and try again.");
+                setLoading(false);
+            }
+        }
 
-    //             const response = await ubApi.detail(userId, signal);
-    //             console.log(response);
-    //             setUser(response.data);
-    //             setLoading(false);
-    //         } catch (err) {
-    //             setError("A network issue occurred. Please check your connection and try again.");
-    //             setLoading(false);
-    //         }
-    //     }
+        fetchUserData();
+    }, [userId]);
 
-    //     fetchUserData();
-    // }, [userId]);
 
     function openDelete() { setConfirmOpen(true); }
     function closeDelete() {
@@ -172,7 +172,7 @@ export default function UserDetailPage() {
             variants={pageFx}
             initial="hidden"
             animate="show"
-            className="min-h-screen p-4 sm:p-6 lg:p-5 overflow-y-auto bg-[var(--background)]"
+            className="min-h-screen p-4 sm:p-6 lg:p-5 overflow-y-auto bg-[var(--background)] overflow-x-hidden"
         >
             <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8">
                 <motion.div

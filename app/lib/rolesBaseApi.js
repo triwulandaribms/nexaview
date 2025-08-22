@@ -1,8 +1,8 @@
 import { request } from './http';
 
-const base = '/api/users';
+const base = '/api/roles';
 
-export const ubApi = {
+export const rbApi = {
     list(opts) {
         return request(`${base}`, { method: 'GET', cache: 'no-store', ...(opts || {}) });
     },

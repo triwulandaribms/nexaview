@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
     ChevronLeft,
     Shield,
@@ -15,46 +15,10 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
 import RoleSkeletonLoader from "@/app/components/RoleSkeletonLoader";
+import { rbApi } from "@/app/lib/rolesBaseApi";
 
 const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.25 } } };
 const fadeUp = { hidden: { opacity: 0, y: 8 }, show: { opacity: 1, y: 0, transition: { duration: 0.25 } } };
-
-
-const CATALOG = [
-    {
-        key: "users",
-        label: "Users",
-        icon: <Users className="h-4 w-4" />,
-        items: [
-            { key: "users.view", label: "View users" },
-            { key: "users.create", label: "Create users" },
-            { key: "users.edit", label: "Edit users" },
-            { key: "users.delete", label: "Delete users" },
-        ],
-    },
-    {
-        key: "roles",
-        label: "Roles",
-        icon: <Shield className="h-4 w-4" />,
-        items: [
-            { key: "roles.view", label: "View roles" },
-            { key: "roles.create", label: "Create roles" },
-            { key: "roles.edit", label: "Edit roles" },
-            { key: "roles.delete", label: "Delete roles" },
-        ],
-    },
-    {
-        key: "knowledge",
-        label: "Knowledge Base",
-        icon: <FileText className="h-4 w-4" />,
-        items: [
-            { key: "kb.view", label: "View collections" },
-            { key: "kb.create", label: "Create collections" },
-            { key: "kb.edit", label: "Edit collections" },
-            { key: "kb.delete", label: "Delete collections" },
-        ],
-    },
-];
 
 export default function RoleDetailPage() {
     const router = useRouter();
@@ -63,66 +27,118 @@ export default function RoleDetailPage() {
 
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [deleting, setDeleting] = useState(false);
-
+    const [error, setError] = useState(null);
     const [role, setRole] = useState(null);
+    const [catalog, setCatalog] = useState(null);
 
     const [forceSkeleton, setForceSkeleton] = useState(true);
     const timerRef = useRef(null);
-    const hydratedRef = useRef(false);
 
     if (forceSkeleton && !timerRef.current) {
         timerRef.current = setTimeout(() => setForceSkeleton(false), 1200);
     }
-    if (!forceSkeleton && !hydratedRef.current) {
-        const mock = {
-            id: roleId,
-            name: "Content Manager",
-            description: "Role to manage content and users across the app.",
-            status: "active",
-            createdBy: "you@example.com",
-            createdAt: "2025-08-10",
-            updatedAt: "2025-08-13",
-            assignedUsers: 7,
-            permissions: [
-                "users.view", "users.edit",
-                "roles.view",
-                "kb.view", "kb.edit",
-            ],
-        };
-        setRole(mock);
-        hydratedRef.current = true;
-    }
+    useEffect(() => {
+        async function fetchRoleDetail() {
+            try {
+                const controllerRef = new AbortController();
+                const { signal } = controllerRef;
+                const { data } = await rbApi.detail(roleId, signal);
+
+                if (data?.permissions) {
+                    const groupedPermissions = (data.permissions || []).reduce((acc, perm) => {
+
+                        if (!acc[perm.menu_name]) {
+                            acc[perm.menu_name] = {
+                                key: perm.menu_uid,
+                                label: perm.menu_name,
+                                icon: getIconForMenu(perm.menu_name),
+                                items: [],
+                            };
+                        }
+                        acc[perm.menu_name].items.push({
+                            key: perm.menu_id,
+                            label: `${perm.menu_name} - ${perm.mrm_permission}`,
+                            permissions: [
+                                perm.can_create ? "Create" : null,
+                                perm.can_read ? "Read" : null,
+                                perm.can_update ? "Update" : null,
+                                perm.can_delete ? "Delete" : null,
+                            ].filter(Boolean).join(', '),
+                        });
+                        return acc;
+                    }, {});
+
+                    const newCatalog = Object.values(groupedPermissions);
+
+                    setRole(data);
+                    setCatalog(newCatalog);
+                } else {
+                    setError("Permissions data is missing.");
+                }
+            } catch (error) {
+                setError("In a few minutes, try again. Your internet connection is erratic.");
+                console.error(error);
+            } finally {
+                setForceSkeleton(false);
+            }
+        }
+
+        fetchRoleDetail();
+    }, [roleId]);
+
+
+    const getIconForMenu = (menuName) => {
+        switch (menuName) {
+            case "Users":
+                return <Users className="h-4 w-4" />;
+            case "Roles":
+                return <Shield className="h-4 w-4" />;
+            case "Knowledge Base":
+                return <FileText className="h-4 w-4" />;
+            default:
+                return <Shield className="h-4 w-4" />; // Default icon
+        }
+    };
 
     function openDelete() { setConfirmOpen(true); }
     function closeDelete() { if (!deleting) setConfirmOpen(false); }
+
     async function handleConfirmDelete() {
         setDeleting(true);
         try {
-            // await roleApi.remove(role.id);
+            const controller = new AbortController();
+            const { signal } = controller;
+
+            await rbApi.delete(roleId, { signal });
+
             await new Promise((r) => setTimeout(r, 900));
+
             setDeleting(false);
             setConfirmOpen(false);
             router.push("/role-management");
-        } catch {
+        } catch (error) {
+            if (error.name === "AbortError") {
+                console.log("Request was aborted");
+            }
             setDeleting(false);
         }
     }
     function goEdit() {
-        router.push(`/role-management/${roleId}/edit`);
+        router.push(`/role-management/update/${roleId}/`);
     }
 
-    if (forceSkeleton || !role) {
-        return (
-            <RoleSkeletonLoader />
-        );
-    }
 
-    const statusIsActive = role.status === "active";
-    const selectedSet = new Set(role.permissions);
+    const selectedSet = new Set(role?.permissions || []);
     const totalSelected = selectedSet.size;
 
-    const categoriesWithSelection = CATALOG.map(cat => {
-        const selected = cat.items.filter(it => selectedSet.has(it.key));
+
+    const categoriesWithSelection = (catalog || []).map(cat => {
+        const selectedSetIds = Array.from(selectedSet).map(item => item.menu_id || item.menu_uid);
+
+        const selected = cat.items.filter(it => {
+            return selectedSetIds.includes(it.key)
+        });
+
         return {
             ...cat,
             selected,
@@ -131,9 +147,17 @@ export default function RoleDetailPage() {
         };
     }).filter(cat => cat.selected.length > 0);
 
+
+
+    if (forceSkeleton || !role) {
+        return (
+            <RoleSkeletonLoader />
+        );
+    }
+
     return (
         <motion.main variants={pageFx} initial="hidden" animate="show"
-            className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)]"
+            className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)] overflow-x-hidden"
         >
             <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8">
                 <motion.div
@@ -164,10 +188,10 @@ export default function RoleDetailPage() {
                     </motion.div>
                     <div className="min-w-0">
                         <h2 className="text-lg sm:text-xl font-semibold leading-6" style={{ color: "var(--text-primary)" }}>
-                            {role.name}
+                            {role?.mr_name || "-"}
                         </h2>
                         <div className="text-sm leading-5 sm:flex sm:flex-wrap sm:items-center sm:gap-2" style={{ color: "var(--text-secondary)" }}>
-                            <span className="block sm:inline break-words">Created by {role.createdBy}</span>
+                            <span className="block sm:inline break-words">Created by {role?.createdBy || '-'}</span>
                             <span className="hidden sm:inline" aria-hidden="true">•</span>
                             <span className="block sm:inline whitespace-nowrap">{totalSelected} permissions</span>
                         </div>
@@ -189,7 +213,7 @@ export default function RoleDetailPage() {
                                 <div className="flex-1">
                                     <div className="text-sm" style={{ color: "var(--text-secondary)" }}>Description</div>
                                     <div className="font-medium" style={{ color: "var(--text-primary)" }}>
-                                        {role.description || "-"}
+                                        {role?.mr_description || "-"}
                                     </div>
                                 </div>
                             </div>
@@ -261,7 +285,7 @@ export default function RoleDetailPage() {
 
                 <motion.aside variants={fadeUp} initial="hidden" animate="show" className="xl:col-span-1 space-y-4 sm:space-y-6">
 
-                    <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
+                    {/* <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
                         <div className="p-4 sm:p-6">
                             <h2 className="text-base sm:text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
@@ -278,7 +302,7 @@ export default function RoleDetailPage() {
                                 {statusIsActive ? "Active" : "Inactive"}
                             </div>
                         </div>
-                    </div>
+                    </div> */}
 
                     <div className="rounded-lg border" style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}>
                         <div className="h-1" style={{ background: "var(--primary)" }} />
@@ -289,20 +313,20 @@ export default function RoleDetailPage() {
                             <div className="space-y-3 text-sm">
                                 <div className="flex items-center justify-between">
                                     <span style={{ color: "var(--text-secondary)" }}>Role ID</span>
-                                    <span style={{ color: "var(--text-primary)" }}>{role.id}</span>
+                                    <span style={{ color: "var(--text-primary)" }}>{role.mr_uid}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span style={{ color: "var(--text-secondary)" }}>Created</span>
-                                    <span style={{ color: "var(--text-primary)" }}>{role.createdAt}</span>
+                                    <span style={{ color: "var(--text-primary)" }}>{role?.created_at}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span style={{ color: "var(--text-secondary)" }}>Last updated</span>
-                                    <span style={{ color: "var(--text-primary)" }}>{role.updatedAt}</span>
+                                    <span style={{ color: "var(--text-primary)" }}>{role?.updated_at || role?.created_at || '-'}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span style={{ color: "var(--text-secondary)" }}>Assigned users</span>
                                     <span className="inline-flex items-center gap-1" style={{ color: "var(--text-primary)" }}>
-                                        <Users className="h-4 w-4" /> {role.assignedUsers}
+                                        <Users className="h-4 w-4" /> {role?.members || 0}
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between">
@@ -385,9 +409,9 @@ export default function RoleDetailPage() {
 
                                     <div className="mt-3 rounded-lg border px-4 py-3 text-sm"
                                         style={{ borderColor: "var(--border-light)", color: "var(--text-primary)", background: "var(--surface-secondary)" }}>
-                                        <span className="font-medium">{role.name}</span>
+                                        <span className="font-medium">{role.mr_name || '-'}</span>
                                         <div className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
-                                            {role.createdBy} • {totalSelected} permissions • {role.createdAt}
+                                            {role.members || "0"} members  • {totalSelected} permissions • {role.created_at}
                                         </div>
                                     </div>
 

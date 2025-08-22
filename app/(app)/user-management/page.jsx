@@ -72,10 +72,15 @@ export default function UserManagement() {
     }, [confirmOpen, deleting]);
 
     async function handleConfirmDelete() {
-        if (!selectedUser?.iid || deleting) return;
+        if (!selectedUser?.id || deleting) return;
         setDeleting(true);
         setErrorMsg("");
         try {
+
+            const controller = new AbortController();
+            const { signal } = controller;
+
+            await ubApi.delete(selectedUser?.id, { signal });
 
             setUsers((list) => list.filter((u) => u?.id !== selectedUser?.id));
         } catch (e) {
@@ -96,7 +101,6 @@ export default function UserManagement() {
             try {
                 const usersData = await ubApi.list(signal);
                 setUsers(usersData?.data || []);
-                console.log(usersData?.data || []);
 
             } catch (error) {
                 if (error.name !== 'AbortError') {

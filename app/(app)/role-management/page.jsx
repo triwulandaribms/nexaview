@@ -20,6 +20,7 @@ import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Alert from "@/app/components/Alert";
 import CollectionSkeleton from "@/app/components/CollectionSkeleton";
+import { rbApi } from "@/app/lib/rolesBaseApi";
 
 const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.3 } } };
 const listFx = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
@@ -29,8 +30,6 @@ export default function RoleManagement() {
   const router = useRouter();
 
   const [roles, setRoles] = useState([
-    { id: 1, name: "Admin", permissions_count: 12, members_count: 3, created_at: "2025-08-10" },
-    { id: 2, name: "Member", permissions_count: 5, members_count: 42, created_at: "2025-08-12" },
   ]);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -51,11 +50,31 @@ export default function RoleManagement() {
       setIsLoading(false);
     }, FORCE_SKELETON_MS);
   }
-  const filteredRoles = roles.filter((r) => r.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredRoles = roles.filter((r) => r?.mr_name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+
+  useEffect(() => {
+    async function fetchRoles() {
+      try {
+        const controllerRef = new AbortController();
+        const { signal } = controllerRef;
+        const { data } = await rbApi.list(signal);
+
+        setRoles(data);
+      } catch (error) {
+        setErrorMsg("Failed to fetch roles");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchRoles();
+  }, []);
+
 
   function openEdit(role) {
-    if (!role?.id) return;
-    router.push(`/role-management/update/${role.id}`);
+    if (!role?.mr_uid) return;
+    router.push(`/role-management/update/${role.mr_uid}`);
   }
   function openDelete(role) {
     setSelectedRole(role);
@@ -71,16 +90,27 @@ export default function RoleManagement() {
     }
     if (confirmOpen) window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [confirmOpen, deleting]); 
+  }, [confirmOpen, deleting]);
 
   async function handleConfirmDelete() {
-    if (!selectedRole?.id || deleting) return;
+    if (!selectedRole?.mr_uid || deleting) return;
+
     setDeleting(true);
     setErrorMsg("");
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
     try {
-      setRoles((list) => list.filter((r) => r.id !== selectedRole.id));
+      await rbApi.delete(selectedRole.mr_uid, { signal });
+
+      setRoles((list) => list.filter((r) => r.mr_uid !== selectedRole.mr_uid));
+
     } catch (e) {
-      setErrorMsg(e?.message || "Failed to delete role");
+      if (e.name === "AbortError") {
+      } else {
+        setErrorMsg(e?.message || "Failed to delete role");
+      }
     } finally {
       setDeleting(false);
       setConfirmOpen(false);
@@ -164,7 +194,7 @@ export default function RoleManagement() {
             <motion.div key="grid" variants={listFx} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredRoles.map((role) => (
                 <motion.div
-                  key={role.id}
+                  key={role?.mr_uid || role?.id}
                   layout
                   variants={cardFx}
                   whileHover={{ scale: 1.01 }}
@@ -187,20 +217,20 @@ export default function RoleManagement() {
                         <Shield className="h-6 w-6 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>{role.name}</h3>
+                        <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>{role?.mr_name || "-"}</h3>
                       </div>
                     </div>
 
                     <div className="space-y-2 mb-6 text-sm" style={{ color: "var(--text-secondary)" }}>
-                      <div className="flex gap-2 items-center"><Users className="h-4 w-4" /> {role.members_count} members</div>
-                      <div className="flex gap-2 items-center"><Key className="h-4 w-4" /> {role.permissions_count} permissions</div>
-                      <div className="flex gap-2 items-center"><Calendar className="h-4 w-4" /> {role.created_at}</div>
+                      <div className="flex gap-2 items-center"><Users className="h-4 w-4" /> {role.members || "0"} members</div>
+                      <div className="flex gap-2 items-center"><Key className="h-4 w-4" /> {role.permissions || "0"} permissions</div>
+                      <div className="flex gap-2 items-center"><Calendar className="h-4 w-4" /> {role.created_at || "-"}</div>
                     </div>
 
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => router.push(`/role-management/${role.id}`)}
+                      onClick={() => router.push(`/role-management/${role?.mr_uid || role?.id}`)}
                       className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
                       style={{ background: "var(--surface-secondary)", color: "var(--text-primary)", border: "1px solid var(--border-light)" }}
                     >
@@ -214,7 +244,7 @@ export default function RoleManagement() {
             <motion.div key="list" variants={listFx} initial="hidden" animate="show" className="space-y-3">
               {filteredRoles.map((role) => (
                 <motion.div
-                  key={role.id}
+                  key={role?.mr_uid || role?.id}
                   layout
                   variants={cardFx}
                   whileHover={{ scale: 1.005 }}
@@ -238,9 +268,9 @@ export default function RoleManagement() {
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>{role.name}</h3>
+                        <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>{role.mr_name || '-'}</h3>
                         <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-                          {role.members_count} members • {role.permissions_count} permissions • {role.created_at}
+                          {role.members} members • {role.permissions} permissions • {role.created_at}
                         </div>
                       </div>
 
@@ -248,7 +278,7 @@ export default function RoleManagement() {
                         <motion.button
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => router.push(`/role-management/${role.id}`)}
+                          onClick={() => router.push(`/role-management/${role?.mr_uid || role?.id}`)}
                           className="px-4 py-2 rounded-lg font-medium cursor-pointer"
                           style={{ background: "var(--surface-secondary)", color: "var(--text-primary)", border: "1px solid var(--border-light)" }}
                         >
@@ -371,9 +401,9 @@ export default function RoleManagement() {
                     className="mt-3 rounded-lg border px-4 py-3 text-sm"
                     style={{ borderColor: "var(--border-light)", color: "var(--text-primary)", background: "var(--surface-secondary)" }}
                   >
-                    <span className="font-medium">{selectedRole?.name}</span>
+                    <span className="font-medium">{selectedRole?.mr_name || '-'}</span>
                     <div className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
-                      {selectedRole?.members_count} members • {selectedRole?.permissions_count} permissions • {selectedRole?.created_at}
+                      {selectedRole?.members} members • {selectedRole?.permissions} permissions • {selectedRole?.created_at}
                     </div>
                   </div>
 

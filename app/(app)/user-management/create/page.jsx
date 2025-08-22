@@ -12,6 +12,8 @@ import {
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import CreateUserSkeleton from "@/app/components/CreateUserSkeleton";
+import { ubApi } from "@/app/lib/userBaseApi";
+import Alert from "@/app/components/Alert";
 
 const pageFx = {
     hidden: { opacity: 0 },
@@ -51,7 +53,7 @@ export default function CreateUserPage() {
             return "Full name must be at least 3 characters.";
         if (!emailOk(email)) return "Please enter a valid email address.";
         if (!phoneOk(mobile)) return "Please enter a valid mobile number.";
-        if (!role) return "Role is required.";
+        if (!role || role === "" || isNaN(role)) return "Role is required.";
         if (!passOk(password)) return "Password must be at least 6 characters.";
         if (password !== confirm) return "Password confirmation does not match.";
         return null;
@@ -70,8 +72,13 @@ export default function CreateUserPage() {
         setSubmitting(true);
         setErrorMsg("");
         try {
-            // const payload = { full_name: fullName, email, mobile, role, status: statusActive?'active':'inactive', password };
-            // await userApi.create(payload);
+
+
+            const controllerRef = new AbortController();
+            const { signal } = controllerRef;
+            const payload = { full_name: fullName, email, mobile_number: mobile, mu_mr_id: parseInt(role), status: statusActive ? 'Active' : 'Inactive', password, confirm_password: password, role: role == 1 ? "MASTER" : "USERS", };
+       
+            await ubApi.create(payload, { signal });
             await new Promise((r) => setTimeout(r, 800));
             router.push("/user-management");
         } catch (e) {
@@ -103,7 +110,7 @@ export default function CreateUserPage() {
             variants={pageFx}
             initial="hidden"
             animate="show"
-            className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)]"
+            className="min-h-screen p-4 sm:p-6 lg:p-5  bg-[var(--background)] overflow-x-hidden"
         >
             <div className="sticky top-0 z-40 -mx-4 sm:-mx-6 lg:-mx-8">
                 <motion.div
@@ -149,27 +156,13 @@ export default function CreateUserPage() {
                             New User
                         </h2>
                         <p className="text-sm truncate" style={{ color: "var(--text-secondary)" }}>
-                            Created by {currentUserEmail} • Role: {role}
+                            Created Date {new Date().toISOString().slice(0, 10)} • Role: {role == "1" ? "Master" : role == "2" ? "User" : ""}
                         </p>
                     </div>
                 </div>
             </motion.section>
 
-            {errorMsg && (
-                <motion.div
-                    variants={fadeUp}
-                    initial="hidden"
-                    animate="show"
-                    className="mb-4 rounded-lg border px-4 py-3 text-sm"
-                    style={{
-                        background: "rgba(243, 18, 96, 0.06)",
-                        color: "var(--text-primary)",
-                        borderColor: "var(--border-light)",
-                    }}
-                >
-                    {errorMsg}
-                </motion.div>
-            )}
+            {errorMsg && <Alert variant="error" onDismiss={() => setErrorMsg("")}>{errorMsg}</Alert>}
 
             <form
                 onSubmit={handleSubmit}
@@ -257,28 +250,25 @@ export default function CreateUserPage() {
                                         }}
                                     />
                                 </div>
+                                <select
+                                    value={role}
+                                    onChange={(e) => {
+                                        const selectedRole = e.target.value;
+                                        setRole(selectedRole);
+                                    }}
+                                    className="w-full rounded-lg border px-3 py-3 text-sm sm:text-base focus:outline-none focus:ring-2"
+                                    style={{
+                                        background: "var(--surface-elevated)",
+                                        borderColor: "var(--border-light)",
+                                        color: "var(--text-primary)",
+                                        "--tw-ring-color": "var(--primary)",
+                                    }}
+                                >
+                                    <option value="" >Choose Role</option> {/* Add the disabled option */}
+                                    <option value="1">Master</option>
+                                    <option value="2">User</option>
+                                </select>
 
-                                <div className="flex flex-col gap-1.5">
-                                    <label className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                                        Role
-                                    </label>
-                                    <select
-                                        value={role}
-                                        onChange={(e) => setRole(e.target.value)}
-                                        className="w-full rounded-lg border px-3 py-3 text-sm sm:text-base focus:outline-none focus:ring-2"
-                                        style={{
-                                            background: "var(--surface-elevated)",
-                                            borderColor: "var(--border-light)",
-                                            color: "var(--text-primary)",
-                                            "--tw-ring-color": "var(--primary)",
-                                        }}
-                                    >
-                                        <option>Admin</option>
-                                        <option>Member</option>
-                                        <option>Viewer</option>
-                                        <option>Custom</option>
-                                    </select>
-                                </div>
                             </div>
                         </div>
                     </div>
