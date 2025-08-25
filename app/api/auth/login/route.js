@@ -27,6 +27,7 @@ export async function POST(request) {
       { email, password },
       { headers: { "Content-Type": "application/json" } }
     );
+    console.log(responseFromAPI.data);
 
     const { access_token, id_token, token, user } = responseFromAPI.data;
     // Opsi cookie standar

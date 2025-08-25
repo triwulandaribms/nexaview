@@ -20,12 +20,16 @@ export default function LoginPage() {
     setError('')
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
+        signal: controller.signal,
       })
 
       const data = await response.json()
@@ -33,7 +37,7 @@ export default function LoginPage() {
       if (data.success) {
         // Token is set as httpOnly cookie by the server
         // Store user info in localStorage for client-side access
-        localStorage.setItem('user', JSON.stringify(data.user))
+        localStorage.setItem('user', JSON.stringify(data?.user))
 
         // Redirect to dashboard
         router.push('/dashboard')
