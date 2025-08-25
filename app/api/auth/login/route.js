@@ -26,8 +26,9 @@ export async function POST(request) {
       { email, password },
       { headers: { 'Content-Type': 'application/json' } }
     );
+    console.log(responseFromAPI.data);
 
-    const { access_token, id_token, token } = responseFromAPI.data;
+    const { access_token, id_token, token, user } = responseFromAPI.data;
     // Opsi cookie standar  
     const baseCookieOptions = {
       secure: process.env.NODE_ENV === 'production',
@@ -39,6 +40,7 @@ export async function POST(request) {
     const response = NextResponse.json({
       success: true,
       message: 'Login successful',
+      user
     });
 
     response.cookies.set('token', access_token, {
