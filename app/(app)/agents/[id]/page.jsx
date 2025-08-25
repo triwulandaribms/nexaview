@@ -24,6 +24,19 @@ import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
 import { abApi } from "@/app/lib/agentBaseApi";
 import ConfirmDeleteModalAgent from "@/app/components/ConfirmDeleteModalAgent";
+import {
+  FaFile,
+  FaFilePdf,
+  FaFileWord,
+  FaFileExcel,
+  FaFilePowerpoint,
+  FaFileImage,
+  FaFileAlt,
+  FaFileCode,
+  FaFileArchive,
+  FaFileAudio,
+  FaFileVideo,
+} from "react-icons/fa";
 
 export default function AgentDetail() {
   const router = useRouter();
@@ -72,12 +85,12 @@ export default function AgentDetail() {
           dataSources: dataSourceLabel,
           timestamp: a.created_at
             ? new Date(a.created_at).toLocaleString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
             : "-",
           model: a?.default_model?.id || "-",
           knowledgeBases: Array.isArray(a.knowledgebases)
@@ -89,16 +102,16 @@ export default function AgentDetail() {
           systemPrompt: a.system_prompt || "",
           kbDetails: Array.isArray(a.knowledgebases)
             ? a.knowledgebases.map((k) => ({
-              name: k.name,
-              description: k.description || "",
-              docs:
-                typeof k.documentCount === "number"
-                  ? k.documentCount
-                  : typeof k.docs === "number"
+                name: k.name,
+                description: k.description || "",
+                docs:
+                  typeof k.documentCount === "number"
+                    ? k.documentCount
+                    : typeof k.docs === "number"
                     ? k.docs
                     : 0,
-              category: "General",
-            }))
+                category: "General",
+              }))
             : [],
         };
 
@@ -113,8 +126,6 @@ export default function AgentDetail() {
 
     return () => controller.abort("overview unmount");
   }, [params.id]);
-
-
 
   const tabs = ["Overview", "Chat", "Sessions"];
 
@@ -268,7 +279,9 @@ export default function AgentDetail() {
   const [delLoading, setDelLoading] = useState(false);
 
   const openDelete = () => setDelOpen(true);
-  const closeDelete = () => { if (!delLoading) setDelOpen(false); };
+  const closeDelete = () => {
+    if (!delLoading) setDelOpen(false);
+  };
 
   const confirmDelete = () => {
     const controller = new AbortController();
@@ -280,9 +293,13 @@ export default function AgentDetail() {
 
         if (abApi?.remove) {
           const res = await abApi.remove(currentId, { signal });
-          if (!res || res.error) throw new Error(res?.error || "Failed to delete agent.");
+          if (!res || res.error)
+            throw new Error(res?.error || "Failed to delete agent.");
         } else {
-          const r = await fetch(`/api/agent/${currentId}`, { method: "DELETE", signal });
+          const r = await fetch(`/api/agent/${currentId}`, {
+            method: "DELETE",
+            signal,
+          });
           if (!r.ok) throw new Error("Failed to delete agent.");
         }
 
@@ -299,7 +316,6 @@ export default function AgentDetail() {
 
     return () => controller.abort();
   };
-
 
   // Skeleton Components
   const HeaderSkeleton = () => (
@@ -699,7 +715,9 @@ export default function AgentDetail() {
                   <h3 className="text-base font-semibold text-white mb-1">
                     AI Model
                   </h3>
-                  <p className="text-xl font-bold text-white">{agent?.model || "-"}</p>
+                  <p className="text-xl font-bold text-white">
+                    {agent?.model || "-"}
+                  </p>
                 </motion.div>
               </div>
             </motion.div>
@@ -715,8 +733,9 @@ export default function AgentDetail() {
                   className="text-xl font-semibold"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  {agent?.dataSources === "Knowledge Bases" ? "Knowledge Base Details" : "API Features"}
-
+                  {agent?.dataSources === "Knowledge Bases"
+                    ? "Knowledge Base Details"
+                    : "API Features"}
                 </h2>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -761,7 +780,7 @@ export default function AgentDetail() {
                               color: "var(--text-secondary)",
                               overflowWrap: "anywhere",
                               wordBreak: "break-word",
-                              whiteSpace: "normal"
+                              whiteSpace: "normal",
                             }}
                           >
                             {kb?.description}
@@ -959,12 +978,14 @@ export default function AgentDetail() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className={`flex ${message.type === "user" ? "justify-end" : "justify-start"
-                    }`}
+                  className={`flex ${
+                    message.type === "user" ? "justify-end" : "justify-start"
+                  }`}
                 >
                   <div
-                    className={`max-w-[70%] ${message.type === "user" ? "order-2" : "order-1"
-                      }`}
+                    className={`max-w-[70%] ${
+                      message.type === "user" ? "order-2" : "order-1"
+                    }`}
                   >
                     {message.type !== "user" && (
                       <div className="flex items-center gap-2 mb-1">
@@ -983,17 +1004,18 @@ export default function AgentDetail() {
                       </div>
                     )}
                     <div
-                      className={`p-3 rounded-lg ${message.type === "user"
-                        ? "rounded-br-sm"
-                        : "rounded-bl-sm"
-                        }`}
+                      className={`p-3 rounded-lg ${
+                        message.type === "user"
+                          ? "rounded-br-sm"
+                          : "rounded-bl-sm"
+                      }`}
                       style={{
                         background:
                           message.type === "user"
                             ? "var(--primary)"
                             : message.type === "system"
-                              ? "var(--surface-secondary)"
-                              : "var(--surface-secondary)",
+                            ? "var(--surface-secondary)"
+                            : "var(--surface-secondary)",
                         color:
                           message.type === "user"
                             ? "var(--text-inverse)"
@@ -1005,8 +1027,9 @@ export default function AgentDetail() {
                       </p>
                       <div className="flex items-center justify-between mt-2">
                         <span
-                          className={`text-xs ${message.type === "user" ? "text-white/70" : ""
-                            }`}
+                          className={`text-xs ${
+                            message.type === "user" ? "text-white/70" : ""
+                          }`}
                           style={{
                             color:
                               message.type === "user"
@@ -1023,10 +1046,11 @@ export default function AgentDetail() {
                             onClick={() =>
                               navigator.clipboard.writeText(message.content)
                             }
-                            className={`ml-2 p-1 rounded ${message.type === "user"
-                              ? "hover:bg-white/20"
-                              : "hover:bg-gray-100"
-                              }`}
+                            className={`ml-2 p-1 rounded ${
+                              message.type === "user"
+                                ? "hover:bg-white/20"
+                                : "hover:bg-gray-100"
+                            }`}
                           >
                             <Copy className="h-3 w-3" />
                           </motion.button>
@@ -1489,7 +1513,6 @@ export default function AgentDetail() {
         confirmText="Delete"
         cancelText="Cancel"
       />
-
     </motion.main>
   );
 }

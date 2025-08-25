@@ -53,8 +53,6 @@ export default function CreateAgent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState("");
 
-
-
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -65,9 +63,13 @@ export default function CreateAgent() {
       setProvidersError("");
 
       try {
-        const [resKB, resMB] = await Promise.all([kbApi.all({ signal }), mbApi.list({ signal })]);
+        const [resKB, resMB] = await Promise.all([
+          kbApi.all({ signal }),
+          mbApi.list({ signal }),
+        ]);
 
-        if (!resKB || resKB.error) throw new Error(resKB?.error || "Failed to load knowledge bases.");
+        if (!resKB || resKB.error)
+          throw new Error(resKB?.error || "Failed to load knowledge bases.");
         const rawKB = Array.isArray(resKB.data) ? resKB.data : [];
         const mappedkb = rawKB.map((it, i) => ({
           id: it.id ?? String(i),
@@ -76,8 +78,8 @@ export default function CreateAgent() {
             typeof it.docs_count === "number"
               ? it.docs_count
               : Array.isArray(it.documents)
-                ? it.documents.length
-                : 0,
+              ? it.documents.length
+              : 0,
           description: it.description ?? "",
           color: it.color ?? "#4F46E5",
           createdAt: it.created_at ?? null,
@@ -87,9 +89,17 @@ export default function CreateAgent() {
         }));
         setKnowledgeBases(mappedkb);
 
-        if (!resMB || resMB.error) throw new Error(resMB?.error || "Failed to load model providers.");
+        if (!resMB || resMB.error)
+          throw new Error(resMB?.error || "Failed to load model providers.");
         const mbRaw = Array.isArray(resMB.data) ? resMB.data : [];
-        const order = ["openai", "anthropic", "deepseek", "mistral", "qwen", "ollama"];
+        const order = [
+          "openai",
+          "anthropic",
+          "deepseek",
+          "mistral",
+          "qwen",
+          "ollama",
+        ];
         const iconMap = {
           openai: "Bot",
           anthropic: "Sparkles",
@@ -99,10 +109,11 @@ export default function CreateAgent() {
           ollama: "Database",
         };
 
-        const toIconKey = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "Bot");
+        const toIconKey = (s) =>
+          s ? s.charAt(0).toUpperCase() + s.slice(1) : "Bot";
         const mappedProviders = (Array.isArray(mbRaw) ? mbRaw : [])
           .map((p) => {
-            const hasKey = !!p.apiKeyPreview;                   
+            const hasKey = !!p.apiKeyPreview;
 
             const iconName = iconMap[p.id] ?? toIconKey(p.icon) ?? "Bot";
 
@@ -114,8 +125,8 @@ export default function CreateAgent() {
 
             return {
               ...p,
-              icon: iconName,                                    
-              connected: hasKey,                                  
+              icon: iconName,
+              connected: hasKey,
               status: hasKey ? "Connected" : "Not configured",
               models,
             };
@@ -130,11 +141,11 @@ export default function CreateAgent() {
           });
 
         setModelProviders(mappedProviders);
-
       } catch (e) {
         if (e.name !== "AbortError") {
           if (!kbError) setKbError(e?.message || "Unexpected error.");
-          if (!providersError) setProvidersError(e?.message || "Unexpected error.");
+          if (!providersError)
+            setProvidersError(e?.message || "Unexpected error.");
         }
       } finally {
         setKbLoading(false);
@@ -194,7 +205,9 @@ export default function CreateAgent() {
       try {
         // cari provider & model yang dipilih
         const prov =
-          modelProviders.find((p) => p.models.some((m) => m.id === selectedModel)) ||
+          modelProviders.find((p) =>
+            p.models.some((m) => m.id === selectedModel)
+          ) ||
           modelProviders.find((p) => p.id === selectedProviderId) ||
           null;
 
@@ -204,13 +217,13 @@ export default function CreateAgent() {
         const kbList =
           selectedDataSource === "Knowledge Bases"
             ? knowledgeBases
-              .filter((kb) => selectedKnowledgeBases.includes(kb.id))
-              .map((kb) => ({
-                name: kb.name,
-                description: kb.description || "",
-                documentCount:
-                  typeof kb.documents === "number" ? kb.documents : 0,
-              }))
+                .filter((kb) => selectedKnowledgeBases.includes(kb.id))
+                .map((kb) => ({
+                  name: kb.name,
+                  description: kb.description || "",
+                  documentCount:
+                    typeof kb.documents === "number" ? kb.documents : 0,
+                }))
             : [];
         const DATA_SOURCE_KEY = {
           "Knowledge Bases": "knowledge-bases",
@@ -230,8 +243,8 @@ export default function CreateAgent() {
             name: mdl?.name || selectedModel,
           },
           knowledgebases: kbList,
-          databases: [],          
-          features_knowledge: [],  
+          databases: [],
+          features_knowledge: [],
           data_source_type: chosenType ? [chosenType] : [],
         };
 
@@ -241,17 +254,18 @@ export default function CreateAgent() {
         }
 
         const res = await abApi.create(payload, { signal });
-        if (!res || res.error) throw new Error(res?.error || "Failed to create agent.");
+        if (!res || res.error)
+          throw new Error(res?.error || "Failed to create agent.");
 
         router.push("/agents");
       } catch (e) {
-        if (e.name !== "AbortError") setSubmitErr(e?.message || "Terjadi kesalahan.");
+        if (e.name !== "AbortError")
+          setSubmitErr(e?.message || "Terjadi kesalahan.");
       } finally {
         setIsSubmitting(false);
       }
     })();
   };
-
 
   // Skeleton Components
   const FormFieldSkeleton = ({ rows = 1 }) => (
@@ -261,8 +275,9 @@ export default function CreateAgent() {
         <div className="h-12 w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse" />
       ) : (
         <div
-          className={`h-${rows * 6
-            } w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse`}
+          className={`h-${
+            rows * 6
+          } w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse`}
         />
       )}
     </div>
@@ -568,7 +583,7 @@ export default function CreateAgent() {
                             value={systemPrompt}
                             onChange={(e) => setSystemPrompt(e.target.value)}
                             rows={6}
-                            className="w-full px-4 py-4 rounded-xl border-2 border-transparent focus:outline-none focus:border-[var(--primary)] resize-none transition-all"
+                            className="w-full px-4 py-4 rounded-xl border-2 border-transparent focus:outline-none focus:border-[var(--primary)] transition-all"
                             style={{
                               background: "var(--surface-secondary)",
                               color: "var(--text-primary)",
@@ -585,6 +600,144 @@ export default function CreateAgent() {
                     </div>
                   </div>
 
+                  {/* Model Selection */}
+                  <div
+                    className="rounded-xl border p-4 md:p-6 lg:p-8 backdrop-blur-sm"
+                    style={{
+                      background: "var(--surface-elevated)",
+                      borderColor: "var(--border-light)",
+                    }}
+                  >
+                    <div className="flex items-center gap-3 mb-6 md:mb-8">
+                      <div
+                        className="p-2 rounded-lg"
+                        style={{ background: "var(--primary-light)" }}
+                      >
+                        <Cpu
+                          className="h-5 w-5"
+                          style={{ color: "var(--primary)" }}
+                        />
+                      </div>
+                      <h3
+                        className="text-lg md:text-xl font-semibold"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Model Selection
+                      </h3>
+                    </div>
+
+                    <div className="space-y-4 md:space-y-6">
+                      {modelProviders.map((provider) => (
+                        <div key={provider.name}>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+                            <div
+                              className="p-2 rounded-lg"
+                              style={{ background: "var(--surface-secondary)" }}
+                            >
+                              <div
+                                className="p-2 rounded-lg"
+                                style={{
+                                  background: "var(--surface-secondary)",
+                                }}
+                              >
+                                {(() => {
+                                  const Icon = ICONS[provider.icon] || Bot;
+                                  return (
+                                    <Icon
+                                      className="h-5 w-5"
+                                      style={{ color: "var(--text-primary)" }}
+                                    />
+                                  );
+                                })()}
+                              </div>
+                            </div>
+                            <h4
+                              className="font-medium"
+                              style={{ color: "var(--text-primary)" }}
+                            >
+                              {provider.name}
+                            </h4>
+                            <span
+                              className={`text-xs px-3 py-1 rounded-full font-medium ${
+                                provider.status === "Connected"
+                                  ? "bg-green-50 text-green-600 border border-green-200"
+                                  : "bg-gray-50 text-gray-600 border border-gray-200"
+                              }`}
+                            >
+                              {provider.status}
+                            </span>
+                          </div>
+
+                          <div className="space-y-2 md:space-y-3 ml-3 sm:ml-6">
+                            {provider.models.map((model) => (
+                              <label
+                                key={model.id}
+                                className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${
+                                  selectedModel === model.id
+                                    ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                                    : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                                } ${
+                                  provider.status !== "Connected"
+                                    ? "opacity-50 cursor-not-allowed"
+                                    : ""
+                                }`}
+                                style={{
+                                  background:
+                                    selectedModel === model.id
+                                      ? "var(--primary-light)"
+                                      : "var(--background)",
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name="model"
+                                  value={model.id}
+                                  checked={selectedModel === model.id}
+                                  onChange={() => {
+                                    setSelectedModel(model.id);
+                                    setSelectedProvider(provider.name);
+                                  }}
+                                  disabled={provider.status !== "Connected"}
+                                  className="h-4 w-4"
+                                  style={{
+                                    accentColor:
+                                      selectedModel === model.id
+                                        ? "white"
+                                        : "var(--primary)",
+                                  }}
+                                />
+                                <span
+                                  className={`text-sm font-medium flex-1 ${
+                                    provider.status !== "Connected"
+                                      ? "text-gray-400"
+                                      : ""
+                                  }`}
+                                  style={{
+                                    color:
+                                      provider.status !== "Connected"
+                                        ? "rgb(156, 163, 175)"
+                                        : "var(--text-primary)",
+                                  }}
+                                >
+                                  {model.name}
+                                </span>
+                                {selectedModel === model.id && (
+                                  <Check
+                                    className="h-5 w-5"
+                                    style={{ color: "var(--primary)" }}
+                                  />
+                                )}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div>
                   {/* Data Source */}
                   <div
                     className="rounded-xl border p-4 md:p-6 lg:p-8 backdrop-blur-sm"
@@ -625,10 +778,11 @@ export default function CreateAgent() {
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           onClick={() => setSelectedDataSource(option.id)}
-                          className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${selectedDataSource === option.id
-                            ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                            : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
-                            }`}
+                          className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${
+                            selectedDataSource === option.id
+                              ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                              : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                          }`}
                           style={{
                             background:
                               selectedDataSource === option.id
@@ -740,130 +894,6 @@ export default function CreateAgent() {
                     )}
                   </div>
                 </div>
-
-                {/* Right Column */}
-                <div>
-                  {/* Model Selection */}
-                  <div
-                    className="rounded-xl border p-4 md:p-6 lg:p-8 backdrop-blur-sm"
-                    style={{
-                      background: "var(--surface-elevated)",
-                      borderColor: "var(--border-light)",
-                    }}
-                  >
-                    <div className="flex items-center gap-3 mb-6 md:mb-8">
-                      <div
-                        className="p-2 rounded-lg"
-                        style={{ background: "var(--primary-light)" }}
-                      >
-                        <Cpu
-                          className="h-5 w-5"
-                          style={{ color: "var(--primary)" }}
-                        />
-                      </div>
-                      <h3
-                        className="text-lg md:text-xl font-semibold"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        Model Selection
-                      </h3>
-                    </div>
-
-                    <div className="space-y-4 md:space-y-6">
-                      {modelProviders.map((provider) => (
-                        <div key={provider.name}>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-                            <div
-                              className="p-2 rounded-lg"
-                              style={{ background: "var(--surface-secondary)" }}
-                            >
-                              <div className="p-2 rounded-lg" style={{ background: "var(--surface-secondary)" }}>
-                                {(() => {
-                                  const Icon = ICONS[provider.icon] || Bot;
-                                  return <Icon className="h-5 w-5" style={{ color: "var(--text-primary)" }} />;
-                                })()}
-                              </div>
-                            </div>
-                            <h4
-                              className="font-medium"
-                              style={{ color: "var(--text-primary)" }}
-                            >
-                              {provider.name}
-                            </h4>
-                            <span
-                              className={`text-xs px-3 py-1 rounded-full font-medium ${provider.status === "Connected"
-                                ? "bg-green-50 text-green-600 border border-green-200"
-                                : "bg-gray-50 text-gray-600 border border-gray-200"
-                                }`}
-                            >
-                              {provider.status}
-                            </span>
-                          </div>
-
-                          <div className="space-y-2 md:space-y-3 ml-3 sm:ml-6">
-                            {provider.models.map((model) => (
-                              <label
-                                key={model.id}
-                                className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${selectedModel === model.id
-                                  ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                                  : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
-                                  } ${provider.status !== "Connected"
-                                    ? "opacity-50 cursor-not-allowed"
-                                    : ""
-                                  }`}
-                                style={{
-                                  background:
-                                    selectedModel === model.id
-                                      ? "var(--primary-light)"
-                                      : "var(--background)",
-                                }}
-                              >
-                                <input
-                                  type="radio"
-                                  name="model"
-                                  value={model.id}
-                                  checked={selectedModel === model.id}
-                                  onChange={() => {
-                                    setSelectedModel(model.id);
-                                    setSelectedProvider(provider.name);
-                                  }}
-                                  disabled={provider.status !== "Connected"}
-                                  className="h-4 w-4"
-                                  style={{
-                                    accentColor:
-                                      selectedModel === model.id
-                                        ? "white"
-                                        : "var(--primary)",
-                                  }}
-                                />
-                                <span
-                                  className={`text-sm font-medium flex-1 ${provider.status !== "Connected"
-                                    ? "text-gray-400"
-                                    : ""
-                                    }`}
-                                  style={{
-                                    color:
-                                      provider.status !== "Connected"
-                                        ? "rgb(156, 163, 175)"
-                                        : "var(--text-primary)",
-                                  }}
-                                >
-                                  {model.name}
-                                </span>
-                                {selectedModel === model.id && (
-                                  <Check
-                                    className="h-5 w-5"
-                                    style={{ color: "var(--primary)" }}
-                                  />
-                                )}
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
               </div>
             </motion.div>
           </div>
@@ -960,8 +990,9 @@ export default function CreateAgent() {
                       style={{ color: "var(--text-secondary)" }}
                     >
                       {selectedKnowledgeBases.length > 0
-                        ? `${selectedKnowledgeBases.length} knowledge base${selectedKnowledgeBases.length !== 1 ? "s" : ""
-                        } selected`
+                        ? `${selectedKnowledgeBases.length} knowledge base${
+                            selectedKnowledgeBases.length !== 1 ? "s" : ""
+                          } selected`
                         : "No data sources selected"}
                     </p>
                   </div>
@@ -1006,15 +1037,26 @@ export default function CreateAgent() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleCreateAgent}
-                disabled={isSubmitting || !agentName.trim() || !description.trim() || !selectedModel}
+                disabled={
+                  isSubmitting ||
+                  !agentName.trim() ||
+                  !description.trim() ||
+                  !selectedModel
+                }
                 className="px-6 py-3 md:px-4 md:py-2 text-sm md:text-sm font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 w-full justify-center cursor-pointer"
                 style={{
                   background:
-                    !isSubmitting && agentName.trim() && description.trim() && selectedModel
+                    !isSubmitting &&
+                    agentName.trim() &&
+                    description.trim() &&
+                    selectedModel
                       ? "var(--primary)"
                       : "var(--surface-secondary)",
                   color:
-                    !isSubmitting && agentName.trim() && description.trim() && selectedModel
+                    !isSubmitting &&
+                    agentName.trim() &&
+                    description.trim() &&
+                    selectedModel
                       ? "var(--text-inverse)"
                       : "var(--text-secondary)",
                 }}
@@ -1028,7 +1070,6 @@ export default function CreateAgent() {
                   {submitErr}
                 </p>
               )}
-
             </div>
           </motion.div>
         </div>

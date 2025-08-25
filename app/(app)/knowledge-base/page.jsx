@@ -15,14 +15,13 @@ import {
   X,
   AlertTriangle,
   Check,
-  Loader2
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { kbApi } from "@/app/lib/knowledgeBaseApi";
 import { withTimeout } from "@/app/lib/http";
 import Alert from "@/app/components/Alert";
-
 
 export default function KnowledgeBase() {
   const [knowledgeBases, setKnowledgeBases] = useState([]);
@@ -32,7 +31,7 @@ export default function KnowledgeBase() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedKB, setSelectedKB] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState("");
   // const [editOpen, setEditOpen] = useState(false);
   // const [saving, setSaving] = useState(false);
   // const [editForm, setEditForm] = useState({ name: "", email: "" });
@@ -44,7 +43,6 @@ export default function KnowledgeBase() {
     let mounted = true;
 
     (async () => {
-
       const { signal, cancel } = withTimeout(20000);
       setIsLoading(true);
       try {
@@ -59,9 +57,10 @@ export default function KnowledgeBase() {
       }
     })();
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
-
 
   const filteredKnowledgeBases = knowledgeBases.filter(
     (kb) =>
@@ -201,14 +200,16 @@ export default function KnowledgeBase() {
   const openDelete = (kb) => {
     setSelectedKB(kb);
     setConfirmOpen(true);
-  }
+  };
 
   const closeDelete = () => {
     if (!deleting) setConfirmOpen(false);
-  }
+  };
 
   useEffect(() => {
-    function onKey(e) { if (e.key === "Escape") closeDelete(); }
+    function onKey(e) {
+      if (e.key === "Escape") closeDelete();
+    }
     if (confirmOpen) window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [confirmOpen, deleting]);
@@ -218,13 +219,13 @@ export default function KnowledgeBase() {
 
     const { signal, cancel } = withTimeout(20_000);
     setDeleting(true);
-    setErrorMsg('');
+    setErrorMsg("");
 
     try {
       const res = await kbApi.remove(selectedKB.id, { signal });
 
       if (!res?.data?.success) {
-        setErrorMsg(res?.data?.error || 'Failed to delete knowledge base');
+        setErrorMsg(res?.data?.error || "Failed to delete knowledge base");
         return;
       }
 
@@ -232,15 +233,13 @@ export default function KnowledgeBase() {
       setKnowledgeBases((list) => list.filter((kb) => kb.id !== selectedKB.id));
     } catch (e) {
       console.error(e);
-      setErrorMsg(e.message || 'Failed to delete knowledge base');
+      setErrorMsg(e.message || "Failed to delete knowledge base");
     } finally {
       cancel();
       setDeleting(false);
       setConfirmOpen(false);
     }
   }
-
-
 
   // function openEdit(kb) {
 
@@ -252,7 +251,9 @@ export default function KnowledgeBase() {
     if (!kb?.id) return;
     router.push(`/knowledge-base/update/${kb.id}`);
   }
-  function closeEdit() { if (!saving) setEditOpen(false); }
+  function closeEdit() {
+    if (!saving) setEditOpen(false);
+  }
 
   // useEffect(() => {
   //   function onKey(e) { if (e.key === "Escape") closeEdit(); }
@@ -297,9 +298,8 @@ export default function KnowledgeBase() {
       transition={{ duration: 0.3 }}
       className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]"
     >
-
       {errorMsg && (
-        <Alert variant="error" onDismiss={() => setErrorMsg('')}>
+        <Alert variant="error" onDismiss={() => setErrorMsg("")}>
           {errorMsg}
         </Alert>
       )}
@@ -460,8 +460,7 @@ export default function KnowledgeBase() {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={() => openDelete(kb)}
-                        className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                        style={{ color: "var(--text-secondary)" }}
+                        className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
                       >
                         <Trash2 className="h-4 w-4" />
                       </motion.button>
@@ -575,7 +574,7 @@ export default function KnowledgeBase() {
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => openDelete(kb)}
-                          className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                          className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
                           style={{ color: "var(--text-secondary)" }}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -744,27 +743,49 @@ export default function KnowledgeBase() {
               >
                 {/* Header */}
                 <div className="flex items-center gap-3 px-5 pt-5">
-                  <div className="p-2 rounded-xl" style={{ background: "var(--surface-secondary)" }}>
-                    <AlertTriangle className="h-5 w-5" style={{ color: "var(--primary)" }} />
+                  <div
+                    className="p-2 rounded-xl"
+                    style={{ background: "var(--surface-secondary)" }}
+                  >
+                    <AlertTriangle
+                      className="h-5 w-5"
+                      style={{ color: "var(--primary)" }}
+                    />
                   </div>
-                  <h2 id="delete-title" className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                  <h2
+                    id="delete-title"
+                    className="text-lg font-semibold"
+                    style={{ color: "var(--text-primary)" }}
+                  >
                     Delete Knowledge Base?
                   </h2>
                 </div>
 
                 {/* Body */}
                 <div className="px-5 pt-3 pb-5">
-                  <p id="delete-desc" className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  <p
+                    id="delete-desc"
+                    className="text-sm"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
                     This action cannot be undone. You will delete:
                   </p>
 
                   <div
                     className="mt-3 rounded-lg border px-4 py-3 text-sm"
-                    style={{ borderColor: "var(--border-light)", color: "var(--text-primary)", background: "var(--surface-secondary)" }}
+                    style={{
+                      borderColor: "var(--border-light)",
+                      color: "var(--text-primary)",
+                      background: "var(--surface-secondary)",
+                    }}
                   >
                     <span className="font-medium">{selectedKB?.name}</span>
-                    <div className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
-                      {selectedKB?.created_by_name} • {selectedKB?.created_at} • {selectedKB?.docs_count} documents
+                    <div
+                      className="mt-1 text-xs"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      {selectedKB?.created_by_name} • {selectedKB?.created_at} •{" "}
+                      {selectedKB?.docs_count} documents
                     </div>
                   </div>
 
@@ -783,7 +804,8 @@ export default function KnowledgeBase() {
                         color: "var(--text-primary)",
                         borderColor: "var(--border-light)",
                         outline: "none",
-                        boxShadow: "0 1px 0 rgba(255,255,255,.04) inset, 0 6px 20px rgba(0,0,0,.04)",
+                        boxShadow:
+                          "0 1px 0 rgba(255,255,255,.04) inset, 0 6px 20px rgba(0,0,0,.04)",
                       }}
                     >
                       <X className="h-4 w-4" />
@@ -806,7 +828,11 @@ export default function KnowledgeBase() {
                         boxShadow: "0 10px 24px rgba(0,0,0,.10)",
                       }}
                     >
-                      {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      {deleting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                       <span>{deleting ? "Deleting…" : "Delete"}</span>
                     </motion.button>
                   </div>
@@ -946,7 +972,6 @@ export default function KnowledgeBase() {
           </>
         )}
       </AnimatePresence> */}
-
     </motion.main>
   );
 }

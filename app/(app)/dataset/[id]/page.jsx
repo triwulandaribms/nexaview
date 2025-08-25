@@ -20,6 +20,77 @@ import { motion } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
 import { dsApi } from "@/app/lib/datasetBaseApi";
 import PreviewDocumentModal from "@/app/components/PreviewDocumentModal";
+import {
+  FaFile,
+  FaFilePdf,
+  FaFileWord,
+  FaFileExcel,
+  FaFilePowerpoint,
+  FaFileImage,
+  FaFileAlt,
+  FaFileCode,
+  FaFileArchive,
+  FaFileAudio,
+  FaFileVideo,
+} from "react-icons/fa";
+
+const getFileIcon = (fileName) => {
+  if (!fileName) return FaFile;
+
+  const extension = fileName.split(".").pop().toLowerCase();
+
+  switch (extension) {
+    case "pdf":
+      return FaFilePdf;
+    case "doc":
+    case "docx":
+      return FaFileWord;
+    case "xls":
+    case "xlsx":
+    case "csv":
+      return FaFileExcel;
+    case "ppt":
+    case "pptx":
+      return FaFilePowerpoint;
+    case "jpg":
+    case "jpeg":
+    case "png":
+    case "gif":
+    case "svg":
+    case "webp":
+      return FaFileImage;
+    case "txt":
+    case "rtf":
+      return FaFileAlt;
+    case "js":
+    case "jsx":
+    case "ts":
+    case "tsx":
+    case "html":
+    case "css":
+    case "json":
+    case "py":
+    case "java":
+    case "php":
+      return FaFileCode;
+    case "zip":
+    case "rar":
+    case "tar":
+    case "7z":
+      return FaFileArchive;
+    case "mp3":
+    case "wav":
+    case "ogg":
+      return FaFileAudio;
+    case "mp4":
+    case "avi":
+    case "mov":
+    case "webm":
+      return FaFileVideo;
+    default:
+      return FaFile;
+  }
+};
 
 export default function DatasetDetail() {
   const router = useRouter();
@@ -31,7 +102,7 @@ export default function DatasetDetail() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  
+
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
   useEffect(() => {
     if (!id) return;
@@ -46,7 +117,7 @@ export default function DatasetDetail() {
       try {
         const res = await dsApi.detail(id, { signal });
         console.log(res);
-        
+
         if (!res || res.error) {
           throw new Error(res?.error || "Gagal memuat dataset.");
         }
@@ -65,7 +136,6 @@ export default function DatasetDetail() {
       controller.abort();
     };
   }, [id]);
-
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -261,12 +331,12 @@ export default function DatasetDetail() {
     </div>
   );
 
-  const getFileIcon = (fileType) => {
-    if (fileType?.includes("video")) return Database;
-    if (fileType?.includes("pdf")) return FileText;
-    if (fileType?.includes("image")) return FileText;
-    return Folder;
-  };
+  // const getFileIcon = (fileType) => {
+  //   if (fileType?.includes("video")) return Database;
+  //   if (fileType?.includes("pdf")) return FileText;
+  //   if (fileType?.includes("image")) return FileText;
+  //   return Folder;
+  // };
 
   const getTypeColor = (type) => {
     switch (type) {
@@ -337,12 +407,12 @@ export default function DatasetDetail() {
                       <div
                         className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0"
                         style={{
-                          background: "var(--surface-secondary)",
+                          background: "var(--primary)",
                           color: getTypeColor(dataset?.type),
                         }}
                       >
-                        {React.createElement(getFileIcon(dataset?.file_type), {
-                          className: "h-8 w-8",
+                        {React.createElement(getFileIcon(dataset?.filename), {
+                          className: "h-8 w-8 text-white",
                         })}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -385,81 +455,6 @@ export default function DatasetDetail() {
                             </span>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Document Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Categories */}
-                    <div
-                      className="p-6 rounded-xl border"
-                      style={{
-                        background: "var(--surface-elevated)",
-                        borderColor: "var(--border-light)",
-                      }}
-                    >
-                      <div className="flex items-center gap-3 mb-4">
-                        <Folder
-                          className="h-5 w-5"
-                          style={{ color: "var(--primary)" }}
-                        />
-                        <h3
-                          className="font-semibold"
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          Categories
-                        </h3>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {dataset?.category?.map((category, idx) => (
-                          <span
-                            key={idx}
-                            className="px-3 py-1 text-sm rounded-lg font-medium"
-                            style={{
-                              background: "var(--primary)",
-                              color: "var(--text-inverse)",
-                            }}
-                          >
-                            {category}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Tags */}
-                    <div
-                      className="p-6 rounded-xl border"
-                      style={{
-                        background: "var(--surface-elevated)",
-                        borderColor: "var(--border-light)",
-                      }}
-                    >
-                      <div className="flex items-center gap-3 mb-4">
-                        <Tag
-                          className="h-5 w-5"
-                          style={{ color: "var(--success)" }}
-                        />
-                        <h3
-                          className="font-semibold"
-                          style={{ color: "var(--text-primary)" }}
-                        >
-                          Tags
-                        </h3>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {dataset?.tags?.map((tag, idx) => (
-                          <span
-                            key={idx}
-                            className="px-3 py-1 text-sm rounded-lg"
-                            style={{
-                              background: "var(--surface-secondary)",
-                              color: "var(--text-secondary)",
-                            }}
-                          >
-                            {tag}
-                          </span>
-                        ))}
                       </div>
                     </div>
                   </div>
@@ -542,6 +537,81 @@ export default function DatasetDetail() {
                     </div>
                   </div>
 
+                  {/* Document Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Categories */}
+                    <div
+                      className="p-6 rounded-xl border"
+                      style={{
+                        background: "var(--surface-elevated)",
+                        borderColor: "var(--border-light)",
+                      }}
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <Folder
+                          className="h-5 w-5"
+                          style={{ color: "var(--primary)" }}
+                        />
+                        <h3
+                          className="font-semibold"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          Categories
+                        </h3>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {dataset?.category?.map((category, idx) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1 text-sm rounded-lg font-medium"
+                            style={{
+                              background: "var(--primary)",
+                              color: "var(--text-inverse)",
+                            }}
+                          >
+                            {category}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Tags */}
+                    <div
+                      className="p-6 rounded-xl border"
+                      style={{
+                        background: "var(--surface-elevated)",
+                        borderColor: "var(--border-light)",
+                      }}
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <Tag
+                          className="h-5 w-5"
+                          style={{ color: "var(--success)" }}
+                        />
+                        <h3
+                          className="font-semibold"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          Tags
+                        </h3>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {dataset?.tags?.map((tag, idx) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1 text-sm rounded-lg"
+                            style={{
+                              background: "var(--surface-secondary)",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Summary */}
                   <div
                     className="p-6 rounded-xl border"
@@ -598,12 +668,12 @@ export default function DatasetDetail() {
                       <div
                         className="w-20 h-20 rounded-xl flex items-center justify-center mx-auto mb-4"
                         style={{
-                          background: "var(--surface-secondary)",
+                          background: "var(--primary)",
                           color: getTypeColor(dataset?.type),
                         }}
                       >
-                        {React.createElement(getFileIcon(dataset?.file_type), {
-                          className: "h-10 w-10",
+                        {React.createElement(getFileIcon(dataset?.filename), {
+                          className: "h-8 w-8 text-white",
                         })}
                       </div>
                       <p
@@ -627,11 +697,12 @@ export default function DatasetDetail() {
                       <PreviewDocumentModal
                         open={open}
                         onOpenChange={setOpen}
-                        fileUrl={`${baseUrl}/uploads/${dataset?.filename || ""}`}
+                        fileUrl={`${baseUrl}/uploads/${
+                          dataset?.filename || ""
+                        }`}
                         title="Preview Document"
                         item={dataset}
                       />
-
                     </div>
                   </div>
 

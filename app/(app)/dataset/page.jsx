@@ -22,6 +22,19 @@ import EditDatasetModal from "../../components/EditDatasetModal";
 import DeleteConfirmDialog from "../../components/DeleteConfirmDialog";
 import { withTimeout } from "@/app/lib/http";
 import { dsApi } from "@/app/lib/datasetBaseApi";
+import {
+  FaFile,
+  FaFilePdf,
+  FaFileWord,
+  FaFileExcel,
+  FaFilePowerpoint,
+  FaFileImage,
+  FaFileAlt,
+  FaFileCode,
+  FaFileArchive,
+  FaFileAudio,
+  FaFileVideo,
+} from "react-icons/fa";
 
 export default function Datasets() {
   const router = useRouter();
@@ -30,13 +43,71 @@ export default function Datasets() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [datasets, setDatasets] = useState([]);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [editIndex, setEditIndex] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectedKB, setSelectedKB] = useState(null);
   const itemsPerPage = 6;
+
+  const getFileIcon = (fileName) => {
+    if (!fileName) return FaFile;
+
+    const extension = fileName.split(".").pop().toLowerCase();
+
+    switch (extension) {
+      case "pdf":
+        return FaFilePdf;
+      case "doc":
+      case "docx":
+        return FaFileWord;
+      case "xls":
+      case "xlsx":
+      case "csv":
+        return FaFileExcel;
+      case "ppt":
+      case "pptx":
+        return FaFilePowerpoint;
+      case "jpg":
+      case "jpeg":
+      case "png":
+      case "gif":
+      case "svg":
+      case "webp":
+        return FaFileImage;
+      case "txt":
+      case "rtf":
+        return FaFileAlt;
+      case "js":
+      case "jsx":
+      case "ts":
+      case "tsx":
+      case "html":
+      case "css":
+      case "json":
+      case "py":
+      case "java":
+      case "php":
+        return FaFileCode;
+      case "zip":
+      case "rar":
+      case "tar":
+      case "7z":
+        return FaFileArchive;
+      case "mp3":
+      case "wav":
+      case "ogg":
+        return FaFileAudio;
+      case "mp4":
+      case "avi":
+      case "mov":
+      case "webm":
+        return FaFileVideo;
+      default:
+        return FaFile;
+    }
+  };
 
   const openDelete = (dataset) => {
     setSelectedKB({
@@ -47,7 +118,7 @@ export default function Datasets() {
       categories: dataset.category,
       tags: dataset.tags,
       processing_status: dataset.processing_status,
-      file_size: dataset.file_size
+      file_size: dataset.file_size,
     });
     setConfirmOpen(true);
   };
@@ -61,14 +132,13 @@ export default function Datasets() {
 
     const { signal, cancel } = withTimeout(20_000);
     setDeleting(true);
-    setErrorMsg('');
+    setErrorMsg("");
 
     try {
-
       const res = await dsApi.remove(selectedKB.id, { signal });
 
       if (res?.success == false) {
-        setErrorMsg(res.error || 'Gagal menghapus dataset');
+        setErrorMsg(res.error || "Gagal menghapus dataset");
         return;
       }
 
@@ -76,13 +146,12 @@ export default function Datasets() {
       setConfirmOpen(false);
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.message || 'Gagal menghapus dataset');
+      setErrorMsg(err.message || "Gagal menghapus dataset");
     } finally {
       cancel();
       setDeleting(false);
     }
   };
-
 
   const handleEdit = (idx) => {
     router.push("/dataset/update/" + idx);
@@ -122,22 +191,24 @@ export default function Datasets() {
 
       if (!mounted) return;
 
-      if (res?.success == false) setErrorMsg(res.error || 'Failed to load datasets');
+      if (res?.success == false)
+        setErrorMsg(res.error || "Failed to load datasets");
       else setDatasets(res.data ?? []);
 
       setIsLoading(false);
     })().catch((e) => {
       if (mounted) {
         console.error(e);
-        setErrorMsg(e.message || 'Failed to load datasets');
+        setErrorMsg(e.message || "Failed to load datasets");
         setIsLoading(false);
       }
     });
 
-    return () => { mounted = false; cancel(); };
+    return () => {
+      mounted = false;
+      cancel();
+    };
   }, []);
-
-
 
   const SkeletonCard = () => (
     <div
@@ -223,35 +294,30 @@ export default function Datasets() {
     return "📁";
   };
 
-
   const lcSearch = searchTerm.toLowerCase();
   const safeDatasets = Array.isArray(datasets) ? datasets : [];
 
   const allFilteredDatasets = safeDatasets?.filter((ds) => {
     if (!ds) return false;
     const filenameMatch =
-      typeof ds?.filename === 'string' &&
+      typeof ds?.filename === "string" &&
       ds.filename.toLowerCase().includes(lcSearch);
 
     const typeMatch =
-      typeof ds?.file_type === 'string' &&
+      typeof ds?.file_type === "string" &&
       ds.file_type.toLowerCase().includes(lcSearch);
 
     const categoryMatch =
       Array.isArray(ds?.category) &&
       ds.category
         .filter(Boolean)
-        .some((cat) =>
-          String(cat).toLowerCase().includes(lcSearch)
-        );
+        .some((cat) => String(cat).toLowerCase().includes(lcSearch));
 
     const tagMatch =
       Array.isArray(ds?.tags) &&
       ds.tags
         .filter(Boolean)
-        .some((tag) =>
-          String(tag).toLowerCase().includes(lcSearch)
-        );
+        .some((tag) => String(tag).toLowerCase().includes(lcSearch));
 
     return filenameMatch || typeMatch || categoryMatch || tagMatch;
   });
@@ -261,11 +327,12 @@ export default function Datasets() {
   const endIndex = startIndex + itemsPerPage;
   const filteredDatasets = allFilteredDatasets.slice(startIndex, endIndex);
 
-
-
   function TagChip({ label, palette = "neutral" }) {
     const colors = {
-      neutral: { bg: "var(--surface-secondary)", text: "var(--text-secondary)" },
+      neutral: {
+        bg: "var(--surface-secondary)",
+        text: "var(--text-secondary)",
+      },
       primary: { bg: "var(--primary-light)", text: "var(--primary)" },
     }[palette];
 
@@ -279,7 +346,6 @@ export default function Datasets() {
       </span>
     );
   }
-
 
   return (
     <motion.main
@@ -407,174 +473,174 @@ export default function Datasets() {
               >
                 {isLoading
                   ? Array.from({ length: 6 }, (_, index) => (
-                    <SkeletonCard key={index} />
-                  ))
+                      <SkeletonCard key={index} />
+                    ))
                   : filteredDatasets.map((dataset, index) => (
-                    <motion.div
-                      key={dataset.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="relative rounded-lg border overflow-hidden hover:shadow-lg transition-shadow duration-200"
-                      style={{
-                        background: "var(--surface-elevated)",
-                        borderColor: "var(--border-light)",
-                      }}
-                    >
-                      {/* Card Header */}
-                      <div
-                        className="h-1"
-                        style={{ background: "var(--primary)" }}
-                      />
+                      <motion.div
+                        key={dataset.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className="relative rounded-lg border overflow-hidden hover:shadow-lg transition-shadow duration-200"
+                        style={{
+                          background: "var(--surface-elevated)",
+                          borderColor: "var(--border-light)",
+                        }}
+                      >
+                        {/* Card Header */}
+                        <div
+                          className="h-1"
+                          style={{ background: "var(--primary)" }}
+                        />
 
-                      <div className="p-6 flex flex-col h-full">
-                        {/* Actions Menu */}
-                        <div className="flex-1">
-                          <div className="absolute top-4 right-4 flex items-center gap-2">
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                              style={{ color: "var(--text-secondary)" }}
-                              onClick={() => handleEdit(dataset?.id)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                              style={{ color: "var(--text-secondary)" }}
-                              onClick={() => openDelete(dataset)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </motion.button>
-                          </div>
-
-                          {/* Dataset Icon and Name */}
-                          <div className="flex items-start gap-3 mb-4 pt-4 ">
-                            <div
-                              className="w-12 h-12 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
-                              style={{
-                                background: "var(--primary)",
-                                color: "var(--text-inverse)",
-                              }}
-                            >
-                              <FileText className="h-6 w-6" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <h3
-                                className="font-semibold text-lg mb-1 truncate"
-                                style={{ color: "var(--text-primary)" }}
-                              >
-                                {dataset.filename}
-                              </h3>
-                              <p
-                                className="text-sm line-clamp-2"
+                        <div className="p-6 flex flex-col h-full">
+                          {/* Actions Menu */}
+                          <div className="flex-1 pt-4">
+                            <div className="absolute top-4 right-4 flex items-center gap-2">
+                              {/* Metadata */}
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm text-(--text-secondary)/80">
+                                  <Calendar className="h-4 w-4" />
+                                  <span>
+                                    {dataset?.updated_at || dataset?.created_at}
+                                  </span>
+                                </div>
+                              </div>
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                className="p-1 rounded hover:bg-gray-100 cursor-pointer"
                                 style={{ color: "var(--text-secondary)" }}
+                                onClick={() => handleEdit(dataset?.id)}
                               >
-                                {dataset.description}
-                              </p>
+                                <Edit className="h-4 w-4" />
+                              </motion.button>
+                              <motion.button
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                                className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
+                                onClick={() => openDelete(dataset)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </motion.button>
                             </div>
-                          </div>
 
-                          {/* Dataset Type */}
-                          <div className="mb-4">
-                            <p
-                              className="text-xs font-medium mb-2"
-                              style={{ color: "var(--text-secondary)" }}
-                            >
-                              Type
-                            </p>
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="px-2 py-1 text-xs rounded-md font-medium"
+                            {/* Dataset Icon and Name */}
+                            <div className="flex items-start gap-3 mb-4 pt-4 ">
+                              <div
+                                className="w-12 h-12 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
                                 style={{
-                                  background: "var(--primary-light)",
-                                  color: "var(--primary)",
+                                  background: "var(--primary)",
+                                  color: "var(--text-inverse)",
                                 }}
                               >
-                                {dataset?.type || "report"}
-                              </span>
+                                {React.createElement(
+                                  getFileIcon(dataset.filename),
+                                  {
+                                    className: "size-6",
+                                  }
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h3
+                                  className="font-semibold text-lg mb-1 truncate"
+                                  style={{ color: "var(--text-primary)" }}
+                                >
+                                  {dataset.filename}
+                                </h3>
+                                <p
+                                  className="text-sm line-clamp-2"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  {dataset.description}
+                                </p>
+                              </div>
                             </div>
-                          </div>
 
-                          {/* Categories */}
-                          <div className="mb-4">
-                            <p
-                              className="text-xs font-medium mb-2"
-                              style={{ color: "var(--text-secondary)" }}
-                            >
-                              Categories
-                            </p>
-                            {/* kategori + tag */}
-                            <div className="flex flex-wrap gap-1.5">
-                              {dataset.category?.map((cat) => (
-                                <TagChip key={cat} label={cat} />
-                              ))}
-
-                            </div>
-
-                          </div>
-
-                          {/* Tags */}
-                          {dataset?.tags && dataset?.tags.length > 0 && (
+                            {/* Dataset Type */}
                             <div className="mb-4">
                               <p
                                 className="text-xs font-medium mb-2"
                                 style={{ color: "var(--text-secondary)" }}
                               >
-                                Tags
+                                Type
                               </p>
-                              <div className="flex flex-wrap gap-1">
-                                {dataset.tags.map((tag, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="px-2 py-1 text-xs rounded-md"
-                                    style={{
-                                      background: "var(--primary-light)",
-                                      color: "var(--primary)",
-                                    }}
-                                  >
-                                    {tag}
-                                  </span>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="px-2 py-1 text-xs rounded-md font-medium"
+                                  style={{
+                                    background: "var(--primary-light)",
+                                    color: "var(--primary)",
+                                  }}
+                                >
+                                  {dataset?.type || "report"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Categories */}
+                            <div className="mb-4">
+                              <p
+                                className="text-xs font-medium mb-2"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                Categories
+                              </p>
+                              {/* kategori + tag */}
+                              <div className="flex flex-wrap gap-1.5">
+                                {dataset.category?.map((cat) => (
+                                  <TagChip key={cat} label={cat} />
                                 ))}
                               </div>
                             </div>
-                          )}
 
-                          {/* Metadata */}
-                          <div className="space-y-2 mb-6">
-                            <div
-                              className="flex items-center gap-2 text-sm"
-                              style={{ color: "var(--text-secondary)" }}
-                            >
-                              <Calendar className="h-4 w-4" />
-                              <span>{dataset?.updated_at || dataset?.created_at}</span>
-                            </div>
+                            {/* Tags */}
+                            {dataset?.tags && dataset?.tags.length > 0 && (
+                              <div className="mb-4">
+                                <p
+                                  className="text-xs font-medium mb-2"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  Tags
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {dataset.tags.map((tag, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="px-2 py-1 text-xs rounded-md"
+                                      style={{
+                                        background: "var(--primary-light)",
+                                        color: "var(--primary)",
+                                      }}
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </div>
 
-                        {/* View Button */}
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() =>
-                            router.push(`/dataset/${dataset?.id}`)
-                          }
-                          className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
-                          style={{
-                            background: "var(--surface-secondary)",
-                            color: "var(--text-primary)",
-                            border: "1px solid var(--border-light)",
-                          }}
-                        >
-                          View Dataset
-                        </motion.button>
-                      </div>
-                    </motion.div>
-                  ))}
+                          {/* View Button */}
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() =>
+                              router.push(`/dataset/${dataset?.id}`)
+                            }
+                            className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
+                            style={{
+                              background: "var(--surface-secondary)",
+                              color: "var(--text-primary)",
+                              border: "1px solid var(--border-light)",
+                            }}
+                          >
+                            View Dataset
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    ))}
               </motion.div>
             )}
 
@@ -590,116 +656,31 @@ export default function Datasets() {
               >
                 {isLoading
                   ? Array.from({ length: 6 }, (_, index) => (
-                    <SkeletonList key={index} />
-                  ))
+                      <SkeletonList key={index} />
+                    ))
                   : filteredDatasets.map((dataset, index) => (
-                    <motion.div
-                      key={dataset.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="relative rounded-lg border overflow-hidden hover:shadow-md transition-shadow duration-200"
-                      style={{
-                        background: "var(--surface-elevated)",
-                        borderColor: "var(--border-light)",
-                      }}
-                    >
-                      {/* Card Header */}
-                      <div
-                        className="h-1"
-                        style={{ background: "var(--primary)" }}
-                      />
+                      <motion.div
+                        key={dataset.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className="relative rounded-lg border overflow-hidden hover:shadow-md transition-shadow duration-200"
+                        style={{
+                          background: "var(--surface-elevated)",
+                          borderColor: "var(--border-light)",
+                        }}
+                      >
+                        {/* Card Header */}
+                        <div
+                          className="h-1"
+                          style={{ background: "var(--primary)" }}
+                        />
 
-                      <div className="p-4">
-                        {/* Actions Menu */}
-                        <div className="absolute top-3 right-3 flex items-center gap-2">
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                            style={{ color: "var(--text-secondary)" }}
-                            onClick={() => handleEdit(dataset?.id)}
-
-                          >
-                            <Edit className="h-4 w-4" />
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                            style={{ color: "var(--text-secondary)" }}
-                            onClick={() => openDelete(dataset)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </motion.button>
-                        </div>
-
-                        {/* Horizontal Layout for List */}
-                        <div className="flex gap-4">
-                          {/* Dataset Icon */}
-                          <div
-                            className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0"
-                            style={{
-                              background: "var(--primary)",
-                              color: "var(--text-inverse)",
-                            }}
-                          >
-                            <FileText className="h-7 w-7" />
-                          </div>
-
-                          {/* Dataset Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-4 mb-2">
-                              <h3
-                                className="font-semibold text-lg"
-                                style={{ color: "var(--text-primary)" }}
-                              >
-                                {dataset.filename}
-                              </h3>
-                              <span
-                                className="px-2 py-1 text-xs rounded-md font-medium"
-                                style={{
-                                  background: "var(--primary-light)",
-                                  color: "var(--primary)",
-                                }}
-                              >
-                                {dataset?.type || "report"}
-                              </span>
-                              <div className="flex gap-1">
-                                {dataset.category.map((category, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="px-2 py-1 text-xs rounded-md"
-                                    style={{
-                                      background: "var(--surface-secondary)",
-                                      color: "var(--text-secondary)",
-                                    }}
-                                  >
-                                    {category}
-                                  </span>
-                                ))}
-                                {dataset.tags &&
-                                  dataset.tags.map((tag, idx) => (
-                                    <span
-                                      key={`tag-${idx}`}
-                                      className="px-2 py-1 text-xs rounded-md"
-                                      style={{
-                                        background: "var(--primary-light)",
-                                        color: "var(--primary)",
-                                      }}
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                              </div>
-                            </div>
-                            <p
-                              className="text-sm mb-2 line-clamp-1"
-                              style={{ color: "var(--text-secondary)" }}
-                            >
-                              {dataset.file_type}
-                            </p>
+                        <div className="p-4">
+                          {/* Actions Menu */}
+                          <div className="absolute top-3 right-3 flex items-center gap-2">
+                            {/* Date */}
                             <div
                               className="flex items-center gap-4 text-xs"
                               style={{ color: "var(--text-tertiary)" }}
@@ -709,30 +690,131 @@ export default function Datasets() {
                                 <span>{dataset.created_at}</span>
                               </div>
                             </div>
-                          </div>
-
-                          {/* View Button */}
-                          <div className="flex-shrink-0 items-end flex">
                             <motion.button
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={() =>
-                                router.push(`/dataset/${dataset.id}`)
-                              }
-                              className="px-4 py-2 rounded-lg font-medium cursor-pointer"
-                              style={{
-                                background: "var(--surface-secondary)",
-                                color: "var(--text-primary)",
-                                border: "1px solid var(--border-light)",
-                              }}
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                              style={{ color: "var(--text-secondary)" }}
+                              onClick={() => handleEdit(dataset?.id)}
                             >
-                              View Dataset
+                              <Edit className="h-4 w-4" />
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
+                              onClick={() => openDelete(dataset)}
+                            >
+                              <Trash2 className="h-4 w-4" />
                             </motion.button>
                           </div>
+
+                          {/* Horizontal Layout for Desktop, Vertical for Mobile */}
+                          <div className="flex flex-col sm:flex-row gap-4">
+                            {/* Dataset Icon */}
+                            <div
+                              className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0 self-start"
+                              style={{
+                                background: "var(--primary)",
+                                color: "var(--text-inverse)",
+                              }}
+                            >
+                              <FileText className="h-7 w-7" />
+                            </div>
+
+                            {/* Dataset Info */}
+                            <div className="flex-1 min-w-0">
+                              {/* Title and Type */}
+                              <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
+                                <h3
+                                  className="font-semibold text-lg"
+                                  style={{ color: "var(--text-primary)" }}
+                                >
+                                  {dataset.filename}
+                                </h3>
+                                <span
+                                  className="px-2 py-1 text-xs rounded-md font-medium self-start"
+                                  style={{
+                                    background: "var(--primary-light)",
+                                    color: "var(--primary)",
+                                  }}
+                                >
+                                  {dataset?.type || "report"}
+                                </span>
+                              </div>
+
+                              {/* Categories and Tags */}
+                              <div className="mb-3">
+                                {/* Categories */}
+                                {dataset.category &&
+                                  dataset.category.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mb-2">
+                                      {dataset.category.map((category, idx) => (
+                                        <span
+                                          key={idx}
+                                          className="px-2 py-1 text-xs rounded-md"
+                                          style={{
+                                            background:
+                                              "var(--surface-secondary)",
+                                            color: "var(--text-secondary)",
+                                          }}
+                                        >
+                                          {category}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                {/* Tags */}
+                                {dataset.tags && dataset.tags.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {dataset.tags.map((tag, idx) => (
+                                      <span
+                                        key={`tag-${idx}`}
+                                        className="px-2 py-1 text-xs rounded-md"
+                                        style={{
+                                          background: "var(--primary-light)",
+                                          color: "var(--primary)",
+                                        }}
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* File Type */}
+                              <p
+                                className="text-sm mb-2 line-clamp-1"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                {dataset.file_type}
+                              </p>
+                            </div>
+
+                            {/* View Button */}
+                            <div className="flex-shrink-0 flex items-end">
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() =>
+                                  router.push(`/dataset/${dataset.id}`)
+                                }
+                                className="px-4 py-2 rounded-lg font-medium cursor-pointer w-full sm:w-auto"
+                                style={{
+                                  background: "var(--surface-secondary)",
+                                  color: "var(--text-primary)",
+                                  border: "1px solid var(--border-light)",
+                                }}
+                              >
+                                View Dataset
+                              </motion.button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    ))}
               </motion.div>
             )}
           </AnimatePresence>
@@ -876,7 +958,6 @@ export default function Datasets() {
         deleting={deleting}
         item={selectedKB}
       />
-
     </motion.main>
   );
 }
