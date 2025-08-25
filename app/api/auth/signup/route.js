@@ -29,6 +29,7 @@ export async function POST(req) {
         full_name: name,
         email,
         password,
+        
         confirm_password: password,
       },
       {

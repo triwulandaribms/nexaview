@@ -514,9 +514,6 @@ export default function Datasets() {
                                 <TagChip key={cat} label={cat} />
                               ))}
 
-                              {dataset.tags?.map((tag) => (
-                                <TagChip key={tag} label={tag} palette="primary" />
-                              ))}
                             </div>
 
                           </div>

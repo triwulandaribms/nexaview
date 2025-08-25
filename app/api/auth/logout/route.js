@@ -9,8 +9,8 @@ export async function POST() {
     const cookieStore = cookies();
     const baseURL = process.env.API_BASE_URL;
 
-    const accessToken = cookieStore.get("token").value;
-    const idToken = cookieStore.get("id_token").value;
+    const accessToken = await cookieStore.get("token").value;
+    const idToken = await cookieStore.get("id_token").value;
 
     await axios.post(`${baseURL}/api/auth/logout`, null, {
       headers: {

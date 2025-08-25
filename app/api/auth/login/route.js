@@ -7,7 +7,7 @@ export async function POST(request) {
     // Ambil data dari body request
     const { email, password } = await request.json();
 
-    // Validasi konfigurasi environment
+    // Validasi konfigurasi environment 
     const baseURL = process.env.API_BASE_URL;
     if (!baseURL) {
       console.error('[CONFIG ERROR] Missing API_BASE_URL in environment variables.');
@@ -28,8 +28,7 @@ export async function POST(request) {
     );
 
     const { access_token, id_token, token } = responseFromAPI.data;
-
-    // Opsi cookie standar
+    // Opsi cookie standar  
     const baseCookieOptions = {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

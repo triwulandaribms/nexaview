@@ -163,9 +163,9 @@ export default function RoleManagement() {
           />
         </div>
 
-        <div className="flex items-center rounded-md border overflow-hidden" style={{ borderColor: "var(--border-light)" }}>
+        <div className="flex items-center rounded-md border overflow-hidden " style={{ borderColor: "var(--border-light)" }}>
           <button
-            className="px-3 py-2 flex items-center"
+            className="px-3 py-2 flex items-center cursor-pointer"
             style={{
               background: viewMode === "list" ? "var(--primary)" : "var(--surface-elevated)",
               color: viewMode === "list" ? "var(--text-inverse)" : "var(--text-secondary)",
@@ -175,7 +175,7 @@ export default function RoleManagement() {
             <List className="h-4 w-4" />
           </button>
           <button
-            className="px-3 py-2 border-l flex items-center"
+            className="px-3 py-2 border-l flex items-center cursor-pointer"
             style={{
               background: viewMode === "grid" ? "var(--primary)" : "var(--surface-elevated)",
               color: viewMode === "grid" ? "var(--text-inverse)" : "var(--text-secondary)",
