@@ -30,12 +30,14 @@ export async function POST(request) {
     console.log(responseFromAPI.data);
 
     const { access_token, id_token, token, user } = responseFromAPI.data;
+
     // Opsi cookie standar
     const baseCookieOptions = {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
+      httpOnly: false,  // Menggunakan httpOnly=false secara global
     };
 
     const response = NextResponse.json({
@@ -44,19 +46,16 @@ export async function POST(request) {
       user,
     });
 
-    response.cookies.set("token", access_token, {
-      ...baseCookieOptions,
-      httpOnly: false,
-    });
+    // Menyederhanakan pengaturan cookie
+    const cookies = {
+      token: access_token,
+      acces_token: token,
+      id_token: id_token,
+    };
 
-    // response.cookies.set("acces_token", token, {
-    //   ...baseCookieOptions,
-    //   httpOnly: false,
-    // });
-
-    response.cookies.set("id_token", id_token, {
-      ...baseCookieOptions,
-      httpOnly: false,
+    // Menyimpan semua cookie sekaligus
+    Object.entries(cookies).forEach(([key, value]) => {
+      response.cookies.set(key, value, baseCookieOptions);
     });
 
     return response;
