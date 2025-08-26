@@ -44,12 +44,20 @@ export async function POST(request) {
       user,
     });
 
-    response.headers.set("Set-Cookie", [
-      `token=${access_token}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax; Secure; HttpOnly`,
-      `acces_token=${token}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax; Secure; HttpOnly`,
-      `id_token=${id_token}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax; Secure; HttpOnly`
-    ]);
+    // response.cookies.set("token", access_token, {
+    //   ...baseCookieOptions,
+    //   httpOnly: false,
+    // });
 
+    response.cookies.set("acces_token", token, {
+      ...baseCookieOptions,
+      httpOnly: false,
+    });
+
+    // response.cookies.set("id_token", id_token, {
+    //   ...baseCookieOptions,
+    //   httpOnly: false,
+    // });
 
     return response;
   } catch (error) {
