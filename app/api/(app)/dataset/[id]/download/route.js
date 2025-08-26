@@ -23,14 +23,12 @@ export async function GET(_req, { params }) {
         const cookieStore = await cookies();
 
         const token = cookieStore.get('token')?.value;
-        const idToken = cookieStore.get('id_token')?.value;
 
         const upstream = await axios.get(`${base}/api/dataset/${id}/download`, {
             responseType: "arraybuffer",
             timeout: 60_000,
             headers: {
                 Authorization: `Bearer ${token || ''}`,
-                'x-id-token': idToken || ''
             },
             validateStatus: (s) => s >= 200 && s < 300,
         });

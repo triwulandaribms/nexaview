@@ -12,14 +12,12 @@ export async function GET(_req, { params }) {
     try {
         const cookieStore = await cookies();
         const token = cookieStore.get('token')?.value;
-        const idToken = cookieStore.get('id_token')?.value;
 
         const { data } = await axios.get(`${baseURL}/api/roles/${id}`, {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token || ''}`,
-                'x-id-token': idToken || ''
             },
             timeout: 30_000,
             validateStatus: s => s >= 200 && s < 300,
@@ -44,7 +42,6 @@ export async function DELETE(_req, { params }) {
 
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
-    const idToken = cookieStore.get('id_token')?.value;
 
     try {
         await axios.delete(`${baseURL}/api/roles/${roleId}`, {
@@ -52,7 +49,6 @@ export async function DELETE(_req, { params }) {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token || ''}`,
-                'x-id-token': idToken || ''
             },
             timeout: 30_000,
             validateStatus: s => s >= 200 && s < 300,
@@ -72,7 +68,6 @@ export async function PUT(req, { params }) {
 
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
-    const idToken = cookieStore.get('id_token')?.value;
 
     try {
         const payload = await req.json();
@@ -82,7 +77,6 @@ export async function PUT(req, { params }) {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token || ''}`,
-                'x-id-token': idToken || ''
             },
             timeout: 30_000,
             validateStatus: s => s >= 200 && s < 300,

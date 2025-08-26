@@ -41,7 +41,6 @@ export async function POST(request) {
 
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
-    const idToken = cookieStore.get('id_token')?.value;
     const body = await request.json();
 
     try {
@@ -49,7 +48,6 @@ export async function POST(request) {
             headers: {
                 Accept: 'application/json',
                 Authorization: `Bearer ${token || ''}`,
-                'x-id-token': idToken || ''
             },
             timeout: 30_000,
             validateStatus: s => s >= 200 && s < 300,

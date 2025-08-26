@@ -11,14 +11,12 @@ export async function GET() {
         const cookieStore = await cookies();
 
         const token = cookieStore.get('token')?.value;
-        const idToken = cookieStore.get('id_token')?.value;
 
         const { data } = await axios.get(`${baseURL}/api/dataset`, {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token || ''}`,
-                'x-id-token': idToken || ''
             },
             timeout: 30_000,
             validateStatus: s => s >= 200 && s < 300,
@@ -47,15 +45,13 @@ export async function POST(request) {
     const cookieStore = await cookies();
 
     const token = cookieStore.get('token')?.value;
-    const idToken = cookieStore.get('id_token')?.value;
     const formData = await request.formData();
 
     try {
         const { data } = await axios.post(`${baseURL}/api/dataset`, formData, {
             headers: {
                 Accept: 'application/json',
-                Authorization: `Bearer ${token || ''}`,
-                'x-id-token': idToken || ''
+                Authorization: `Bearer ${token || ''}`
             },
             timeout: 30_000,
             validateStatus: s => s >= 200 && s < 300,

@@ -11,14 +11,12 @@ export async function GET() {
         const cookieStore = await cookies();
 
         const token = cookieStore.get('token')?.value;
-        const idToken = cookieStore.get('id_token')?.value;
 
         const { data } = await axios.get(`${baseURL}/api/agent`, {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token || ''}`,
-                'x-id-token': idToken || ''
             },
             timeout: 30_000,
             validateStatus: s => s >= 200 && s < 300,
@@ -47,14 +45,12 @@ export async function POST(req) {
     try {
         const cookieStore = await cookies();
         const token = cookieStore.get("token")?.value;
-        const idToken = cookieStore.get("id_token")?.value;
 
         const { data } = await axios.post(`${baseURL}/api/agent`, body, {
             headers: {
                 Accept: "application/json",
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token || ""}`,
-                "x-id-token": idToken || "",
             },
             timeout: 60_000,
             validateStatus: (s) => s >= 200 && s < 300,

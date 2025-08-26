@@ -77,7 +77,6 @@ export async function DELETE(_req, { params }) {
   const cookieStore = await cookies();
 
   const token = cookieStore.get('token')?.value;
-  const idToken = cookieStore.get('id_token')?.value;
 
   try {
     await axios.delete(`${baseURL}/api/users/${id}`, {
@@ -85,7 +84,6 @@ export async function DELETE(_req, { params }) {
         Accept: 'application/json',
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token || ''}`,
-        'x-id-token': idToken || ''
       },
       timeout: 30_000,
       validateStatus: s => s >= 200 && s < 300,

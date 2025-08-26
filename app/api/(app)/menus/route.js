@@ -13,7 +13,6 @@ export async function GET() {
 
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
-    const idToken = cookieStore.get('id_token')?.value;
 
     if (!token) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -24,7 +23,7 @@ export async function GET() {
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
-                'x-id-token': idToken || '',
+
             },
         });
 
@@ -46,7 +45,6 @@ export async function POST(request) {
 
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
-    const idToken = cookieStore.get('id_token')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
@@ -56,7 +54,6 @@ export async function POST(request) {
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token || ''}`,
-                'x-id-token': idToken || ''
             }
         });
         return NextResponse.json({ data: data?.data ?? data }, { status: 201 });
