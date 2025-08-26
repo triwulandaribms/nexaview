@@ -44,7 +44,6 @@ export async function POST(request) {
 
     const { access_token, id_token, token, user } = responseFromAPI.data;
 
-    const result = generateCombinedString(id_token, access_token);
     // Opsi cookie standar
     const baseCookieOptions = {
       secure: process.env.NODE_ENV === "production",
@@ -59,15 +58,15 @@ export async function POST(request) {
       user,
     });
 
-    response.cookies.set("token", result, {
+    response.cookies.set("token", token, {
       ...baseCookieOptions,
       httpOnly: false,
     });
 
-    response.cookies.set("acces_token", token, {
-      ...baseCookieOptions,
-      httpOnly: false,
-    });
+    // response.cookies.set("acces_token", token, {
+    //   ...baseCookieOptions,
+    //   httpOnly: false,
+    // });
 
     // response.cookies.set("id_token", id_token, {
     //   ...baseCookieOptions,
