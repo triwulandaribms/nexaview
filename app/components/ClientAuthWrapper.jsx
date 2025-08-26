@@ -13,22 +13,21 @@ export default function GuestOnlyWrapper({ children }) {
 
   useEffect(() => {
     const token = Cookies.get('token')
-    const idToken = Cookies.get('id_token')
 
-    if (token && idToken && PUBLIC_GUEST_PATHS.includes(pathname)) {
-    setTimeout(() => {
-    router.replace('/dashboard')
-        }, 100)
-      } else if (!token && !PUBLIC_GUEST_PATHS.includes(pathname)) {
-        router.replace('/login')
-      } else {
-        setChecking(false)
-      }
-    }, [pathname, router])
-
-    if (checking) {
-      return <div style={{ display: 'none' }} />
+    if (token && PUBLIC_GUEST_PATHS.includes(pathname)) {
+      setTimeout(() => {
+        router.replace('/dashboard')
+      }, 100)
+    } else if (!token && !PUBLIC_GUEST_PATHS.includes(pathname)) {
+      router.replace('/login')
+    } else {
+      setChecking(false)
     }
+  }, [pathname, router])
 
-    return <>{children}</>
+  if (checking) {
+    return <div style={{ display: 'none' }} />
   }
+
+  return <>{children}</>
+}

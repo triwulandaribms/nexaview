@@ -1,20 +1,6 @@
 import axios from "axios";
 import { NextResponse } from "next/server";
 
-
-function generateCombinedString(id_token, token) {
-  const combinedString = id_token + " " + token;
-  const result = combinedString.split('').reverse().join('') + ' ' + Math.floor(Math.random() * 100000000);
-  return result;
-}
-
-function restoreOriginalTokens(modifiedString) {
-  const modifiedStringWithoutRandom = modifiedString.split(' ')[0];
-  const originalString = modifiedStringWithoutRandom.split('').reverse().join('');
-  const [id_token, token] = originalString.split(' ');
-  return { id_token, token };
-}
-
 export async function POST(request) {
   try {
     // Ambil data dari body request
@@ -42,7 +28,7 @@ export async function POST(request) {
       { headers: { "Content-Type": "application/json" } }
     );
 
-    const { access_token, id_token, token, user } = responseFromAPI.data;
+    const { token, user } = responseFromAPI.data;
 
     // Opsi cookie standar
     const baseCookieOptions = {
@@ -62,16 +48,6 @@ export async function POST(request) {
       ...baseCookieOptions,
       httpOnly: false,
     });
-
-    // response.cookies.set("acces_token", token, {
-    //   ...baseCookieOptions,
-    //   httpOnly: false,
-    // });
-
-    // response.cookies.set("id_token", id_token, {
-    //   ...baseCookieOptions,
-    //   httpOnly: false,
-    // });
 
     return response;
   } catch (error) {
