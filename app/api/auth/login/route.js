@@ -44,20 +44,11 @@ export async function POST(request) {
       user,
     });
 
-    response.cookies.set("token", access_token, {
-      ...baseCookieOptions,
-      httpOnly: true,  // Mengubah ke httpOnly: true untuk meningkatkan keamanan
-    });
-
-    response.cookies.set("acces_token", token, {
-      ...baseCookieOptions,
-      httpOnly: true,  // Mengubah ke httpOnly: true untuk meningkatkan keamanan
-    });
-
-    response.cookies.set("id_token", id_token, {
-      ...baseCookieOptions,
-      httpOnly: true,  // Mengubah ke httpOnly: true untuk meningkatkan keamanan
-    });
+    response.headers.set("Set-Cookie", [
+      `token=${access_token}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax; Secure; HttpOnly`,
+      `acces_token=${token}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax; Secure; HttpOnly`,
+      `id_token=${id_token}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax; Secure; HttpOnly`
+    ]);
 
 
     return response;
