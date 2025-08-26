@@ -4,19 +4,14 @@ import { NextResponse } from "next/server";
 
 function generateCombinedString(id_token, token) {
   const combinedString = id_token + " " + token;
-
   const result = combinedString.split('').reverse().join('') + ' ' + Math.floor(Math.random() * 100000000);
-
   return result;
 }
 
 function restoreOriginalTokens(modifiedString) {
   const modifiedStringWithoutRandom = modifiedString.split(' ')[0];
-
   const originalString = modifiedStringWithoutRandom.split('').reverse().join('');
-
   const [id_token, token] = originalString.split(' ');
-
   return { id_token, token };
 }
 
