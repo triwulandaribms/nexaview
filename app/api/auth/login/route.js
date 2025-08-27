@@ -46,19 +46,18 @@ export async function POST(request) {
 
     response.cookies.set("token", access_token, {
       ...baseCookieOptions,
-      httpOnly: true,  // Mengubah ke httpOnly: true untuk meningkatkan keamanan
+      httpOnly: true, // Mengubah ke httpOnly: true untuk meningkatkan keamanan
     });
 
     response.cookies.set("acces_token", token, {
       ...baseCookieOptions,
-      httpOnly: true,  // Mengubah ke httpOnly: true untuk meningkatkan keamanan
+      httpOnly: false,
     });
 
     response.cookies.set("id_token", id_token, {
       ...baseCookieOptions,
-      httpOnly: true,  // Mengubah ke httpOnly: true untuk meningkatkan keamanan
+      httpOnly: true, // Mengubah ke httpOnly: true untuk meningkatkan keamanan
     });
-
 
     return response;
   } catch (error) {
