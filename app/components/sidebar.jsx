@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Cookies from 'js-cookie'
 import { useRouter } from 'next/navigation'
 import {
   Home,
@@ -27,8 +28,29 @@ import { usePathname } from "next/navigation";
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [activeItem, setActiveItem] = useState("/dashboard");
+  const [user, setUser] = useState([]);
+  const [permissions, setPermissions] = useState([]);
   const pathname = usePathname();
   const router = useRouter();
+
+
+
+  useEffect(() => {
+    const token = Cookies.get("token");
+
+    if (token) {
+      try {
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const userPermissions = decodedToken.permissions || [];
+        setPermissions(userPermissions);
+        setUser(decodedToken);
+      } catch (error) {
+        console.error("Gagal mendekode token:", error);
+      }
+    } else {
+      console.log("Token tidak ditemukan di cookies.");
+    }
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -71,7 +93,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   }, []);
 
   // Navigation items arrays with hrefs
-  const mainNavItems = [
+  const dataMainNavItems = [
     { icon: Home, label: "Home", href: "/dashboard" },
     // { icon: Gamepad2, label: 'Playground', href: '/playground' },
     { icon: MessageCircle, label: "Interact", href: "/interact" },
@@ -79,28 +101,49 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     { icon: LinkIcon, label: "Integration", href: "/integration" },
   ];
 
-  const applicationItems = [
+  const dataApplicationItems = [
     { icon: Wrench, label: "Tools", href: "/tools" },
     { icon: Bot, label: "Agents", href: "/agents" },
     { icon: GitBranch, label: "AI chain", href: "/ai-chain" },
   ];
 
-  const foundationDataItems = [
+  const dataFoundationDataItems = [
     { icon: Box, label: "Models", href: "/models" },
     { icon: Network, label: "Connections", href: "/connections" },
     { icon: Database, label: "Dataset", href: "/dataset" },
     { icon: BookOpen, label: "Knowledge base", href: "/knowledge-base" },
   ];
 
-  const managementItems = [
+  const dataManagementItems = [
     { icon: Users, label: "User Management", href: "/user-management" },
-    { icon: Shield , label: "Role Management", href: "/role-management" },
+    { icon: Shield, label: "Role Management", href: "/role-management" },
   ];
 
 
-  const observeTestItems = [
+  const dataObserveTestItems = [
     { icon: Search, label: "Tracing", href: "/tracing" },
   ];
+  const filterMenuItems = (items) => {
+    return items.filter(item =>
+      permissions.some(permission =>
+        permission.menu === item.label
+      )
+    ).map(item => {
+      const permission = permissions.find(p => p.menu === item.label);
+      return { ...item, permission: permission ? permission.mrm_permission : null };
+    });
+  };
+
+
+
+  const mainNavItems = dataMainNavItems;
+  const applicationItems = filterMenuItems(dataApplicationItems);
+  const foundationDataItems = filterMenuItems(dataFoundationDataItems);
+  const managementItems = dataManagementItems;
+  const observeTestItems = filterMenuItems(dataObserveTestItems);
+
+  console.log(applicationItems);
+
 
   const NavItem = ({ icon: Icon, label, href, isActive = false, onClick }) => (
     <Link href={href} className="block">
@@ -202,7 +245,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 className="font-semibold text-xs sm:text-sm truncate"
                 style={{ color: "var(--sidebar-text-hover)" }}
               >
-                Dika Irwandifika
+                {user?.name || ""}
               </p>
               <p className="text-xs" style={{ color: "var(--sidebar-text)" }}>
                 Premium User
@@ -221,6 +264,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               label={item.label}
               href={item.href}
               isActive={activeItem === item.href}
+              permissions={item?.permissions || ""}
             />
           ))}
 
@@ -233,6 +277,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               label={item.label}
               href={item.href}
               isActive={activeItem === item.href}
+              permissions={item?.permissions || ""}
             />
           ))}
 
@@ -245,6 +290,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               label={item.label}
               href={item.href}
               isActive={activeItem === item.href}
+              permissions={item?.permissions || ""}
             />
           ))}
 
@@ -257,6 +303,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               label={item.label}
               href={item.href}
               isActive={activeItem === item.href}
+              permissions={item?.permissions || ""}
             />
           ))}
           {/* Observe & Test Section */}
@@ -268,6 +315,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               label={item.label}
               href={item.href}
               isActive={activeItem === item.href}
+              permissions={item?.permissions || ""}
             />
           ))}
         </div>

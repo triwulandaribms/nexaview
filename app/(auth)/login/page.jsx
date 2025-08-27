@@ -4,7 +4,12 @@ import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import Cookies from 'js-cookie'
+
+const setCookie = (name, value, days = 7) => {
+  const expires = new Date();
+  expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;secure;samesite=Lax`;
+};
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -21,7 +26,6 @@ export default function LoginPage() {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -33,13 +37,22 @@ export default function LoginPage() {
       })
 
       const data = await response.json()
-
       if (data.success) {
-        // Token is set as httpOnly cookie by the server
-        // Store user info in localStorage for client-side access
-        localStorage.setItem('user', JSON.stringify(data?.user))
+        const token = data?.token.toString();  
 
-        // Redirect to dashboard
+        if (token.length > 4000) {
+          console.error('Token exceeds the cookie size limit');
+          setError('Token size is too large');
+          return;
+        }
+        localStorage.setItem('user', JSON.stringify(data?.user))
+    
+        try {
+          setCookie('token', token, 7);
+        } catch (err) {
+          console.error("Gagal menyimpan token di cookies:", err);
+        }
+
         router.push('/dashboard')
       } else {
         setError(data.error || 'Login failed')

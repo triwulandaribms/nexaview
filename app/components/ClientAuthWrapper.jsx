@@ -7,21 +7,21 @@ import Cookies from 'js-cookie'
 const PUBLIC_GUEST_PATHS = ['/login', '/signup']
 
 export default function GuestOnlyWrapper({ children }) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const [checking, setChecking] = useState(true)
+  const router = useRouter();
+  const pathname = usePathname();
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const token = Cookies.get('token')
+    const token = Cookies.get('token');
 
     if (token && PUBLIC_GUEST_PATHS.includes(pathname)) {
       setTimeout(() => {
-        router.replace('/dashboard')
+        router.replace('/dashboard');
       }, 100)
     } else if (!token && !PUBLIC_GUEST_PATHS.includes(pathname)) {
-      router.replace('/login')
+      router.replace('/login');
     } else {
-      setChecking(false)
+      setChecking(false);
     }
   }, [pathname, router])
 
