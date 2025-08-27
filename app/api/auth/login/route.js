@@ -49,10 +49,10 @@ export async function POST(request) {
       httpOnly: false,
     });
 
-    // response.cookies.set("acces_token", token, {
-    //   ...baseCookieOptions,
-    //   httpOnly: false,
-    // });
+    response.cookies.set("acces_token", token, {
+      ...baseCookieOptions,
+      httpOnly: false,
+    });
 
     response.cookies.set("id_token", id_token, {
       ...baseCookieOptions,
