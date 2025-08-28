@@ -15,7 +15,8 @@ export async function POST() {
     const cookieStore = await cookies();
     const baseURL = process.env.API_BASE_URL;
 
-    const accessToken = await cookieStore.get("token");
+    const accessToken = await cookieStore.get("access_token");
+    const idtoken = await cookieStore.get("id_token");
 
     if (!accessToken) {
       return NextResponse.json({
@@ -27,6 +28,7 @@ export async function POST() {
     await axios.post(`${baseURL}/api/auth/logout`, null, {
       headers: {
         Authorization: `Bearer ${accessToken.value || ''}`,
+        "x-id-token": `${idtoken.value || ''}`,
       }
     });
 
@@ -35,7 +37,8 @@ export async function POST() {
       message: "Logged out successfully",
     });
 
-    response.cookies.set("token", "", cookieOptions);
+    response.cookies.set("access_token", "", cookieOptions);
+    response.cookies.set("id_token", "", cookieOptions);
     return response;
   } catch (error) {
     console.log("Error response: ", error?.response);

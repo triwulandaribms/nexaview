@@ -60,6 +60,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       });
 
       if (res.ok) {
+        localStorage.removeItem("token");
         router.push('/login');
       } else {
         const errorData = await res.json();
@@ -141,9 +142,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const foundationDataItems = dataFoundationDataItems;
   const managementItems = dataManagementItems;
   const observeTestItems = dataObserveTestItems;
-
-  console.log(applicationItems);
-
 
   const NavItem = ({ icon: Icon, label, href, isActive = false, onClick }) => (
     <Link href={href} className="block">
