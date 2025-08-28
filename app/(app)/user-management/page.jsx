@@ -306,7 +306,7 @@ export default function UserManagement() {
                     )}
                 </AnimatePresence>
             </LayoutGroup>
-            {users.length === 0 && !searchTerm && (
+            {users.length === 0 && !searchTerm && isLoading == false && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}

@@ -38,17 +38,15 @@ export default function LoginPage() {
 
       const data = await response.json()
       if (data.success) {
-        const token = data?.token.toString();  
+        const token = data?.id_token.toString();
 
         if (token.length > 4000) {
           console.error('Token exceeds the cookie size limit');
           setError('Token size is too large');
           return;
         }
-        localStorage.setItem('user', JSON.stringify(data?.user))
-    
         try {
-          setCookie('token', token, 7);
+          setCookie('id_token', token, 7);
         } catch (err) {
           console.error("Gagal menyimpan token di cookies:", err);
         }

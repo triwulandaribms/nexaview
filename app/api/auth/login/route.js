@@ -28,27 +28,31 @@ export async function POST(request) {
       { headers: { "Content-Type": "application/json" } }
     );
 
-    const { token, user } = responseFromAPI.data;
+    const { token, id_token, access_token, user } = responseFromAPI.data;
 
     // Opsi cookie standar
-    // const baseCookieOptions = {
-    //   secure: process.env.NODE_ENV === "production",
-    //   sameSite: "lax",
-    //   path: "/",
-    //   maxAge: 60 * 60 * 24 * 7,
-    // };
+    const baseCookieOptions = {
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    };
 
     const response = NextResponse.json({
       success: true,
       message: "Login successful",
-      user,
-      token
+      id_token,
     });
 
-    // response.cookies.set("token", token, {
-    //   ...baseCookieOptions,
-    //   httpOnly: false,
-    // });
+    response.cookies.set("token", token, {
+      ...baseCookieOptions,
+      httpOnly: false,
+    });
+
+    response.cookies.set("access_token", access_token, {
+      ...baseCookieOptions,
+      httpOnly: false,
+    });
 
     return response;
   } catch (error) {
