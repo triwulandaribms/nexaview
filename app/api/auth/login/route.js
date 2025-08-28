@@ -43,8 +43,8 @@ export async function POST(request) {
       message: "Login successful",
       id_token,
     });
-
-    response.cookies.set("token", token, {
+    
+    response.cookies.set("id_token", id_token, {
       ...baseCookieOptions,
       httpOnly: false,
     });

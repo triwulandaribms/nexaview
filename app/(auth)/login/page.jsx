@@ -5,11 +5,6 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-const setCookie = (name, value, days = 7) => {
-  const expires = new Date();
-  expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
-  document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/;secure;samesite=Lax`;
-};
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -46,7 +41,8 @@ export default function LoginPage() {
           return;
         }
         try {
-          setCookie('id_token', token, 7);
+
+          localStorage.setItem("token", token);
         } catch (err) {
           console.error("Gagal menyimpan token di cookies:", err);
         }
