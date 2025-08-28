@@ -36,7 +36,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
 
   useEffect(() => {
-    const token = Cookies.get("token");
+    const token = localStorage.getItem("token");
 
     if (token) {
       try {

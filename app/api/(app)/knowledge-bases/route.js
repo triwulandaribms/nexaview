@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { cookies } from "next/headers";
+import { headers } from 'next/headers';
 import axios from 'axios';
 import { formatDate } from '@/app/lib/utils';
-
 
 export async function GET() {
     const baseURL = process.env.API_BASE_URL;
@@ -13,8 +12,9 @@ export async function GET() {
         );
     }
 
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token').value;
+    const reqHeaders = await headers();
+    const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
+
     if (!token) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -43,6 +43,7 @@ export async function GET() {
     }
 }
 
+
 export async function POST(request) {
 
     const baseURL = process.env.API_BASE_URL;
@@ -50,8 +51,9 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
     }
 
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token').value;
+    const reqHeaders = await headers();
+    const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
+
 
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

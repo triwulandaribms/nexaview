@@ -2,11 +2,14 @@
 export async function request(path, { method = 'GET', body, headers, signal, cache } = {}) {
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
 
+    const token = localStorage.getItem("token");
+    
     const res = await fetch(path, {
         method,
         credentials: 'include',
         headers: {
             Accept: 'application/json',
+            Authorization: `Bearer ${token}`,
             ...(isFormData ? {} : body ? { 'Content-Type': 'application/json' } : {}),
             ...(headers || {}),
         },
@@ -28,7 +31,7 @@ export async function request(path, { method = 'GET', body, headers, signal, cac
         document.cookie = "token=; path=/; max-age=0;";
         document.cookie = "id_token=; path=/; max-age=0;";
 
-        throw err; 
+        throw err;
     }
     if (!res.ok) {
 
