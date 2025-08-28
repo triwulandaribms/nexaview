@@ -33,7 +33,7 @@ export default function LoginPage() {
 
       const data = await response.json()
       if (data.success) {
-        const token = data?.id_token.toString();
+        const token = data?.token.toString();
 
         if (token.length > 4000) {
           console.error('Token exceeds the cookie size limit');

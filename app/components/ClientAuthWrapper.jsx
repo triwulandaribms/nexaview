@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import Cookies from 'js-cookie'
 
 const PUBLIC_GUEST_PATHS = ['/login', '/signup']
 
@@ -12,7 +11,8 @@ export default function GuestOnlyWrapper({ children }) {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    const token = Cookies.get('token');
+    // const token = Cookies.get('token');
+    const token = localStorage.getItem("token");
 
     if (token && PUBLIC_GUEST_PATHS.includes(pathname)) {
       setTimeout(() => {
