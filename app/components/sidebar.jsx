@@ -137,10 +137,10 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
 
   const mainNavItems = dataMainNavItems;
-  const applicationItems = filterMenuItems(dataApplicationItems);
-  const foundationDataItems = filterMenuItems(dataFoundationDataItems);
+  const applicationItems = dataApplicationItems;
+  const foundationDataItems = dataFoundationDataItems;
   const managementItems = dataManagementItems;
-  const observeTestItems = filterMenuItems(dataObserveTestItems);
+  const observeTestItems = dataObserveTestItems;
 
   console.log(applicationItems);
 
