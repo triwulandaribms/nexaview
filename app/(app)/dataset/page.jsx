@@ -190,10 +190,28 @@ export default function Datasets() {
       const res = await dsApi.list({ signal });
 
       if (!mounted) return;
+      console.log(res.data, " hasil nya apa yah ");
 
-      if (res?.success == false)
+      if (res?.success == false) {
         setErrorMsg(res.error || "Failed to load datasets");
-      else setDatasets(res.data ?? []);
+      }
+      else {
+        const sortedDatasets = res.data
+          ? res.data.sort((a, b) => {
+            const dateA = new Date(a.created_at);
+            const dateB = new Date(b.created_at);
+            return dateB - dateA;
+          })
+          : [];
+
+        const formattedDatasets = sortedDatasets.map((dataset) => {
+          const date = new Date(dataset.created_at);
+          const options = { year: "numeric", month: "short", day: "numeric" };
+          const formattedDate = date.toLocaleDateString("en-GB", options);
+          return { ...dataset, formatted_created_at: formattedDate };
+        });
+        setDatasets(formattedDatasets);
+      }
 
       setIsLoading(false);
     })().catch((e) => {
