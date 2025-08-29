@@ -19,18 +19,21 @@ import {
 } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { abApi } from "@/app/lib/agentBaseApi";
 import ConfirmDeleteModalAgent from "@/app/components/ConfirmDeleteModalAgent";
 
 export default function Agents() {
+  const pathname = usePathname();
+  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState("My agents");
   const [viewMode, setViewMode] = useState("grid");
   const [isLoading, setIsLoading] = useState(true);
   const [agents, setAgents] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const router = useRouter();
+  const [permission, setPermission] = useState("");
 
   // const tabs = ["My agents", "Favourite agents"];
 
@@ -264,6 +267,29 @@ export default function Agents() {
     </div>
   );
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      try {
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const permissions = decodedToken.permissions || [];
+
+        const filteredPermission = permissions.find(permission => permission.path === pathname);
+
+        if (filteredPermission) {
+          setPermission(filteredPermission.mrm_permission)
+        } else {
+          router.push("/");
+        }
+      } catch (error) {
+        console.error("Gagal mendekode token:", error);
+      }
+    }
+  }, [pathname]);
+
+  const hasPermission = (val) => permission.includes(val);
+
   if (isLoading) {
     return (
       <motion.main
@@ -304,19 +330,22 @@ export default function Agents() {
               AI Agents
             </h1>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => router.push("/agents/create")}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer"
-            style={{
-              background: "var(--primary)",
-              color: "var(--text-inverse)",
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            New Agent
-          </motion.button>
+          {hasPermission('C') && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => router.push("/agents/create")}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer"
+              style={{
+                background: "var(--primary)",
+                color: "var(--text-inverse)",
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              New Agent
+            </motion.button>
+          )}
+
         </div>
 
         {/* Search and View Toggle */}
@@ -400,7 +429,7 @@ export default function Agents() {
           <AnimatePresence mode="wait">
             {activeTab === "My agents" && (
               <>
-                {/* Grid View */}
+                {/* Grid View */}SkeletonCard
                 {viewMode === "grid" && (
                   <motion.div
                     key="grid"
@@ -412,31 +441,33 @@ export default function Agents() {
                   >
                     {isLoading
                       ? Array.from({ length: 6 }, (_, index) => (
-                          <SkeletonCard key={index} />
-                        ))
+                        <SkeletonCard key={index} />
+                      ))
                       : agents.map((agent, index) => (
-                          <motion.div
-                            key={agent.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3, delay: index * 0.1 }}
-                            className="relative rounded-lg border overflow-hidden hover:shadow-lg transition-shadow duration-200"
-                            style={{
-                              background: "var(--surface-elevated)",
-                              borderColor: "var(--border-light)",
-                            }}
-                          >
-                            {/* Card Header */}
-                            <div
-                              className="h-1"
-                              style={{ background: "var(--primary)" }}
-                            />
+                        <motion.div
+                          key={agent.id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ duration: 0.3, delay: index * 0.1 }}
+                          className="relative rounded-lg border overflow-hidden hover:shadow-lg transition-shadow duration-200"
+                          style={{
+                            background: "var(--surface-elevated)",
+                            borderColor: "var(--border-light)",
+                          }}
+                        >
+                          {/* Card Header */}
+                          <div
+                            className="h-1"
+                            style={{ background: "var(--primary)" }}
+                          />
 
-                            <div className="p-6 flex flex-col h-full">
-                              {/* Actions Menu */}
-                              <div className="flex-1">
-                                <div className="absolute top-4 right-4 flex items-center gap-2">
+                          <div className="p-6 flex flex-col h-full">
+                            {/* Actions Menu */}
+                            <div className="flex-1">
+                              <div className="absolute top-4 right-4 flex items-center gap-2">
+
+                                {hasPermission('U') && (
                                   <motion.button
                                     whileHover={{ scale: 1.1 }}
                                     whileTap={{ scale: 0.9 }}
@@ -448,6 +479,9 @@ export default function Agents() {
                                   >
                                     <Edit className="h-4 w-4" />
                                   </motion.button>
+                                )}
+
+                                {hasPermission('D') && (
                                   <motion.button
                                     whileHover={{ scale: 1.1 }}
                                     whileTap={{ scale: 0.9 }}
@@ -456,103 +490,108 @@ export default function Agents() {
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </motion.button>
-                                </div>
+                                )}
 
-                                {/* Agent Icon and Name */}
-                                <div className="flex items-start gap-3 mb-4">
-                                  <div
-                                    className="w-12 h-12 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
-                                    style={{
-                                      background: "var(--primary)",
-                                      color: "var(--text-inverse)",
-                                    }}
+
+                              </div>
+
+                              {/* Agent Icon and Name */}
+                              <div className="flex items-start gap-3 mb-4">
+                                <div
+                                  className="w-12 h-12 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
+                                  style={{
+                                    background: "var(--primary)",
+                                    color: "var(--text-inverse)",
+                                  }}
+                                >
+                                  <Bot className="h-6 w-6" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <h3
+                                    className="font-semibold text-lg mb-1 truncate"
+                                    style={{ color: "var(--text-primary)" }}
                                   >
-                                    <Bot className="h-6 w-6" />
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <h3
-                                      className="font-semibold text-lg mb-1 truncate"
-                                      style={{ color: "var(--text-primary)" }}
-                                    >
-                                      {agent.name}
-                                    </h3>
-                                    <p
-                                      className="text-sm line-clamp-2"
-                                      style={{ color: "var(--text-secondary)" }}
-                                    >
-                                      {agent.description}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                {/* Data Sources */}
-                                <div className="mb-4">
+                                    {agent.name}
+                                  </h3>
                                   <p
-                                    className="text-xs font-medium mb-2"
+                                    className="text-sm line-clamp-2"
                                     style={{ color: "var(--text-secondary)" }}
                                   >
-                                    Data Sources
+                                    {agent.description}
                                   </p>
-                                  <div className="flex items-center gap-2">
-                                    <span
-                                      className="px-2 py-1 text-xs rounded-md font-medium"
-                                      style={{
-                                        background: "var(--primary-light)",
-                                        color: "var(--primary)",
-                                      }}
-                                    >
-                                      {agent.data_source_type[0]}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Metadata */}
-                                <div className="space-y-2 mb-6">
-                                  <div
-                                    className="flex items-center gap-2 text-sm"
-                                    style={{ color: "var(--text-secondary)" }}
-                                  >
-                                    <Calendar className="h-4 w-4" />
-                                    <span>{agent.created_at}</span>
-                                  </div>
-
-                                  <div
-                                    className="flex items-center gap-2 text-sm"
-                                    style={{ color: "var(--text-secondary)" }}
-                                  >
-                                    <Bot className="h-4 w-4" />
-                                    <span>
-                                      {agent?.default_model?.name || ""}
-                                    </span>
-                                  </div>
-
-                                  <div
-                                    className="flex items-center gap-2 text-sm"
-                                    style={{ color: "var(--text-secondary)" }}
-                                  >
-                                    <Database className="h-4 w-4" />
-                                    <span>
-                                      {agent.knowledgebases
-                                        ? `Knowledge Bases: ${agent?.knowledgebases.length}`
-                                        : agent.apiFeatures
-                                        ? `API Features: ${agent.apiFeatures}`
-                                        : "No data sources"}
-                                    </span>
-                                  </div>
-
-                                  <div
-                                    className="flex items-center gap-2 text-sm"
-                                    style={{ color: "var(--text-secondary)" }}
-                                  >
-                                    <User className="h-4 w-4" />
-                                    <span>
-                                      Created by {agent?.created_by_name || "-"}
-                                    </span>
-                                  </div>
                                 </div>
                               </div>
 
-                              {/* View Button */}
+                              {/* Data Sources */}
+                              <div className="mb-4">
+                                <p
+                                  className="text-xs font-medium mb-2"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  Data Sources
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="px-2 py-1 text-xs rounded-md font-medium"
+                                    style={{
+                                      background: "var(--primary-light)",
+                                      color: "var(--primary)",
+                                    }}
+                                  >
+                                    {agent.data_source_type[0]}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Metadata */}
+                              <div className="space-y-2 mb-6">
+                                <div
+                                  className="flex items-center gap-2 text-sm"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  <Calendar className="h-4 w-4" />
+                                  <span>{agent.created_at}</span>
+                                </div>
+
+                                <div
+                                  className="flex items-center gap-2 text-sm"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  <Bot className="h-4 w-4" />
+                                  <span>
+                                    {agent?.default_model?.name || ""}
+                                  </span>
+                                </div>
+
+                                <div
+                                  className="flex items-center gap-2 text-sm"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  <Database className="h-4 w-4" />
+                                  <span>
+                                    {agent.knowledgebases
+                                      ? `Knowledge Bases: ${agent?.knowledgebases.length}`
+                                      : agent.apiFeatures
+                                        ? `API Features: ${agent.apiFeatures}`
+                                        : "No data sources"}
+                                  </span>
+                                </div>
+
+                                <div
+                                  className="flex items-center gap-2 text-sm"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  <User className="h-4 w-4" />
+                                  <span>
+                                    Created by {agent?.created_by_name || "-"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+
+                            {/* View Button */}
+                            {hasPermission('R') && (
                               <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
@@ -568,9 +607,12 @@ export default function Agents() {
                               >
                                 View
                               </motion.button>
-                            </div>
-                          </motion.div>
-                        ))}
+                            )}
+
+
+                          </div>
+                        </motion.div>
+                      ))}
                   </motion.div>
                 )}
 
@@ -586,30 +628,33 @@ export default function Agents() {
                   >
                     {isLoading
                       ? Array.from({ length: 6 }, (_, index) => (
-                          <SkeletonList key={index} />
-                        ))
+                        <SkeletonList key={index} />
+                      ))
                       : agents.map((agent, index) => (
-                          <motion.div
-                            key={agent.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            transition={{ duration: 0.3, delay: index * 0.1 }}
-                            className="relative rounded-lg border overflow-hidden hover:shadow-md transition-shadow duration-200"
-                            style={{
-                              background: "var(--surface-elevated)",
-                              borderColor: "var(--border-light)",
-                            }}
-                          >
-                            {/* Card Header */}
-                            <div
-                              className="h-1"
-                              style={{ background: "var(--primary)" }}
-                            />
+                        <motion.div
+                          key={agent.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          transition={{ duration: 0.3, delay: index * 0.1 }}
+                          className="relative rounded-lg border overflow-hidden hover:shadow-md transition-shadow duration-200"
+                          style={{
+                            background: "var(--surface-elevated)",
+                            borderColor: "var(--border-light)",
+                          }}
+                        >
+                          {/* Card Header */}
+                          <div
+                            className="h-1"
+                            style={{ background: "var(--primary)" }}
+                          />
 
-                            <div className="p-4">
-                              {/* Actions Menu */}
-                              <div className="absolute top-3 right-3 flex items-center gap-2">
+                          <div className="p-4">
+                            {/* Actions Menu */}
+                            <div className="absolute top-3 right-3 flex items-center gap-2">
+
+
+                              {hasPermission('U') && (
                                 <motion.button
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.9 }}
@@ -621,6 +666,8 @@ export default function Agents() {
                                 >
                                   <Edit className="h-4 w-4" />
                                 </motion.button>
+                              )}
+                              {hasPermission('D') && (
                                 <motion.button
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.9 }}
@@ -630,76 +677,80 @@ export default function Agents() {
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </motion.button>
+                              )}
+
+                            </div>
+
+                            {/* Horizontal Layout for List */}
+                            <div className="flex gap-4">
+                              {/* Agent Icon */}
+                              <div
+                                className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0"
+                                style={{
+                                  background: "var(--primary)",
+                                  color: "var(--text-inverse)",
+                                }}
+                              >
+                                <Bot className="h-7 w-7" />
                               </div>
 
-                              {/* Horizontal Layout for List */}
-                              <div className="flex gap-4">
-                                {/* Agent Icon */}
-                                <div
-                                  className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0"
-                                  style={{
-                                    background: "var(--primary)",
-                                    color: "var(--text-inverse)",
-                                  }}
-                                >
-                                  <Bot className="h-7 w-7" />
+                              {/* Agent Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-4 mb-2">
+                                  <h3
+                                    className="font-semibold text-lg"
+                                    style={{ color: "var(--text-primary)" }}
+                                  >
+                                    {agent.name}
+                                  </h3>
+                                  <span
+                                    className="px-2 py-1 text-xs rounded-md font-medium"
+                                    style={{
+                                      background: "var(--primary-light)",
+                                      color: "var(--primary)",
+                                    }}
+                                  >
+                                    {agent.dataSources}
+                                  </span>
                                 </div>
-
-                                {/* Agent Info */}
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-4 mb-2">
-                                    <h3
-                                      className="font-semibold text-lg"
-                                      style={{ color: "var(--text-primary)" }}
-                                    >
-                                      {agent.name}
-                                    </h3>
-                                    <span
-                                      className="px-2 py-1 text-xs rounded-md font-medium"
-                                      style={{
-                                        background: "var(--primary-light)",
-                                        color: "var(--primary)",
-                                      }}
-                                    >
-                                      {agent.dataSources}
-                                    </span>
+                                <p
+                                  className="text-sm mb-2 line-clamp-1"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  {agent.description}
+                                </p>
+                                <div
+                                  className="flex items-center gap-4 text-xs"
+                                  style={{ color: "var(--text-tertiary)" }}
+                                >
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    <span>{agent.created_at}</span>
                                   </div>
-                                  <p
-                                    className="text-sm mb-2 line-clamp-1"
-                                    style={{ color: "var(--text-secondary)" }}
-                                  >
-                                    {agent.description}
-                                  </p>
-                                  <div
-                                    className="flex items-center gap-4 text-xs"
-                                    style={{ color: "var(--text-tertiary)" }}
-                                  >
-                                    <div className="flex items-center gap-1">
-                                      <Calendar className="h-3 w-3" />
-                                      <span>{agent.created_at}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <Bot className="h-3 w-3" />
-                                      <span>{agent.model}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <Database className="h-3 w-3" />
-                                      <span>
-                                        {agent.knowledgebases
-                                          ? `KB: ${agent.knowledgebases.length}`
-                                          : agent.apiFeatures
+                                  <div className="flex items-center gap-1">
+                                    <Bot className="h-3 w-3" />
+                                    <span>{agent.model}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Database className="h-3 w-3" />
+                                    <span>
+                                      {agent.knowledgebases
+                                        ? `KB: ${agent.knowledgebases.length}`
+                                        : agent.apiFeatures
                                           ? `API: ${agent.apiFeatures}`
                                           : "No data"}
-                                      </span>
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <User className="h-3 w-3" />
-                                      <span>{agent.created_by_name}</span>
-                                    </div>
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <User className="h-3 w-3" />
+                                    <span>{agent.created_by_name}</span>
                                   </div>
                                 </div>
+                              </div>
 
-                                {/* View Button */}
+                              {/* View Button */}
+
+                              {hasPermission('R') && (
                                 <div className="flex-shrink-0 items-end flex">
                                   <motion.button
                                     whileHover={{ scale: 1.02 }}
@@ -717,10 +768,11 @@ export default function Agents() {
                                     View
                                   </motion.button>
                                 </div>
-                              </div>
+                              )}
                             </div>
-                          </motion.div>
-                        ))}
+                          </div>
+                        </motion.div>
+                      ))}
                   </motion.div>
                 )}
               </>

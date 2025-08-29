@@ -287,12 +287,6 @@ export default function Datasets() {
     </div>
   );
 
-  const getDatasetIcon = (type) => {
-    if (type.includes("Question-Answer")) return "💬";
-    if (type.includes("structured")) return "📊";
-    if (type.includes("unstructured")) return "📄";
-    return "📁";
-  };
   useEffect(() => {
     const token = localStorage.getItem("token");
 

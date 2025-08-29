@@ -18,9 +18,7 @@ export async function GET() {
     if (!token) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    console.log(token);
-
+    
     try {
         const { data } = await axios.get(`${baseURL}/api/knowledge_bases`, {
             headers: {
