@@ -78,7 +78,6 @@ export default function Settings() {
 
   const mainTabs = [
     'Manage Users',
-    'Manage roles',
     'Manage projects', 
     'Billings & Plans',
     'Usages'
