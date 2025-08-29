@@ -17,7 +17,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Alert from "@/app/components/Alert";
 import CollectionSkeleton from "@/app/components/CollectionSkeleton";
 import { rbApi } from "@/app/lib/rolesBaseApi";
@@ -28,14 +28,13 @@ const cardFx = { hidden: { opacity: 0, scale: 0.96, y: 8 }, show: { opacity: 1, 
 
 export default function RoleManagement() {
   const router = useRouter();
+  const pathname = usePathname();
 
-  const [roles, setRoles] = useState([
-  ]);
-
+  const [roles, setRoles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid");
   const [isLoading, setIsLoading] = useState(true);
-
+  const [permission, setPermission] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -117,6 +116,30 @@ export default function RoleManagement() {
     }
   }
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      try {
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const permissions = decodedToken.permissions || [];
+
+        const filteredPermission = permissions.find(permission => permission.path === pathname);
+
+        if (filteredPermission) {
+          setPermission(filteredPermission.mrm_permission)
+        } else {
+          router.push("/");
+        }
+      } catch (error) {
+        console.error("Gagal mendekode token:", error);
+      }
+    }
+  }, [pathname]);
+
+  const hasPermission = (val) => permission.includes(val);
+
+
   if (isLoading || forceSkeleton) {
     return (
       <motion.main variants={pageFx} initial="hidden" animate="show" className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]">
@@ -134,16 +157,19 @@ export default function RoleManagement() {
           Role Management
         </h1>
 
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium"
-          style={{ background: "var(--primary)", color: "var(--text-inverse)" }}
-          onClick={() => router.push("/role-management/create")}
-        >
-          <Plus className="h-4 w-4" />
-          New Role
-        </motion.button>
+        {hasPermission('C') && (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium"
+            style={{ background: "var(--primary)", color: "var(--text-inverse)" }}
+            onClick={() => router.push("/role-management/create")}
+          >
+            <Plus className="h-4 w-4" />
+            New Role
+          </motion.button>
+        )}
+
       </div>
 
       <div className="flex items-center justify-between mb-6">
@@ -204,12 +230,19 @@ export default function RoleManagement() {
                 >
                   <div className="h-1" style={{ background: "var(--primary)" }} />
                   <div className="absolute top-3 right-3 flex gap-2">
-                    <button className="p-1 rounded hover:bg-gray-100 cursor-pointer" style={{ color: "var(--text-secondary)" }} onClick={() => openEdit(role)}>
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button className="p-1 rounded hover:bg-gray-100 cursor-pointer" style={{ color: "var(--text-secondary)" }} onClick={() => openDelete(role)}>
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+
+                    {hasPermission('U') && (
+                      <button className="p-1 rounded hover:bg-gray-100 cursor-pointer" style={{ color: "var(--text-secondary)" }} onClick={() => openEdit(role)}>
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    )}
+
+                    {hasPermission('D') && (
+                      <button className="p-1 rounded hover:bg-gray-100 cursor-pointer" style={{ color: "var(--text-secondary)" }} onClick={() => openDelete(role)}>
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+
                   </div>
 
                   <div className="p-6">
@@ -228,15 +261,18 @@ export default function RoleManagement() {
                       <div className="flex gap-2 items-center"><Calendar className="h-4 w-4" /> {role.created_at || "-"}</div>
                     </div>
 
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => router.push(`/role-management/${role?.mr_uid || role?.id}`)}
-                      className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
-                      style={{ background: "var(--surface-secondary)", color: "var(--text-primary)", border: "1px solid var(--border-light)" }}
-                    >
-                      View
-                    </motion.button>
+                    {hasPermission('R') && (
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => router.push(`/role-management/${role?.mr_uid || role?.id}`)}
+                        className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
+                        style={{ background: "var(--surface-secondary)", color: "var(--text-primary)", border: "1px solid var(--border-light)" }}
+                      >
+                        View
+                      </motion.button>
+                    )}
+
                   </div>
                 </motion.div>
               ))}
@@ -255,12 +291,18 @@ export default function RoleManagement() {
                   <div className="h-1" style={{ background: "var(--primary)" }} />
                   <div className="px-6 pt-8 pb-6">
                     <div className="absolute top-3 right-3 flex items-center gap-2">
-                      <button className="p-1 rounded hover:bg-gray-100 cursor-pointer" style={{ color: "var(--text-secondary)" }} onClick={() => openEdit(role)}>
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button className="p-1 rounded hover:bg-gray-100 cursor-pointer" style={{ color: "var(--text-secondary)" }} onClick={() => openDelete(role)}>
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {hasPermission('U') && (
+                        <button className="p-1 rounded hover:bg-gray-100 cursor-pointer" style={{ color: "var(--text-secondary)" }} onClick={() => openEdit(role)}>
+                          <Edit className="h-4 w-4" />
+                        </button>
+                      )}
+
+                      {hasPermission('D') && (
+                        <button className="p-1 rounded hover:bg-gray-100 cursor-pointer" style={{ color: "var(--text-secondary)" }} onClick={() => openDelete(role)}>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+
                     </div>
 
                     <div className="flex gap-4">
@@ -274,18 +316,21 @@ export default function RoleManagement() {
                           {role.members} members • {role.permissions} permissions • {role.created_at}
                         </div>
                       </div>
+                      {hasPermission('R') && (
+                        <div className="flex-shrink-0 items-end flex">
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => router.push(`/role-management/${role?.mr_uid || role?.id}`)}
+                            className="px-4 py-2 rounded-lg font-medium cursor-pointer"
+                            style={{ background: "var(--surface-secondary)", color: "var(--text-primary)", border: "1px solid var(--border-light)" }}
+                          >
+                            View
+                          </motion.button>
+                        </div>
+                      )}
 
-                      <div className="flex-shrink-0 items-end flex">
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => router.push(`/role-management/${role?.mr_uid || role?.id}`)}
-                          className="px-4 py-2 rounded-lg font-medium cursor-pointer"
-                          style={{ background: "var(--surface-secondary)", color: "var(--text-primary)", border: "1px solid var(--border-light)" }}
-                        >
-                          View
-                        </motion.button>
-                      </div>
+
                     </div>
                   </div>
                 </motion.div>
