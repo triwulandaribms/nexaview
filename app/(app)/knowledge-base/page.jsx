@@ -18,7 +18,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { kbApi } from "@/app/lib/knowledgeBaseApi";
 import { withTimeout } from "@/app/lib/http";
 import Alert from "@/app/components/Alert";
@@ -32,11 +32,9 @@ export default function KnowledgeBase() {
   const [selectedKB, setSelectedKB] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  // const [editOpen, setEditOpen] = useState(false);
-  // const [saving, setSaving] = useState(false);
-  // const [editForm, setEditForm] = useState({ name: "", email: "" });
-
+  const [permission, setPermission] = useState("");
   const router = useRouter();
+  const pathname = usePathname();
 
   // Simulate loading state
   useEffect(() => {
@@ -241,37 +239,33 @@ export default function KnowledgeBase() {
     }
   }
 
-  // function openEdit(kb) {
-
-  //   setSelectedKB(kb);
-  //   setEditForm({ name: kb.name || "", email: kb.created_by_name || "" });
-  //   setEditOpen(true);
-  // }
   function openEdit(kb) {
     if (!kb?.id) return;
     router.push(`/knowledge-base/update/${kb.id}`);
   }
-  function closeEdit() {
-    if (!saving) setEditOpen(false);
-  }
 
-  // useEffect(() => {
-  //   function onKey(e) { if (e.key === "Escape") closeEdit(); }
-  //   if (editOpen) window.addEventListener("keydown", onKey);
-  //   return () => window.removeEventListener("keydown", onKey);
-  // }, [editOpen, saving]);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
 
-  // async function handleSaveEdit(e) {
-  //   e?.preventDefault?.();
-  //   if (!editForm.name.trim()) return; // validasi sederhana
-  //   setSaving(true);
-  //   try {
-  //  await new Promise(r => setTimeout(r, 800)); // simulasi
-  //   } finally {
-  //     setSaving(false);
-  //     setEditOpen(false);
-  //   }
-  // }
+    if (token) {
+      try {
+        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const permissions = decodedToken.permissions || [];
+
+        const filteredPermission = permissions.find(permission => permission.path === pathname);
+
+        if (filteredPermission) {
+          setPermission(filteredPermission.mrm_permission)
+        } else {
+          router.push("/");
+        }
+      } catch (error) {
+        console.error("Gagal mendekode token:", error);
+      }
+    }
+  }, [pathname]);
+
+  const hasPermission = (val) => permission.includes(val);
 
   if (isLoading) {
     return (
@@ -319,19 +313,22 @@ export default function KnowledgeBase() {
               Knowledge Base
             </h1>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer"
-            style={{
-              background: "var(--primary)",
-              color: "var(--text-inverse)",
-            }}
-            onClick={() => router.push("/knowledge-base/create")}
-          >
-            <Plus className="h-4 w-4" />
-            New Knowledge Base
-          </motion.button>
+
+          {hasPermission('C') && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer"
+              style={{
+                background: "var(--primary)",
+                color: "var(--text-inverse)",
+              }}
+              onClick={() => router.push("/knowledge-base/create")}
+            >
+              <Plus className="h-4 w-4" />
+              New Knowledge Base
+            </motion.button>
+          )}
         </div>
 
         {/* Search and View Toggle */}
@@ -447,23 +444,29 @@ export default function KnowledgeBase() {
 
                     {/* Actions Menu */}
                     <div className="absolute top-3 right-3 flex items-center gap-2">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => openEdit(kb)}
-                        className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => openDelete(kb)}
-                        className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </motion.button>
+
+                      {hasPermission('U') && (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => openEdit(kb)}
+                          className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </motion.button>
+                      )}
+                      {hasPermission('D') && (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => openDelete(kb)}
+                          className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </motion.button>
+                      )}
+
                     </div>
 
                     <div className="p-6">
@@ -510,20 +513,24 @@ export default function KnowledgeBase() {
                         </div>
                       </div>
 
+
                       {/* View Button */}
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => router.push(`/knowledge-base/${kb.id}`)}
-                        className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
-                        style={{
-                          background: "var(--surface-secondary)",
-                          color: "var(--text-primary)",
-                          border: "1px solid var(--border-light)",
-                        }}
-                      >
-                        View
-                      </motion.button>
+                      {hasPermission('R') && (
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => router.push(`/knowledge-base/${kb.id}`)}
+                          className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
+                          style={{
+                            background: "var(--surface-secondary)",
+                            color: "var(--text-primary)",
+                            border: "1px solid var(--border-light)",
+                          }}
+                        >
+                          View
+                        </motion.button>
+                      )}
+
                     </div>
                   </motion.div>
                 ))}
@@ -561,24 +568,29 @@ export default function KnowledgeBase() {
                     <div className="px-6 pt-8 pb-6">
                       {/* Actions Menu */}
                       <div className="absolute top-3 right-3 flex items-center gap-2">
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => openEdit(kb)}
-                          className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                          style={{ color: "var(--text-secondary)" }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => openDelete(kb)}
-                          className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
-                          style={{ color: "var(--text-secondary)" }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </motion.button>
+
+                        {hasPermission('U') && (
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => openEdit(kb)}
+                            className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </motion.button>
+                        )}
+                        {hasPermission('R') && (
+                          <motion.button
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => openDelete(kb)}
+                            className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </motion.button>
+                        )}
                       </div>
 
                       {/* Horizontal Layout for List */}
@@ -621,23 +633,26 @@ export default function KnowledgeBase() {
                         </div>
 
                         {/* View Button */}
-                        <div className="flex-shrink-0 items-end flex">
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() =>
-                              router.push(`/knowledge-base/${kb.id}`)
-                            }
-                            className="px-4 py-2 rounded-lg font-medium cursor-pointer"
-                            style={{
-                              background: "var(--surface-secondary)",
-                              color: "var(--text-primary)",
-                              border: "1px solid var(--border-light)",
-                            }}
-                          >
-                            View
-                          </motion.button>
-                        </div>
+                        {hasPermission('P') && (
+                          <div className="flex-shrink-0 items-end flex">
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() =>
+                                router.push(`/knowledge-base/${kb.id}`)
+                              }
+                              className="px-4 py-2 rounded-lg font-medium cursor-pointer"
+                              style={{
+                                background: "var(--surface-secondary)",
+                                color: "var(--text-primary)",
+                                border: "1px solid var(--border-light)",
+                              }}
+                            >
+                              View
+                            </motion.button>
+                          </div>
+                        )}
+
                       </div>
                     </div>
                   </motion.div>

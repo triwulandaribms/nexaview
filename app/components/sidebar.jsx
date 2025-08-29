@@ -33,8 +33,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const pathname = usePathname();
   const router = useRouter();
 
-
-
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -125,23 +123,20 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     { icon: Search, label: "Tracing", href: "/tracing" },
   ];
   const filterMenuItems = (items) => {
-    return items.filter(item =>
-      permissions.some(permission =>
-        permission.menu === item.label
-      )
-    ).map(item => {
+    return items.map(item => {
       const permission = permissions.find(p => p.menu === item.label);
-      return { ...item, permission: permission ? permission.mrm_permission : null };
-    });
+      if (permission) {
+        return { ...item, permission: permission.mrm_permission };
+      }
+      return null;
+    }).filter(item => item !== null); 
   };
 
-
-
   const mainNavItems = dataMainNavItems;
-  const applicationItems = dataApplicationItems;
-  const foundationDataItems = dataFoundationDataItems;
-  const managementItems = dataManagementItems;
-  const observeTestItems = dataObserveTestItems;
+  const applicationItems = filterMenuItems(dataApplicationItems);
+  const foundationDataItems = filterMenuItems(dataFoundationDataItems);
+  const managementItems = filterMenuItems(dataManagementItems);
+  const observeTestItems = filterMenuItems(dataObserveTestItems);
 
   const NavItem = ({ icon: Icon, label, href, isActive = false, onClick }) => (
     <Link href={href} className="block">
@@ -262,7 +257,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               label={item.label}
               href={item.href}
               isActive={activeItem === item.href}
-              permissions={item?.permissions || ""}
             />
           ))}
 
@@ -275,7 +269,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               label={item.label}
               href={item.href}
               isActive={activeItem === item.href}
-              permissions={item?.permissions || ""}
+
             />
           ))}
 
@@ -288,7 +282,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               label={item.label}
               href={item.href}
               isActive={activeItem === item.href}
-              permissions={item?.permissions || ""}
             />
           ))}
 
@@ -301,7 +294,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               label={item.label}
               href={item.href}
               isActive={activeItem === item.href}
-              permissions={item?.permissions || ""}
             />
           ))}
           {/* Observe & Test Section */}
@@ -313,7 +305,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               label={item.label}
               href={item.href}
               isActive={activeItem === item.href}
-              permissions={item?.permissions || ""}
             />
           ))}
         </div>

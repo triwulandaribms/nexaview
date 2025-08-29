@@ -116,6 +116,7 @@ export default function RoleManagement() {
       setConfirmOpen(false);
     }
   }
+  const hasPermission = (permission) => permissions.includes(permission);
 
   if (isLoading || forceSkeleton) {
     return (
@@ -133,16 +134,20 @@ export default function RoleManagement() {
         <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
           Role Management
         </h1>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium"
-          style={{ background: "var(--primary)", color: "var(--text-inverse)" }}
-          onClick={() => router.push("/role-management/create")}
-        >
-          <Plus className="h-4 w-4" />
-          New Role
-        </motion.button>
+
+        {hasPermission('C') && (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium"
+            style={{ background: "var(--primary)", color: "var(--text-inverse)" }}
+            onClick={() => router.push("/role-management/create")}
+          >
+            <Plus className="h-4 w-4" />
+            New Role
+          </motion.button>
+        )}
+
       </div>
 
       <div className="flex items-center justify-between mb-6">

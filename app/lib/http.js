@@ -3,7 +3,7 @@ export async function request(path, { method = 'GET', body, headers, signal, cac
     const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
 
     const token = localStorage.getItem("token");
-    
+
     const res = await fetch(path, {
         method,
         credentials: 'include',
@@ -21,18 +21,20 @@ export async function request(path, { method = 'GET', body, headers, signal, cac
     let json = null;
     try { json = await res.json(); } catch { }
 
-    if (res.status == 403) {
+    if (res.status == 403 || res.status === 401) {
         const msg = json?.error || 'Access forbidden. Please check your permissions.';
         const err = new Error(msg);
         err.status = res.status;
         err.body = json;
 
-
-        document.cookie = "token=; path=/; max-age=0;";
+        document.cookie = "access_token=; path=/; max-age=0;";
         document.cookie = "id_token=; path=/; max-age=0;";
+        localStorage.removeItem("token");
+        location.href = "/login";
 
         throw err;
     }
+
     if (!res.ok) {
 
         const msg = json?.error || json?.message || res.statusText || 'Request failed';

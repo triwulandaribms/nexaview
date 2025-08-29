@@ -39,7 +39,7 @@ export async function GET(_req, { params }) {
 }
 
 export async function DELETE(_req, { params }) {
-    const roleId = params.id;
+    const { id } = await params;
     if (!baseURL) return fail('Server configuration error. Please contact administrator.', 500);
 
     const cookieStore = await cookies();
@@ -47,7 +47,7 @@ export async function DELETE(_req, { params }) {
     const idToken = cookieStore.get('id_token')?.value;
 
     try {
-        await axios.delete(`${baseURL}/api/roles/${roleId}`, {
+        await axios.delete(`${baseURL}/api/roles/${id}`, {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
