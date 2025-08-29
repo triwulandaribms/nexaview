@@ -17,7 +17,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Alert from "@/app/components/Alert";
 import CollectionSkeleton from "@/app/components/CollectionSkeleton";
 import { rbApi } from "@/app/lib/rolesBaseApi";
@@ -34,7 +34,6 @@ const cardFx = {
 
 export default function RoleManagement() {
   const router = useRouter();
-  const pathname = usePathname();
 
   const [roles, setRoles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -121,32 +120,6 @@ export default function RoleManagement() {
     }
   }
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (token) {
-      try {
-        const decodedToken = JSON.parse(atob(token.split(".")[1]));
-        const permissions = decodedToken.permissions || [];
-        console.log(permissions, pathname);
-
-        const filteredPermission = permissions.find(
-          (permission) => permission.path === pathname
-        );
-
-        if (filteredPermission) {
-          setPermission(filteredPermission.mrm_permission);
-        } else {
-          // router.push("/");
-        }
-      } catch (error) {
-        console.error("Gagal mendekode token:", error);
-      }
-    }
-  }, [pathname]);
-
-  const hasPermission = (val) => permission.includes(val);
-
   if (isLoading || forceSkeleton) {
     return (
       <motion.main
@@ -178,24 +151,21 @@ export default function RoleManagement() {
           className="text-2xl font-semibold"
           style={{ color: "var(--text-primary)" }}
         >
-          Role Management
         </h1>
 
-        {hasPermission("C") && (
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium"
-            style={{
-              background: "var(--primary)",
-              color: "var(--text-inverse)",
-            }}
-            onClick={() => router.push("/role-management/create")}
-          >
-            <Plus className="h-4 w-4" />
-            New Role
-          </motion.button>
-        )}
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium"
+          style={{
+            background: "var(--primary)",
+            color: "var(--text-inverse)",
+          }}
+          onClick={() => router.push("/role-management/create")}
+        >
+          <Plus className="h-4 w-4" />
+          New Role
+        </motion.button>
       </div>
 
       <div className="flex items-center justify-between mb-6">
@@ -286,25 +256,21 @@ export default function RoleManagement() {
                     style={{ background: "var(--primary)" }}
                   />
                   <div className="absolute top-3 right-3 flex gap-2">
-                    {hasPermission("U") && (
-                      <button
-                        className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                        style={{ color: "var(--text-secondary)" }}
-                        onClick={() => openEdit(role)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                    )}
+                    <button
+                      className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                      style={{ color: "var(--text-secondary)" }}
+                      onClick={() => openEdit(role)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
 
-                    {hasPermission("D") && (
-                      <button
-                        className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                        style={{ color: "var(--text-secondary)" }}
-                        onClick={() => openDelete(role)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
+                    <button
+                      className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                      style={{ color: "var(--text-secondary)" }}
+                      onClick={() => openDelete(role)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
 
                   <div className="p-6">
@@ -343,25 +309,23 @@ export default function RoleManagement() {
                       </div>
                     </div>
 
-                    {hasPermission("R") && (
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() =>
-                          router.push(
-                            `/role-management/${role?.mr_uid || role?.id}`
-                          )
-                        }
-                        className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
-                        style={{
-                          background: "var(--surface-secondary)",
-                          color: "var(--text-primary)",
-                          border: "1px solid var(--border-light)",
-                        }}
-                      >
-                        View
-                      </motion.button>
-                    )}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() =>
+                        router.push(
+                          `/role-management/${role?.mr_uid || role?.id}`
+                        )
+                      }
+                      className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
+                      style={{
+                        background: "var(--surface-secondary)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border-light)",
+                      }}
+                    >
+                      View
+                    </motion.button>
                   </div>
                 </motion.div>
               ))}
@@ -392,25 +356,22 @@ export default function RoleManagement() {
                   />
                   <div className="px-6 pt-8 pb-6">
                     <div className="absolute top-3 right-3 flex items-center gap-2">
-                      {hasPermission("U") && (
-                        <button
-                          className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                          style={{ color: "var(--text-secondary)" }}
-                          onClick={() => openEdit(role)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                      )}
 
-                      {hasPermission("D") && (
-                        <button
-                          className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                          style={{ color: "var(--text-secondary)" }}
-                          onClick={() => openDelete(role)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
+                      <button
+                        className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                        style={{ color: "var(--text-secondary)" }}
+                        onClick={() => openEdit(role)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+
+                      <button
+                        className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                        style={{ color: "var(--text-secondary)" }}
+                        onClick={() => openDelete(role)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
 
                     <div className="flex gap-4">
@@ -436,27 +397,26 @@ export default function RoleManagement() {
                           permissions • {role.created_at}
                         </div>
                       </div>
-                      {hasPermission("R") && (
-                        <div className="flex-shrink-0 items-end flex">
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() =>
-                              router.push(
-                                `/role-management/${role?.mr_uid || role?.id}`
-                              )
-                            }
-                            className="px-4 py-2 rounded-lg font-medium cursor-pointer"
-                            style={{
-                              background: "var(--surface-secondary)",
-                              color: "var(--text-primary)",
-                              border: "1px solid var(--border-light)",
-                            }}
-                          >
-                            View
-                          </motion.button>
-                        </div>
-                      )}
+
+                      <div className="flex-shrink-0 items-end flex">
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() =>
+                            router.push(
+                              `/role-management/${role?.mr_uid || role?.id}`
+                            )
+                          }
+                          className="px-4 py-2 rounded-lg font-medium cursor-pointer"
+                          style={{
+                            background: "var(--surface-secondary)",
+                            color: "var(--text-primary)",
+                            border: "1px solid var(--border-light)",
+                          }}
+                        >
+                          View
+                        </motion.button>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
