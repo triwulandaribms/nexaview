@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { headers } from 'next/headers';
 import axios from 'axios';
 import { fail, normalizeAxiosError, ok } from '@/app/lib/utils';
 
@@ -7,8 +7,8 @@ export async function GET(_req, { params }) {
   const baseURL = process.env.API_BASE_URL;
   if (!baseURL) return fail('Server configuration error. Please contact administrator.', 500);
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
+  const reqHeaders = await headers();
+  const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
 
   try {
     const { data } = await axios.get(`${baseURL}/api/agent/${id}`, {
@@ -37,8 +37,9 @@ export async function PUT(req, { params }) {
   const baseURL = process.env.API_BASE_URL;
   if (!baseURL) return fail('Server configuration error. Please contact administrator.', 500);
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
+  const reqHeaders = await headers();
+  const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
+
   const body = await req.json();
 
   try {
@@ -64,8 +65,9 @@ export async function DELETE(_req, { params }) {
   const baseURL = process.env.API_BASE_URL;
   if (!baseURL) return fail('Server configuration error. Please contact administrator.', 500);
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
+  const reqHeaders = await headers();
+  const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
+
 
   try {
     await axios.delete(`${baseURL}/api/agent/${id}`, {

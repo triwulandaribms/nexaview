@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { headers } from 'next/headers';
 import axios from 'axios';
 import { ok, fail, normalizeAxiosError, formatDate, } from '@/app/lib/utils';
 
@@ -7,10 +7,8 @@ export async function GET() {
     if (!baseURL) return fail('Server configuration error. Please contact administrator.', 500);
 
     try {
-
-        const cookieStore = await cookies();
-
-        const token = cookieStore.get('token')?.value;
+        const reqHeaders = await headers();
+        const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
 
         const { data } = await axios.get(`${baseURL}/api/agent`, {
             headers: {
@@ -43,8 +41,8 @@ export async function POST(req) {
     try { body = await req.json(); } catch { body = {}; }
 
     try {
-        const cookieStore = await cookies();
-        const token = cookieStore.get("token")?.value;
+        const reqHeaders = await headers();
+        const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
 
         const { data } = await axios.post(`${baseURL}/api/agent`, body, {
             headers: {
