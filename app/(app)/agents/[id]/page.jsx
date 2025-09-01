@@ -59,6 +59,9 @@ export default function AgentDetail() {
   const [searchSessions, setSearchSessions] = useState("");
   const [timeFilter, setTimeFilter] = useState("All time");
   const [agent, setAgent] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [detailSession, setDetailSession] = useState("");
+
   const currentId = agent?.id || params?.id;
   const messagesEndRef = useRef(null);
 
@@ -69,6 +72,8 @@ export default function AgentDetail() {
     (async () => {
       try {
         const res = await abApi.detail(params.id, { signal });
+        const resListSessions = await abApi.detailListSession(params.id, { signal });
+
         const a = res?.data || {};
         const dataSourceLabel = (() => {
           const t = (a.data_source_type && a.data_source_type[0]) || "";
@@ -80,17 +85,17 @@ export default function AgentDetail() {
 
         const mapped = {
           id: a.id,
-          name: a.name || "-",
+          name: a?.name || "-",
           description: a.description || "",
           dataSources: dataSourceLabel,
           timestamp: a.created_at
             ? new Date(a.created_at).toLocaleString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
             : "-",
           model: a?.default_model?.id || "-",
           knowledgeBases: Array.isArray(a.knowledgebases)
@@ -102,20 +107,23 @@ export default function AgentDetail() {
           systemPrompt: a.system_prompt || "",
           kbDetails: Array.isArray(a.knowledgebases)
             ? a.knowledgebases.map((k) => ({
-                name: k.name,
-                description: k.description || "",
-                docs:
-                  typeof k.documentCount === "number"
-                    ? k.documentCount
-                    : typeof k.docs === "number"
+              name: k?.name,
+              description: k.description || "",
+              docs:
+                typeof k.documentCount === "number"
+                  ? k.documentCount
+                  : typeof k.docs === "number"
                     ? k.docs
                     : 0,
-                category: "General",
-              }))
+              category: "General",
+            }))
             : [],
         };
 
         setAgent(mapped);
+
+        console.log(resListSessions.data);
+        setSessions(resListSessions.data || [])
       } catch (e) {
         if (e?.name === "AbortError" || e?.code === "ERR_CANCELED") return;
         console.error(e);
@@ -129,79 +137,6 @@ export default function AgentDetail() {
 
   const tabs = ["Overview", "Chat", "Sessions"];
 
-  // Mock session data
-  const sessions = [
-    {
-      id: 1,
-      title: `Chat with ${agent?.name}`,
-      messages: 2,
-      lastActive: "23 Jun 2025 11:36",
-      date: new Date("2025-06-23T11:36:00"),
-    },
-    {
-      id: 2,
-      title: `Chat with ${agent?.name}`,
-      messages: 24,
-      lastActive: "11 Jun 2025 23:52",
-      date: new Date("2025-06-11T23:52:00"),
-    },
-    {
-      id: 3,
-      title: "Financial Analysis Assistance Offered",
-      messages: 3,
-      lastActive: "12 Jun 2025 00:22",
-      date: new Date("2025-06-12T00:22:00"),
-    },
-    {
-      id: 4,
-      title: "Financial Analysis Assistance Offered",
-      messages: 19,
-      lastActive: "12 Jun 2025 00:03",
-      date: new Date("2025-06-12T00:03:00"),
-    },
-    {
-      id: 5,
-      title: "Financial Assistance Inquiry Opening",
-      messages: 2,
-      lastActive: "11 Jun 2025 23:50",
-      date: new Date("2025-06-11T23:50:00"),
-    },
-    {
-      id: 6,
-      title: "Financial Reports Assistance Inquiry",
-      messages: 7,
-      lastActive: "11 Jun 2025 23:45",
-      date: new Date("2025-06-11T23:45:00"),
-    },
-    {
-      id: 7,
-      title: "Financial Analysis Assistance Offer",
-      messages: 3,
-      lastActive: "11 Jun 2025 23:43",
-      date: new Date("2025-06-11T23:43:00"),
-    },
-    {
-      id: 8,
-      title: "Financial Assistance Query Initiated",
-      messages: 4,
-      lastActive: "11 Jun 2025 23:31",
-      date: new Date("2025-06-11T23:31:00"),
-    },
-    {
-      id: 9,
-      title: "Blue Bird: Indonesian Transport Giant",
-      messages: 6,
-      lastActive: "11 Jun 2025 15:03",
-      date: new Date("2025-06-11T15:03:00"),
-    },
-    {
-      id: 10,
-      title: "Forecasting Keuangan PT Bluebird",
-      messages: 4,
-      lastActive: "11 Jun 2025 14:24",
-      date: new Date("2025-06-11T14:24:00"),
-    },
-  ];
 
   // Simulate data loading
   useEffect(() => {
@@ -223,7 +158,7 @@ export default function AgentDetail() {
 
     const userMessage = {
       id: Date.now(),
-      type: "user",
+      role: "user",
       content: inputMessage,
       timestamp: new Date().toLocaleTimeString([], {
         hour: "2-digit",
@@ -239,8 +174,8 @@ export default function AgentDetail() {
     setTimeout(() => {
       const aiResponse = {
         id: Date.now() + 1,
-        type: "assistant",
-        content: `I understand you're asking about "${inputMessage}". As ${agent.name}, I can help you with that. This is a simulated response to demonstrate the chat interface.`,
+        role: "assistant",
+        content: `I understand you're asking about "${inputMessage}". As ${agent?.name}, I can help you with that. This is a simulated response to demonstrate the chat interface.`,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -260,7 +195,7 @@ export default function AgentDetail() {
 
   // Filter sessions based on search and time
   const filteredSessions = sessions.filter((session) => {
-    const matchesSearch = session.title
+    const matchesSearch = session?.session_name || ""
       .toLowerCase()
       .includes(searchSessions.toLowerCase());
     // For now, we'll just filter by search. Time filtering can be expanded later
@@ -316,6 +251,43 @@ export default function AgentDetail() {
 
     return () => controller.abort();
   };
+
+  const handleDetailSession = async (detailSession) => {
+    setActiveTab("Chat");
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    try {
+      const resSessionMessages = await abApi.detailListSessionMessages(params.id, detailSession?.id, { signal });
+      console.log(resSessionMessages.data);
+
+      setMessages(resSessionMessages.data || []);
+
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        console.error("Failed to fetch session messages:", error);
+      }
+      setMessages([]);
+    }
+
+    return () => controller.abort();
+  };
+
+  const handleRefreshSession = async () => {
+    try {
+      const controller = new AbortController();
+      const { signal } = controller;
+      const resListSessions = await abApi.detailListSession(params.id, { signal });
+      setSessions(resListSessions.data || []);
+    } catch (e) {
+      if (e?.name === "AbortError" || e?.code === "ERR_CANCELED") return;
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
 
   // Skeleton Components
   const HeaderSkeleton = () => (
@@ -663,7 +635,7 @@ export default function AgentDetail() {
                   </p>
                   <p className="text-xs text-white/80">
                     {knowledgeBaseDetails.length > 0
-                      ? knowledgeBaseDetails[0].name
+                      ? knowledgeBaseDetails[0]?.name
                       : "General"}
                   </p>
                 </motion.div>
@@ -772,7 +744,7 @@ export default function AgentDetail() {
                             className="font-semibold mb-1"
                             style={{ color: "var(--text-primary)" }}
                           >
-                            {kb.name}
+                            {kb?.name}
                           </h3>
                           <p
                             className="text-sm mb-2"
@@ -958,13 +930,13 @@ export default function AgentDetail() {
                     className="font-semibold"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    {agent.name}
+                    {agent?.name}
                   </h3>
                   <p
                     className="text-sm"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    AI Assistant • {agent.model}
+                    AI Assistant • {agent?.model}
                   </p>
                 </div>
               </div>
@@ -978,16 +950,14 @@ export default function AgentDetail() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className={`flex ${
-                    message.type === "user" ? "justify-end" : "justify-start"
-                  }`}
+                  className={`flex ${message?.role === "user" ? "justify-end" : "justify-start"
+                    }`}
                 >
                   <div
-                    className={`max-w-[70%] ${
-                      message.type === "user" ? "order-2" : "order-1"
-                    }`}
+                    className={`max-w-[70%] ${message?.role === "user" ? "order-2" : "order-1"
+                      }`}
                   >
-                    {message.type !== "user" && (
+                    {message?.role !== "user" && (
                       <div className="flex items-center gap-2 mb-1">
                         <div
                           className="w-6 h-6 rounded-full flex items-center justify-center"
@@ -999,25 +969,24 @@ export default function AgentDetail() {
                           className="text-xs font-medium"
                           style={{ color: "var(--text-secondary)" }}
                         >
-                          {agent.name}
+                          {agent?.name}
                         </span>
                       </div>
                     )}
                     <div
-                      className={`p-3 rounded-lg ${
-                        message.type === "user"
-                          ? "rounded-br-sm"
-                          : "rounded-bl-sm"
-                      }`}
+                      className={`p-3 rounded-lg ${message?.role === "user"
+                        ? "rounded-br-sm"
+                        : "rounded-bl-sm"
+                        }`}
                       style={{
                         background:
-                          message.type === "user"
+                          message?.role === "user"
                             ? "var(--primary)"
-                            : message.type === "system"
-                            ? "var(--surface-secondary)"
-                            : "var(--surface-secondary)",
+                            : message?.role === "system"
+                              ? "var(--surface-secondary)"
+                              : "var(--surface-secondary)",
                         color:
-                          message.type === "user"
+                          message?.role === "user"
                             ? "var(--text-inverse)"
                             : "var(--text-primary)",
                       }}
@@ -1027,30 +996,28 @@ export default function AgentDetail() {
                       </p>
                       <div className="flex items-center justify-between mt-2">
                         <span
-                          className={`text-xs ${
-                            message.type === "user" ? "text-white/70" : ""
-                          }`}
+                          className={`text-xs ${message?.role === "user" ? "text-white/70" : ""
+                            }`}
                           style={{
                             color:
-                              message.type === "user"
+                              message?.role === "user"
                                 ? "rgba(255, 255, 255, 0.7)"
                                 : "var(--text-tertiary)",
                           }}
                         >
                           {message.timestamp}
                         </span>
-                        {message.type !== "system" && (
+                        {message?.role !== "system" && (
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
                             onClick={() =>
                               navigator.clipboard.writeText(message.content)
                             }
-                            className={`ml-2 p-1 rounded ${
-                              message.type === "user"
-                                ? "hover:bg-white/20"
-                                : "hover:bg-gray-100"
-                            }`}
+                            className={`ml-2 p-1 rounded ${message?.role === "user"
+                              ? "hover:bg-white/20"
+                              : "hover:bg-gray-100"
+                              }`}
                           >
                             <Copy className="h-3 w-3" />
                           </motion.button>
@@ -1080,7 +1047,7 @@ export default function AgentDetail() {
                         className="text-xs font-medium"
                         style={{ color: "var(--text-secondary)" }}
                       >
-                        {agent.name}
+                        {agent?.name}
                       </span>
                     </div>
                     <div
@@ -1259,6 +1226,7 @@ export default function AgentDetail() {
                   </h2>
                   <motion.button
                     whileHover={{ scale: 1.1, rotate: 180 }}
+                    onClick={handleRefreshSession}
                     whileTap={{ scale: 0.9 }}
                     className="p-2 rounded-lg transition-all duration-200 hover:shadow-md"
                     style={{
@@ -1373,7 +1341,7 @@ export default function AgentDetail() {
                               className="font-semibold text-sm group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300"
                               style={{ color: "var(--text-primary)" }}
                             >
-                              {session.title}
+                              {session?.session_name || "-"}
                             </span>
                           </div>
                         </div>
@@ -1387,7 +1355,7 @@ export default function AgentDetail() {
                             className="text-sm font-medium transition-colors duration-200"
                             style={{ color: "var(--text-secondary)" }}
                           >
-                            {session.messages}
+                            {session?.message_count || 0}
                           </span>
                         </div>
                       </td>
@@ -1400,7 +1368,7 @@ export default function AgentDetail() {
                             className="text-sm font-medium transition-colors duration-200"
                             style={{ color: "var(--text-secondary)" }}
                           >
-                            {session.lastActive}
+                            {session.last_active}
                           </span>
                         </div>
                       </td>
@@ -1416,6 +1384,7 @@ export default function AgentDetail() {
                               color: "var(--primary)",
                               border: "1px solid rgba(59, 130, 246, 0.2)",
                             }}
+                            onClick={() => handleDetailSession(session)}
                           >
                             <Eye className="h-3 w-3" />
                             <span>View</span>
