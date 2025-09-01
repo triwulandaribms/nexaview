@@ -429,7 +429,7 @@ export default function Agents() {
           <AnimatePresence mode="wait">
             {activeTab === "My agents" && (
               <>
-                {/* Grid View */}SkeletonCard
+                {/* Grid View */}
                 {viewMode === "grid" && (
                   <motion.div
                     key="grid"

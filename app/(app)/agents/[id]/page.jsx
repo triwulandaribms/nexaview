@@ -19,8 +19,10 @@ import {
   Search,
   RotateCcw,
   ChevronDown,
+  AlertTriangle,
+  X
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
 import { abApi } from "@/app/lib/agentBaseApi";
 import ConfirmDeleteModalAgent from "@/app/components/ConfirmDeleteModalAgent";
@@ -44,16 +46,19 @@ export default function AgentDetail() {
   const [activeTab, setActiveTab] = useState("Overview");
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: "system",
-      content: "Hello! I'm your AI assistant. How can I help you today?",
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    },
+    // {
+    //   id: 1,
+    //   type: "system",
+    //   content: "Hello! I'm your AI assistant. How can I help you today?",
+    //   timestamp: new Date().toLocaleTimeString([], {
+    //     hour: "2-digit",
+    //     minute: "2-digit",
+    //   }),
+    // },
   ]);
+  const [delSessionOpen, setDelSessionOpen] = useState(false);
+  const [delSessionLoading, setDelSessionLoading] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(null);
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [searchSessions, setSearchSessions] = useState("");
@@ -288,6 +293,34 @@ export default function AgentDetail() {
     }
   }
 
+  const openSessionDelete = (session) => {
+    setSelectedSession(session); // Set the selected session
+    setDelSessionOpen(true); // Open the delete modal
+  };
+
+  // Function to close the delete modal
+  const closeSessionDelete = () => {
+    if (!delSessionLoading) setDelSessionOpen(false); // Close if not loading
+  };
+
+  // Function to confirm session deletion
+  const confirmSessionDelete = async () => {
+    setDelSessionLoading(true); // Set loading state to true
+    try {
+      const response = await abApi.deleteSession(selectedSession.id); // Make API call to delete the session
+      if (response.error) throw new Error("Failed to delete session");
+
+      // Remove the deleted session from the list
+      setSessions((prevSessions) =>
+        prevSessions.filter((session) => session.id !== selectedSession.id)
+      );
+    } catch (error) {
+      console.error(error); // Log any errors during the deletion process
+    } finally {
+      setDelSessionLoading(false); // Set loading state back to false
+      setDelSessionOpen(false); // Close the delete modal
+    }
+  };
 
   // Skeleton Components
   const HeaderSkeleton = () => (
@@ -1399,6 +1432,7 @@ export default function AgentDetail() {
                                 "linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%)",
                               border: "1px solid rgba(239, 68, 68, 0.2)",
                             }}
+                            onClick={() => openSessionDelete(session)}
                           >
                             <Trash2 className="h-3.5 w-3.5 text-red-500" />
                           </motion.button>
@@ -1482,6 +1516,143 @@ export default function AgentDetail() {
         confirmText="Delete"
         cancelText="Cancel"
       />
+
+      <AnimatePresence>
+        {delSessionOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              key="overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50"
+              style={{ background: "rgba(0,0,0,0.5)" }}
+              onClick={closeSessionDelete}
+            />
+
+            {/* Dialog */}
+            <motion.div
+              key="dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-title"
+              aria-describedby="delete-desc"
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            >
+              <div
+                className="w-full max-w-[28rem] sm:max-w-md rounded-2xl border shadow-xl"
+                style={{
+                  background: "var(--surface-elevated)",
+                  borderColor: "var(--border-light)",
+                }}
+              >
+                {/* Header */}
+                <div className="flex items-center gap-3 px-5 pt-5">
+                  <div
+                    className="p-2 rounded-xl"
+                    style={{ background: "var(--surface-secondary)" }}
+                  >
+                    <AlertTriangle
+                      className="h-5 w-5"
+                      style={{ color: "var(--primary)" }}
+                    />
+                  </div>
+                  <h2
+                    id="delete-title"
+                    className="text-lg font-semibold"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Delete Session?
+                  </h2>
+                </div>
+
+                {/* Body */}
+                <div className="px-5 pt-3 pb-5">
+                  <p
+                    id="delete-desc"
+                    className="text-sm"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    This action cannot be undone. You will delete:
+                  </p>
+
+                  <div
+                    className="mt-3 rounded-lg border px-4 py-3 text-sm"
+                    style={{
+                      borderColor: "var(--border-light)",
+                      color: "var(--text-primary)",
+                      background: "var(--surface-secondary)",
+                    }}
+                  >
+                    <span className="font-medium">{selectedSession?.session_name}</span>
+                    <div
+                      className="mt-1 text-xs"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      {selectedSession?.created_at}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-5 grid grid-cols-1 sm:flex sm:justify-end gap-2 sm:gap-3">
+                    {/* Cancel */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={closeSessionDelete}
+                      disabled={delSessionLoading}
+                      aria-label="Cancel"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl border font-medium transition-all disabled:opacity-60"
+                      style={{
+                        background: "var(--surface-elevated)",
+                        color: "var(--text-primary)",
+                        borderColor: "var(--border-light)",
+                        outline: "none",
+                        boxShadow:
+                          "0 1px 0 rgba(255,255,255,.04) inset, 0 6px 20px rgba(0,0,0,.04)",
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                      <span>Cancel</span>
+                    </motion.button>
+
+                    {/* Delete */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={confirmSessionDelete}
+                      disabled={delSessionLoading}
+                      aria-label="Delete"
+                      aria-busy={delSessionLoading}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl font-medium transition-all disabled:opacity-60"
+                      style={{
+                        background: "var(--primary)",
+                        color: "var(--text-inverse)",
+                        outline: "none",
+                        boxShadow: "0 10px 24px rgba(0,0,0,.10)",
+                      }}
+                    >
+                      {delSessionLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                      <span>{delSessionLoading ? "Deleting…" : "Delete"}</span>
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+
     </motion.main>
   );
 }
