@@ -145,22 +145,7 @@
     --sidebar-hover-bg: rgba(100, 116, 139, 0.1);
   }
 }
-html,
-body {
-  overscroll-behavior: none;
-}
-
-html.lenis {
-  height: auto;
-}
-
-.lenis.lenis-smooth {
-  scroll-behavior: auto;
-}
-
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
+/* Lenis smooth scrolling styles removed */
 body {
   background: var(--background);
   color: var(--foreground);
@@ -228,6 +213,31 @@ nextjs-portal,
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .scrollbar-hide {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.modal-content {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar styles */
+.modal-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background-color: var(--border-medium);
+  border-radius: 20px;
+  border: 2px solid transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background-color: var(--border-strong);
 }
