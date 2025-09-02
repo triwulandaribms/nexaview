@@ -894,6 +894,7 @@ export default function AgentDetail() {
                   whileTap={{ scale: 0.98 }}
                   className="text-sm font-medium cursor-pointer hover:underline"
                   style={{ color: "var(--primary)" }}
+                  onClick={() => router.push(`/agents/edit/${currentId}`)}
                 >
                   Edit
                 </motion.button>
