@@ -23,6 +23,9 @@ export const abApi = {
     detailListSession(id, opts) {
         return request(`${base}/${id}/sessions`, { method: 'GET', cache: 'no-store', ...(opts || {}) });
     },
+    deleteSession(id, id_session, opts) {
+        return request(`${base}/${id}/sessions/${id_session}`, { method: 'DELETE', ...(opts || {}) });
+    },
     detailListSessionMessages(id, id_session, opts) {
         return request(`${base}/${id}/sessions/${id_session}/messages`, { method: 'GET', cache: 'no-store', ...(opts || {}) });
     },

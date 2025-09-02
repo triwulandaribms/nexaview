@@ -22,18 +22,34 @@ export async function GET(_req, { params }) {
     });
 
     const dataAll = data?.data ?? data ?? {};
-    const messagesWithTimestamp = dataAll?.map(a => ({
-      ...a,
-      timestamp: a.created_at
-        ? new Date(a.created_at).toLocaleString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-        : '-',
-    })) || [];
+
+    const messagesWithTimestamp = dataAll?.map(a => {
+      const createdAt = new Date(a.created_at);
+      const now = new Date();
+
+      const isSameDay = createdAt.toDateString() === now.toDateString();
+
+      return {
+        ...a,
+        timestamp: a.created_at
+          ? isSameDay
+            ? createdAt.toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            })
+            : createdAt.toLocaleString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true,
+            })
+          : '-',
+      };
+    }) || [];
+
 
     return ok('Successfully fetched agent details sessions messages sessions messages .', messagesWithTimestamp);
   } catch (err) {

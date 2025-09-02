@@ -20,10 +20,34 @@ export async function GET(_req, { params }) {
       timeout: 30_000,
       validateStatus: s => s >= 200 && s < 300,
     });
+    const sessions = data?.data?.map(session => {
+      const lastActive = new Date(session.last_active);
+      const createdAtTime = new Date(session.created_at);
+      const formattedLastActive = lastActive.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }).replace(/(am|pm)/i, (match) => match.toUpperCase());
+      const createdAt = createdAtTime.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      }).replace(/(am|pm)/i, (match) => match.toUpperCase());
+      return {
+        ...session,
+        last_active: formattedLastActive,
+        created_at: createdAt
+      };
+    }) ?? [];
 
-    const agent = data?.data ?? data ?? {};
 
-    return ok('Successfully fetched agent details.', agent);
+    return ok('Successfully fetched agent details.', sessions);
   } catch (err) {
     const { code, msg } = normalizeAxiosError(err, 'Failed to fetch agent list sessions');
     return fail(msg || 'An error occurred while fetching agent data', code);

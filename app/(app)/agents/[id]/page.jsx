@@ -20,7 +20,8 @@ import {
   RotateCcw,
   ChevronDown,
   AlertTriangle,
-  X
+  X,
+  Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
@@ -187,13 +188,12 @@ export default function AgentDetail() {
       const signal = controller.signal;
 
       const { data } = await abApi.detailListAddMessages(agent.id, payload, { signal });
-      console.log(data);
 
       setTimeout(() => {
         const aiResponse = {
           id: Date.now() + 1,
           role: "assistant",
-          content: `I understand you're asking about "${inputMessage}". As ${agent?.name}, I can help you with that. This is a simulated response to demonstrate the chat interface.`,
+          content: data?.answer || "Sorry, I couldn't process your request at the moment.",
           timestamp: new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -325,19 +325,33 @@ export default function AgentDetail() {
   // Function to confirm session deletion
   const confirmSessionDelete = async () => {
     setDelSessionLoading(true);
+
+    const controller = new AbortController();
+    const signal = controller.signal;
     try {
-      const response = await abApi.deleteSession(selectedSession.id);
+      const response = await abApi.deleteSession(currentId, selectedSession.id, { signal });
+
       if (response.error) throw new Error("Failed to delete session");
 
       setSessions((prevSessions) =>
         prevSessions.filter((session) => session.id !== selectedSession.id)
       );
+
+      if (selectedSession.id == detailSession) {
+        setDetailSession("");
+        setMessages([]);
+      }
     } catch (error) {
-      console.error(error);
+      if (error.name === 'AbortError') {
+        console.log("Request was canceled");
+      } else {
+        console.error(error);
+      }
     } finally {
       setDelSessionLoading(false);
       setDelSessionOpen(false);
     }
+
   };
 
   // Skeleton Components
@@ -1611,12 +1625,12 @@ export default function AgentDetail() {
                       background: "var(--surface-secondary)",
                     }}
                   >
-                    <span className="font-medium">{selectedSession?.session_name}</span>
+                    <span className="font-medium">{selectedSession?.session_name || "-"}</span>
                     <div
                       className="mt-1 text-xs"
                       style={{ color: "var(--text-tertiary)" }}
                     >
-                      {selectedSession?.created_at}
+                      {selectedSession?.created_at || "-"}
                     </div>
                   </div>
 
