@@ -66,6 +66,8 @@ export default function AgentDetail() {
   const [agent, setAgent] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [detailSession, setDetailSession] = useState("");
+  const [delOpen, setDelOpen] = useState(false);
+  const [delLoading, setDelLoading] = useState(false);
 
   const currentId = agent?.id || params?.id;
   const messagesEndRef = useRef(null);
@@ -175,21 +177,42 @@ export default function AgentDetail() {
     setInputMessage("");
     setIsSending(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = {
-        id: Date.now() + 1,
-        role: "assistant",
-        content: `I understand you're asking about "${inputMessage}". As ${agent?.name}, I can help you with that. This is a simulated response to demonstrate the chat interface.`,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setMessages((prev) => [...prev, aiResponse]);
+    const payload = {
+      content: inputMessage,
+      session_id: detailSession || null,
+    };
+
+    try {
+      const controller = new AbortController();
+      const signal = controller.signal;
+
+      const { data } = await abApi.detailListAddMessages(agent.id, payload, { signal });
+      console.log(data);
+
+      setTimeout(() => {
+        const aiResponse = {
+          id: Date.now() + 1,
+          role: "assistant",
+          content: `I understand you're asking about "${inputMessage}". As ${agent?.name}, I can help you with that. This is a simulated response to demonstrate the chat interface.`,
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        };
+        setMessages((prev) => [...prev, aiResponse]);
+        setIsSending(false);
+      }, 1500);
+    } catch (err) {
+      console.error("Error sending message:", err);
       setIsSending(false);
-    }, 1500);
+    }
   };
+
+  const handleNewSession = async () => {
+    setMessages([]);
+    setDetailSession("");
+    setActiveTab("Chat")
+  }
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -214,9 +237,6 @@ export default function AgentDetail() {
         : []
       : [];
 
-  // Delete modal state
-  const [delOpen, setDelOpen] = useState(false);
-  const [delLoading, setDelLoading] = useState(false);
 
   const openDelete = () => setDelOpen(true);
   const closeDelete = () => {
@@ -265,8 +285,7 @@ export default function AgentDetail() {
 
     try {
       const resSessionMessages = await abApi.detailListSessionMessages(params.id, detailSession?.id, { signal });
-      console.log(resSessionMessages.data);
-
+      setDetailSession(detailSession?.id);
       setMessages(resSessionMessages.data || []);
 
     } catch (error) {
@@ -294,31 +313,30 @@ export default function AgentDetail() {
   }
 
   const openSessionDelete = (session) => {
-    setSelectedSession(session); // Set the selected session
-    setDelSessionOpen(true); // Open the delete modal
+    setSelectedSession(session);
+    setDelSessionOpen(true);
   };
 
   // Function to close the delete modal
   const closeSessionDelete = () => {
-    if (!delSessionLoading) setDelSessionOpen(false); // Close if not loading
+    if (!delSessionLoading) setDelSessionOpen(false);
   };
 
   // Function to confirm session deletion
   const confirmSessionDelete = async () => {
-    setDelSessionLoading(true); // Set loading state to true
+    setDelSessionLoading(true);
     try {
-      const response = await abApi.deleteSession(selectedSession.id); // Make API call to delete the session
+      const response = await abApi.deleteSession(selectedSession.id);
       if (response.error) throw new Error("Failed to delete session");
 
-      // Remove the deleted session from the list
       setSessions((prevSessions) =>
         prevSessions.filter((session) => session.id !== selectedSession.id)
       );
     } catch (error) {
-      console.error(error); // Log any errors during the deletion process
+      console.error(error);
     } finally {
-      setDelSessionLoading(false); // Set loading state back to false
-      setDelSessionOpen(false); // Close the delete modal
+      setDelSessionLoading(false);
+      setDelSessionOpen(false);
     }
   };
 
@@ -597,7 +615,10 @@ export default function AgentDetail() {
                   key={tab}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => {
+                    setActiveTab(tab);
+                    tab == "Sessions" && handleRefreshSession();
+                  }}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer transition-all"
                   style={{
                     background:
@@ -1154,7 +1175,7 @@ export default function AgentDetail() {
               </p>
 
               {/* Quick Suggestions */}
-              {messages.length === 1 && (
+              {(messages.length === 1 || messages.length === 0) && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1488,6 +1509,7 @@ export default function AgentDetail() {
                         "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
                       boxShadow: "0 4px 15px rgba(59, 130, 246, 0.4)",
                     }}
+                    onClick={handleNewSession}
                   >
                     New Session
                   </motion.button>

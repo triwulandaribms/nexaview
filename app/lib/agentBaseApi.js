@@ -26,4 +26,7 @@ export const abApi = {
     detailListSessionMessages(id, id_session, opts) {
         return request(`${base}/${id}/sessions/${id_session}/messages`, { method: 'GET', cache: 'no-store', ...(opts || {}) });
     },
+    detailListAddMessages(id, payload, opts) {
+        return request(`${base}/${id}/sessions/messages`, { method: 'POST', body: payload, cache: 'no-store', ...(opts || {}) });
+    },
 }

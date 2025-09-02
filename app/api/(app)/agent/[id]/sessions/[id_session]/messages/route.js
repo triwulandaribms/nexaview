@@ -21,13 +21,23 @@ export async function GET(_req, { params }) {
       validateStatus: s => s >= 200 && s < 300,
     });
 
-    const agent = data?.data ?? data ?? {};
+    const dataAll = data?.data ?? data ?? {};
+    const messagesWithTimestamp = dataAll?.map(a => ({
+      ...a,
+      timestamp: a.created_at
+        ? new Date(a.created_at).toLocaleString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+        : '-',
+    })) || [];
 
-    return ok('Successfully fetched agent details sessions messages sessions messages .', agent);
+    return ok('Successfully fetched agent details sessions messages sessions messages .', messagesWithTimestamp);
   } catch (err) {
     const { code, msg } = normalizeAxiosError(err, 'Failed to fetch agent details sessions messages');
     return fail(msg || 'An error occurred while fetching agent data', code);
   }
 }
-
-
