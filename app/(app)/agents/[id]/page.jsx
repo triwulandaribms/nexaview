@@ -188,7 +188,9 @@ export default function AgentDetail() {
       const signal = controller.signal;
 
       const { data } = await abApi.detailListAddMessages(agent.id, payload, { signal });
-
+      if (!detailSession) {
+        setDetailSession(data?.session_id || "");
+      }
       setTimeout(() => {
         const aiResponse = {
           id: Date.now() + 1,
