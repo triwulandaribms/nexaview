@@ -115,6 +115,7 @@ export default function AgentDetail() {
           systemPrompt: a.system_prompt || "",
           kbDetails: Array.isArray(a.knowledgebases)
             ? a.knowledgebases.map((k) => ({
+              id: k.id,
               name: k?.name,
               description: k.description || "",
               docs:
@@ -130,7 +131,6 @@ export default function AgentDetail() {
 
         setAgent(mapped);
 
-        console.log(resListSessions.data);
         setSessions(resListSessions.data || [])
       } catch (e) {
         if (e?.name === "AbortError" || e?.code === "ERR_CANCELED") return;
@@ -221,14 +221,39 @@ export default function AgentDetail() {
     }
   };
 
-  // Filter sessions based on search and time
-  const filteredSessions = sessions.filter((session) => {
-    const matchesSearch = session?.session_name || ""
-      .toLowerCase()
-      .includes(searchSessions.toLowerCase());
-    // For now, we'll just filter by search. Time filtering can be expanded later
-    return matchesSearch;
-  });
+  // filter select time
+  const filterSessionsByTime = (sessions, timeFilter) => {
+    const currentDate = new Date();
+
+    return sessions.filter(session => {
+      console.log(session);
+
+      const sessionDate = new Date(session.updated_at);
+
+      const timeDifference = currentDate - sessionDate;
+
+      switch (timeFilter) {
+        case "Today":
+          return sessionDate.toDateString() === currentDate.toDateString();
+        case "This week":
+          return timeDifference <= 7 * 24 * 60 * 60 * 1000;
+        case "This month":
+          return sessionDate.getMonth() === currentDate.getMonth() && sessionDate.getFullYear() === currentDate.getFullYear();
+        default:
+          return true;
+      }
+    });
+  };
+
+  // filter seacrh time
+  const filteredSessions = timeFilter === "All time"
+    ? sessions.filter((session) => {
+      return (session?.session_name || "").toLowerCase().includes(searchSessions.toLowerCase());
+    })
+    : filterSessionsByTime(
+      sessions.filter((session) => (session?.session_name || "").toLowerCase().includes(searchSessions.toLowerCase())),
+      timeFilter
+    );
 
   const knowledgeBaseDetails =
     agent?.dataSources === "Knowledge Bases"
@@ -721,7 +746,7 @@ export default function AgentDetail() {
                     <div className="p-2 rounded-lg bg-white/20">
                       <MessageSquare className="h-5 w-5 text-white" />
                     </div>
-                    <div className="flex items-center gap-1 text-white/80">
+                    <div className="flex items-center gap-1 text-white/80" onClick={() => setActiveTab("Sessions")}>
                       <span className="text-xs">View History</span>
                       <ChevronRight className="h-3 w-3" />
                     </div>
@@ -730,7 +755,7 @@ export default function AgentDetail() {
                     Sessions
                   </h3>
                   <p className="text-2xl font-bold text-white">
-                    {agent?.sessions || 0}
+                    {sessions?.length || 0}
                   </p>
                 </motion.div>
 
@@ -747,7 +772,7 @@ export default function AgentDetail() {
                     <div className="p-2 rounded-lg bg-white/20">
                       <Bot className="h-5 w-5 text-white" />
                     </div>
-                    <div className="flex items-center gap-1 text-white/80">
+                    <div className="flex items-center gap-1 text-white/80" onClick={() => router.push(`/agents/edit/${currentId}`)}>
                       <span className="text-xs">Change</span>
                       <ChevronRight className="h-3 w-3" />
                     </div>
@@ -777,79 +802,88 @@ export default function AgentDetail() {
                     ? "Knowledge Base Details"
                     : "API Features"}
                 </h2>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="text-sm font-medium cursor-pointer hover:underline"
-                  style={{ color: "var(--primary)" }}
-                >
-                  Edit
-                </motion.button>
+
               </div>
               <div className="space-y-4">
                 {knowledgeBaseDetails.length > 0 ? (
-                  knowledgeBaseDetails.map((kb, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
-                      className="p-4 rounded-lg border"
-                      style={{
-                        background: "var(--surface-elevated)",
-                        borderColor: "var(--border-light)",
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center"
-                          style={{ background: "var(--primary)" }}
-                        >
-                          <Database className="h-5 w-5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3
-                            className="font-semibold mb-1"
-                            style={{ color: "var(--text-primary)" }}
+                  knowledgeBaseDetails.map((kb, index) => {
+                    return (
+                      <div className="flex flex-col gap-2">
+                        {kb?.id && (
+                          <motion.button
+                            // whileHover={{ scale: 1.02 }}
+                            // whileTap={{ scale: 0.98 }}
+                            className="text-sm font-medium cursor-pointer hover:underline text-end"
+                            style={{ color: "var(--primary)" }}
+                            onClick={() => router.push(`/knowledge-base/update/${kb.id}`)}
                           >
-                            {kb?.name}
-                          </h3>
-                          <p
-                            className="text-sm mb-2"
-                            style={{
-                              color: "var(--text-secondary)",
-                              overflowWrap: "anywhere",
-                              wordBreak: "break-word",
-                              whiteSpace: "normal",
-                            }}
-                          >
-                            {kb?.description}
-                          </p>
+                            Edit
+                          </motion.button>
+                        )}
 
-                          <div className="flex items-center gap-4 text-xs">
-                            <span
-                              className="px-2 py-1 rounded-md font-medium"
-                              style={{
-                                background: "var(--primary-light)",
-                                color: "var(--primary)",
-                              }}
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
+                          className="p-4 rounded-lg border"
+                          style={{
+                            background: "var(--surface-elevated)",
+                            borderColor: "var(--border-light)",
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-10 h-10 rounded-lg flex items-center justify-center"
+                              style={{ background: "var(--primary)" }}
                             >
-                              {kb.docs} docs
-                            </span>
-                            <span
-                              className="px-2 py-1 rounded-md font-medium"
-                              style={{
-                                background: "var(--success-light)",
-                                color: "var(--success)",
-                              }}
-                            >
-                              {kb.category}
-                            </span>
+                              <Database className="h-5 w-5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3
+                                className="font-semibold mb-1"
+                                style={{ color: "var(--text-primary)" }}
+                              >
+                                {kb?.name}
+                              </h3>
+                              <p
+                                className="text-sm mb-2"
+                                style={{
+                                  color: "var(--text-secondary)",
+                                  overflowWrap: "anywhere",
+                                  wordBreak: "break-word",
+                                  whiteSpace: "normal",
+                                }}
+                              >
+                                {kb?.description}
+                              </p>
+
+                              <div className="flex items-center gap-4 text-xs">
+                                <span
+                                  className="px-2 py-1 rounded-md font-medium"
+                                  style={{
+                                    background: "var(--primary-light)",
+                                    color: "var(--primary)",
+                                  }}
+                                >
+                                  {kb.docs} docs
+                                </span>
+                                <span
+                                  className="px-2 py-1 rounded-md font-medium"
+                                  style={{
+                                    background: "var(--success-light)",
+                                    color: "var(--success)",
+                                  }}
+                                >
+                                  {kb.category}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        </motion.div>
                       </div>
-                    </motion.div>
-                  ))
+                    )
+                  })
                 ) : (
                   <div
                     className="p-8 rounded-lg border text-center"

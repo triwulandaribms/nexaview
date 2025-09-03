@@ -219,7 +219,7 @@ export default function CreateAgent() {
             ? knowledgeBases
               .filter((kb) => selectedKnowledgeBases.includes(kb.id))
               .map((kb) => ({
-                // id: kb.id,
+                id: kb.id,
                 name: kb.name,
                 description: kb.description || "",
                 documentCount:
