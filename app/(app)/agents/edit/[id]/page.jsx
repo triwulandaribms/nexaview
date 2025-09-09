@@ -110,8 +110,8 @@ export default function EditAgent() {
             typeof it.docs_count === "number"
               ? it.docs_count
               : Array.isArray(it.documents)
-                ? it.documents.length
-                : 0,
+              ? it.documents.length
+              : 0,
           description: it.description ?? "",
         }));
         setKnowledgeBases(mappedKB);
@@ -130,7 +130,7 @@ export default function EditAgent() {
         const mappedProviders = mbRaw.map((p) => {
           const hasKey = !!p.apiKeyPreview;
           const models = (Array.isArray(p.models) ? p.models : []).filter((m) =>
-            hasKey ? m.enabled === true : (m && m.id && m.name)
+            hasKey ? m.enabled === true : m && m.id && m.name
           );
           return {
             id: p.id,
@@ -151,8 +151,6 @@ export default function EditAgent() {
     };
   }, []);
 
-
-
   // Simulate fetching agent data
   useEffect(() => {
     if (!agentId) return;
@@ -171,7 +169,9 @@ export default function EditAgent() {
 
         setSelectedModel(a?.default_model?.id || "");
 
-        const providerId = String(a?.default_model?.providerId || "").toLowerCase();
+        const providerId = String(
+          a?.default_model?.providerId || ""
+        ).toLowerCase();
         const providerNameMap = {
           openai: "OpenAI",
           anthropic: "Anthropic",
@@ -182,7 +182,9 @@ export default function EditAgent() {
         };
         setSelectedProvider(providerNameMap[providerId] || providerId || "");
 
-        const type = (Array.isArray(a.data_source_type) ? a.data_source_type[0] : "") || "";
+        const type =
+          (Array.isArray(a.data_source_type) ? a.data_source_type[0] : "") ||
+          "";
         const typeMap = {
           "knowledge-bases": "Knowledge Bases",
           "database-connections": "Database Connections",
@@ -190,9 +192,13 @@ export default function EditAgent() {
         };
         setSelectedDataSource(typeMap[type] || "Knowledge Bases");
 
-        const kbNames = Array.isArray(a.knowledgebases) ? a.knowledgebases.map((k) => k.name) : [];
+        const kbNames = Array.isArray(a.knowledgebases)
+          ? a.knowledgebases.map((k) => k.name)
+          : [];
         setSelectedKnowledgeBases(
-          knowledgeBases.filter((kb) => kbNames.includes(kb.name)).map((kb) => kb.id)
+          knowledgeBases
+            .filter((kb) => kbNames.includes(kb.name))
+            .map((kb) => kb.id)
         );
       } catch (e) {
         if (e?.name === "AbortError" || e?.code === "ERR_CANCELED") return;
@@ -205,7 +211,6 @@ export default function EditAgent() {
 
     return () => controller.abort();
   }, [agentId, knowledgeBases]);
-
 
   const handleKnowledgeBaseToggle = (kbId) => {
     setSelectedKnowledgeBases((prev) =>
@@ -248,14 +253,14 @@ export default function EditAgent() {
         const kbList =
           selectedDataSource === "Knowledge Bases"
             ? knowledgeBases
-              .filter((kb) => selectedKnowledgeBases.includes(kb.id))
-              .map((kb) => ({
-                id: kb.id,
-                name: kb.name,
-                description: kb.description || "",
-                documentCount:
-                  typeof kb.documents === "number" ? kb.documents : 0,
-              }))
+                .filter((kb) => selectedKnowledgeBases.includes(kb.id))
+                .map((kb) => ({
+                  id: kb.id,
+                  name: kb.name,
+                  description: kb.description || "",
+                  documentCount:
+                    typeof kb.documents === "number" ? kb.documents : 0,
+                }))
             : [];
 
         const payload = {
@@ -280,20 +285,23 @@ export default function EditAgent() {
         }
 
         const res = await abApi.update(agentId, payload, { signal });
-        if (!res || res.error) throw new Error(res?.error || "Failed to update agent.");
+        if (!res || res.error)
+          throw new Error(res?.error || "Failed to update agent.");
 
         router.push(`/agents/${agentId}`);
       } catch (e) {
-        if (e.name !== "AbortError") setSubmitErr(e?.message || "Unexpected error.");
+        if (e.name !== "AbortError")
+          setSubmitErr(e?.message || "Unexpected error.");
       } finally {
         setIsSubmitting(false);
       }
     })();
   };
 
-
   const openDelete = () => setDelOpen(true);
-  const closeDelete = () => { if (!delLoading) setDelOpen(false); };
+  const closeDelete = () => {
+    if (!delLoading) setDelOpen(false);
+  };
 
   const handleDeleteAgent = () => {
     const controller = new AbortController();
@@ -304,9 +312,13 @@ export default function EditAgent() {
         setDelLoading(true);
         if (abApi?.remove) {
           const res = await abApi.remove(agentId, { signal });
-          if (!res || res.error) throw new Error(res?.error || "Failed to delete agent.");
+          if (!res || res.error)
+            throw new Error(res?.error || "Failed to delete agent.");
         } else {
-          const r = await fetch(`/api/agent/${agentId}`, { method: "DELETE", signal });
+          const r = await fetch(`/api/agent/${agentId}`, {
+            method: "DELETE",
+            signal,
+          });
           if (!r.ok) throw new Error("Failed to delete agent.");
         }
 
@@ -332,8 +344,9 @@ export default function EditAgent() {
         <div className="h-12 w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse" />
       ) : (
         <div
-          className={`h-${rows * 6
-            } w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse`}
+          className={`h-${
+            rows * 6
+          } w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse`}
         />
       )}
     </div>
@@ -688,6 +701,137 @@ export default function EditAgent() {
                     </div>
                   </div>
 
+                  {/* Model Selection */}
+                  <div
+                    className="rounded-xl border p-4 md:p-6 lg:p-8 backdrop-blur-sm"
+                    style={{
+                      background: "var(--surface-elevated)",
+                      borderColor: "var(--border-light)",
+                    }}
+                  >
+                    <div className="flex items-center gap-3 mb-6 md:mb-8">
+                      <div
+                        className="p-2 rounded-lg"
+                        style={{ background: "var(--primary-light)" }}
+                      >
+                        <Cpu
+                          className="h-5 w-5"
+                          style={{ color: "var(--primary)" }}
+                        />
+                      </div>
+                      <h3
+                        className="text-lg md:text-xl font-semibold"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        Model Selection
+                      </h3>
+                    </div>
+
+                    <div className="space-y-4 md:space-y-6">
+                      {modelProviders.map((provider) => (
+                        <div key={provider.name}>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+                            <div
+                              className="p-2 rounded-lg"
+                              style={{ background: "var(--surface-secondary)" }}
+                            >
+                              {(() => {
+                                const Icon = ICONS[provider.icon] || Bot;
+                                return (
+                                  <Icon
+                                    className="h-5 w-5"
+                                    style={{ color: "var(--text-primary)" }}
+                                  />
+                                );
+                              })()}
+                            </div>
+                            <h4
+                              className="font-medium"
+                              style={{ color: "var(--text-primary)" }}
+                            >
+                              {provider.name}
+                            </h4>
+                            <span
+                              className={`text-xs px-3 py-1 rounded-full font-medium ${
+                                provider.status === "Connected"
+                                  ? "bg-green-50 text-green-600 border border-green-200"
+                                  : "bg-gray-50 text-gray-600 border border-gray-200"
+                              }`}
+                            >
+                              {provider.status}
+                            </span>
+                          </div>
+
+                          <div className="space-y-2 md:space-y-3 ml-3 sm:ml-6">
+                            {provider.models.map((model) => (
+                              <label
+                                key={model.id}
+                                className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${
+                                  selectedModel === model.id
+                                    ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                                    : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                                } ${
+                                  provider.status !== "Connected"
+                                    ? "opacity-50 cursor-not-allowed"
+                                    : ""
+                                }`}
+                                style={{
+                                  background:
+                                    selectedModel === model.id
+                                      ? "var(--primary-light)"
+                                      : "var(--background)",
+                                }}
+                              >
+                                <input
+                                  type="radio"
+                                  name="model"
+                                  value={model.id}
+                                  checked={selectedModel === model.id}
+                                  onChange={() => {
+                                    setSelectedModel(model.id);
+                                    setSelectedProvider(provider.name);
+                                  }}
+                                  disabled={provider.status !== "Connected"}
+                                  className="h-4 w-4"
+                                  style={{
+                                    accentColor:
+                                      selectedModel === model.id
+                                        ? "white"
+                                        : "var(--primary)",
+                                  }}
+                                />
+                                <span
+                                  className={`text-sm font-medium flex-1 ${
+                                    provider.status !== "Connected"
+                                      ? "text-gray-400"
+                                      : ""
+                                  }`}
+                                  style={{
+                                    color:
+                                      provider.status !== "Connected"
+                                        ? "rgb(156, 163, 175)"
+                                        : "var(--text-primary)",
+                                  }}
+                                >
+                                  {model.name}
+                                </span>
+                                {selectedModel === model.id && (
+                                  <Check
+                                    className="h-5 w-5"
+                                    style={{ color: "var(--primary)" }}
+                                  />
+                                )}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div>
                   {/* Data Source */}
                   <div
                     className="rounded-xl border p-4 md:p-6 lg:p-8 backdrop-blur-sm"
@@ -721,10 +865,11 @@ export default function EditAgent() {
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           onClick={() => setSelectedDataSource(option.id)}
-                          className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${selectedDataSource === option.id
-                            ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                            : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
-                            }`}
+                          className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${
+                            selectedDataSource === option.id
+                              ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                              : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                          }`}
                           style={{
                             background:
                               selectedDataSource === option.id
@@ -836,128 +981,6 @@ export default function EditAgent() {
                     )}
                   </div>
                 </div>
-
-                {/* Right Column */}
-                <div>
-                  {/* Model Selection */}
-                  <div
-                    className="rounded-xl border p-4 md:p-6 lg:p-8 backdrop-blur-sm"
-                    style={{
-                      background: "var(--surface-elevated)",
-                      borderColor: "var(--border-light)",
-                    }}
-                  >
-                    <div className="flex items-center gap-3 mb-6 md:mb-8">
-                      <div
-                        className="p-2 rounded-lg"
-                        style={{ background: "var(--primary-light)" }}
-                      >
-                        <Cpu
-                          className="h-5 w-5"
-                          style={{ color: "var(--primary)" }}
-                        />
-                      </div>
-                      <h3
-                        className="text-lg md:text-xl font-semibold"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        Model Selection
-                      </h3>
-                    </div>
-
-                    <div className="space-y-4 md:space-y-6">
-                      {modelProviders.map((provider) => (
-                        <div key={provider.name}>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
-                            <div
-                              className="p-2 rounded-lg"
-                              style={{ background: "var(--surface-secondary)" }}
-                            >
-                              {(() => {
-                                const Icon = ICONS[provider.icon] || Bot;
-                                return <Icon className="h-5 w-5" style={{ color: "var(--text-primary)" }} />;
-                              })()}
-                            </div>
-                            <h4
-                              className="font-medium"
-                              style={{ color: "var(--text-primary)" }}
-                            >
-                              {provider.name}
-                            </h4>
-                            <span
-                              className={`text-xs px-3 py-1 rounded-full font-medium ${provider.status === "Connected"
-                                ? "bg-green-50 text-green-600 border border-green-200"
-                                : "bg-gray-50 text-gray-600 border border-gray-200"
-                                }`}
-                            >
-                              {provider.status}
-                            </span>
-                          </div>
-
-                          <div className="space-y-2 md:space-y-3 ml-3 sm:ml-6">
-                            {provider.models.map((model) => (
-                              <label
-                                key={model.id}
-                                className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${selectedModel === model.id
-                                  ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                                  : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
-                                  } ${provider.status !== "Connected"
-                                    ? "opacity-50 cursor-not-allowed"
-                                    : ""
-                                  }`}
-                                style={{
-                                  background:
-                                    selectedModel === model.id
-                                      ? "var(--primary-light)"
-                                      : "var(--background)",
-                                }}
-                              >
-                                <input
-                                  type="radio"
-                                  name="model"
-                                  value={model.id}
-                                  checked={selectedModel === model.id}
-                                  onChange={() => {
-                                    setSelectedModel(model.id);
-                                    setSelectedProvider(provider.name);
-                                  }}
-                                  disabled={provider.status !== "Connected"}
-                                  className="h-4 w-4"
-                                  style={{
-                                    accentColor:
-                                      selectedModel === model.id
-                                        ? "white"
-                                        : "var(--primary)",
-                                  }}
-                                />
-                                <span
-                                  className={`text-sm font-medium flex-1 ${provider.status !== "Connected"
-                                    ? "text-gray-400"
-                                    : ""
-                                    }`}
-                                  style={{
-                                    color:
-                                      provider.status !== "Connected"
-                                        ? "rgb(156, 163, 175)"
-                                        : "var(--text-primary)",
-                                  }}
-                                >
-                                  {model.name}
-                                </span>
-                                {selectedModel === model.id && (
-                                  <Check
-                                    className="h-5 w-5"
-                                    style={{ color: "var(--primary)" }}
-                                  />
-                                )}
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
               </div>
             </motion.div>
           </div>
@@ -1054,8 +1077,9 @@ export default function EditAgent() {
                       style={{ color: "var(--text-secondary)" }}
                     >
                       {selectedKnowledgeBases.length > 0
-                        ? `${selectedKnowledgeBases.length} knowledge base${selectedKnowledgeBases.length !== 1 ? "s" : ""
-                        } selected`
+                        ? `${selectedKnowledgeBases.length} knowledge base${
+                            selectedKnowledgeBases.length !== 1 ? "s" : ""
+                          } selected`
                         : "No data sources selected"}
                     </p>
                   </div>
@@ -1100,7 +1124,9 @@ export default function EditAgent() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleUpdateAgent}
-                disabled={isSubmitting || !agentName.trim() || !description.trim()}
+                disabled={
+                  isSubmitting || !agentName.trim() || !description.trim()
+                }
                 className="w-full px-6 py-3 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center cursor-pointer"
                 style={{
                   background:
@@ -1149,7 +1175,6 @@ export default function EditAgent() {
         confirmText="Delete"
         cancelText="Cancel"
       />
-
     </motion.main>
   );
 }

@@ -150,8 +150,7 @@ export default function RoleManagement() {
         <h1
           className="text-2xl font-semibold"
           style={{ color: "var(--text-primary)" }}
-        >
-        </h1>
+        ></h1>
 
         <motion.button
           whileHover={{ scale: 1.02 }}
@@ -169,7 +168,7 @@ export default function RoleManagement() {
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        <div className="relative max-w-md">
+        <div className="relative w-sm left-[2px]">
           <Search
             className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4"
             style={{ color: "var(--text-tertiary)" }}
@@ -356,7 +355,6 @@ export default function RoleManagement() {
                   />
                   <div className="px-6 pt-8 pb-6">
                     <div className="absolute top-3 right-3 flex items-center gap-2">
-
                       <button
                         className="p-1 rounded hover:bg-gray-100 cursor-pointer"
                         style={{ color: "var(--text-secondary)" }}

@@ -76,7 +76,7 @@ export default function KnowledgeBase() {
 
       {/* Search and View Toggle */}
       <div className="flex items-center justify-between mb-6">
-        <div className="relative max-w-md">
+        <div className="relative w-sm left-[2px]">
           <div className="h-12 w-80 bg-gray-200 dark:bg-gray-400 rounded-lg animate-pulse" />
         </div>
         <div className="flex items-center gap-4">
@@ -249,13 +249,15 @@ export default function KnowledgeBase() {
 
     if (token) {
       try {
-        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const decodedToken = JSON.parse(atob(token.split(".")[1]));
         const permissions = decodedToken.permissions || [];
 
-        const filteredPermission = permissions.find(permission => permission.path === pathname);
+        const filteredPermission = permissions.find(
+          (permission) => permission.path === pathname
+        );
 
         if (filteredPermission) {
-          setPermission(filteredPermission.mrm_permission)
+          setPermission(filteredPermission.mrm_permission);
         } else {
           router.push("/");
         }
@@ -314,7 +316,7 @@ export default function KnowledgeBase() {
             </h1>
           </div>
 
-          {hasPermission('C') && (
+          {hasPermission("C") && (
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -338,7 +340,7 @@ export default function KnowledgeBase() {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.3, delay: 0.1 }}
-            className="relative max-w-md"
+            className="relative w-sm left-[2px]"
           >
             <div>
               <Search
@@ -444,8 +446,7 @@ export default function KnowledgeBase() {
 
                     {/* Actions Menu */}
                     <div className="absolute top-3 right-3 flex items-center gap-2">
-
-                      {hasPermission('U') && (
+                      {hasPermission("U") && (
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
@@ -456,7 +457,7 @@ export default function KnowledgeBase() {
                           <Edit className="h-4 w-4" />
                         </motion.button>
                       )}
-                      {hasPermission('D') && (
+                      {hasPermission("D") && (
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
@@ -466,7 +467,6 @@ export default function KnowledgeBase() {
                           <Trash2 className="h-4 w-4" />
                         </motion.button>
                       )}
-
                     </div>
 
                     <div className="p-6">
@@ -513,13 +513,14 @@ export default function KnowledgeBase() {
                         </div>
                       </div>
 
-
                       {/* View Button */}
-                      {hasPermission('R') && (
+                      {hasPermission("R") && (
                         <motion.button
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => router.push(`/knowledge-base/${kb.id}`)}
+                          onClick={() =>
+                            router.push(`/knowledge-base/${kb.id}`)
+                          }
                           className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
                           style={{
                             background: "var(--surface-secondary)",
@@ -530,7 +531,6 @@ export default function KnowledgeBase() {
                           View
                         </motion.button>
                       )}
-
                     </div>
                   </motion.div>
                 ))}
@@ -568,8 +568,7 @@ export default function KnowledgeBase() {
                     <div className="px-6 pt-8 pb-6">
                       {/* Actions Menu */}
                       <div className="absolute top-3 right-3 flex items-center gap-2">
-
-                        {hasPermission('U') && (
+                        {hasPermission("U") && (
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
@@ -580,7 +579,7 @@ export default function KnowledgeBase() {
                             <Edit className="h-4 w-4" />
                           </motion.button>
                         )}
-                        {hasPermission('R') && (
+                        {hasPermission("R") && (
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
@@ -633,7 +632,7 @@ export default function KnowledgeBase() {
                         </div>
 
                         {/* View Button */}
-                        {hasPermission('P') && (
+                        {hasPermission("P") && (
                           <div className="flex-shrink-0 items-end flex">
                             <motion.button
                               whileHover={{ scale: 1.02 }}
@@ -652,7 +651,6 @@ export default function KnowledgeBase() {
                             </motion.button>
                           </div>
                         )}
-
                       </div>
                     </div>
                   </motion.div>
