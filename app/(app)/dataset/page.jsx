@@ -427,7 +427,7 @@ export default function Datasets() {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="relative max-w-md"
+            className="relative w-sm left-[2px]"
           >
             <Search
               className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4"
@@ -643,48 +643,49 @@ export default function Datasets() {
                             )}
                           </div>
 
-                          <div className="flex items-center gap-4 justify-end mb-4">
-                            {hasPermission("U") && (
+                          <div className="flex items-center gap-4 justify-between">
+                            {/* View Button */}
+                            {hasPermission("R") && (
                               <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                                style={{ color: "var(--text-secondary)" }}
-                                onClick={() => handleEdit(dataset?.id)}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() =>
+                                  router.push(`/dataset/${dataset?.id}`)
+                                }
+                                className=" py-2 px-4 rounded-md font-medium cursor-pointer"
+                                style={{
+                                  background: "var(--surface-secondary)",
+                                  color: "var(--text-primary)",
+                                  border: "1px solid var(--border-light)",
+                                }}
                               >
-                                <Edit className="h-4 w-4" />
+                                View Dataset
                               </motion.button>
                             )}
-                            {hasPermission("D") && (
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
-                                onClick={() => openDelete(dataset)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </motion.button>
-                            )}
+                            <div className="flex items-center gap-4 justify-end">
+                              {hasPermission("U") && (
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                                  style={{ color: "var(--text-secondary)" }}
+                                  onClick={() => handleEdit(dataset?.id)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </motion.button>
+                              )}
+                              {hasPermission("D") && (
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
+                                  onClick={() => openDelete(dataset)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </motion.button>
+                              )}
+                            </div>
                           </div>
-
-                          {/* View Button */}
-                          {hasPermission("R") && (
-                            <motion.button
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                              onClick={() =>
-                                router.push(`/dataset/${dataset?.id}`)
-                              }
-                              className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
-                              style={{
-                                background: "var(--surface-secondary)",
-                                color: "var(--text-primary)",
-                                border: "1px solid var(--border-light)",
-                              }}
-                            >
-                              View Dataset
-                            </motion.button>
-                          )}
                         </div>
                       </motion.div>
                     ))}
@@ -737,28 +738,6 @@ export default function Datasets() {
                                 <span>{dataset.created_at}</span>
                               </div>
                             </div>
-
-                            {hasPermission("U") && (
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                                style={{ color: "var(--text-secondary)" }}
-                                onClick={() => handleEdit(dataset?.id)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </motion.button>
-                            )}
-                            {hasPermission("D") && (
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
-                                onClick={() => openDelete(dataset)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </motion.button>
-                            )}
                           </div>
 
                           {/* Horizontal Layout for Desktop, Vertical for Mobile */}
@@ -846,25 +825,50 @@ export default function Datasets() {
                             </div>
 
                             {/* View Button */}
-                            {hasPermission("R") && (
-                              <div className="flex-shrink-0 flex items-end">
-                                <motion.button
-                                  whileHover={{ scale: 1.02 }}
-                                  whileTap={{ scale: 0.98 }}
-                                  onClick={() =>
-                                    router.push(`/dataset/${dataset.id}`)
-                                  }
-                                  className="px-4 py-2 rounded-lg font-medium cursor-pointer w-full sm:w-auto"
-                                  style={{
-                                    background: "var(--surface-secondary)",
-                                    color: "var(--text-primary)",
-                                    border: "1px solid var(--border-light)",
-                                  }}
-                                >
-                                  View Dataset
-                                </motion.button>
+                            <div className="flex items-end gap-4 justify-end">
+                              <div className="h-[42px] items-center justify-center flex gap-3">
+                                {hasPermission("U") && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                                    style={{ color: "var(--text-secondary)" }}
+                                    onClick={() => handleEdit(dataset?.id)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </motion.button>
+                                )}
+                                {hasPermission("D") && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
+                                    onClick={() => openDelete(dataset)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </motion.button>
+                                )}
                               </div>
-                            )}
+                              {hasPermission("R") && (
+                                <div className="flex-shrink-0 flex items-end">
+                                  <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() =>
+                                      router.push(`/dataset/${dataset.id}`)
+                                    }
+                                    className="px-4 py-2 rounded-lg font-medium cursor-pointer w-full sm:w-auto"
+                                    style={{
+                                      background: "var(--surface-secondary)",
+                                      color: "var(--text-primary)",
+                                      border: "1px solid var(--border-light)",
+                                    }}
+                                  >
+                                    View Dataset
+                                  </motion.button>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </motion.div>
