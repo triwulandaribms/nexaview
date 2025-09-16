@@ -21,7 +21,7 @@ import {
   ChevronDown,
   AlertTriangle,
   X,
-  Loader2
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
@@ -80,7 +80,9 @@ export default function AgentDetail() {
     (async () => {
       try {
         const res = await abApi.detail(params.id, { signal });
-        const resListSessions = await abApi.detailListSession(params.id, { signal });
+        const resListSessions = await abApi.detailListSession(params.id, {
+          signal,
+        });
 
         const a = res?.data || {};
         const dataSourceLabel = (() => {
@@ -98,12 +100,12 @@ export default function AgentDetail() {
           dataSources: dataSourceLabel,
           timestamp: a.created_at
             ? new Date(a.created_at).toLocaleString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
             : "-",
           model: a?.default_model?.id || "-",
           knowledgeBases: Array.isArray(a.knowledgebases)
@@ -115,23 +117,23 @@ export default function AgentDetail() {
           systemPrompt: a.system_prompt || "",
           kbDetails: Array.isArray(a.knowledgebases)
             ? a.knowledgebases.map((k) => ({
-              id: k.id,
-              name: k?.name,
-              description: k.description || "",
-              docs:
-                typeof k.documentCount === "number"
-                  ? k.documentCount
-                  : typeof k.docs === "number"
+                id: k.id,
+                name: k?.name,
+                description: k.description || "",
+                docs:
+                  typeof k.documentCount === "number"
+                    ? k.documentCount
+                    : typeof k.docs === "number"
                     ? k.docs
                     : 0,
-              category: "General",
-            }))
+                category: "General",
+              }))
             : [],
         };
 
         setAgent(mapped);
 
-        setSessions(resListSessions.data || [])
+        setSessions(resListSessions.data || []);
       } catch (e) {
         if (e?.name === "AbortError" || e?.code === "ERR_CANCELED") return;
         console.error(e);
@@ -144,7 +146,6 @@ export default function AgentDetail() {
   }, [params.id]);
 
   const tabs = ["Overview", "Chat", "Sessions"];
-
 
   // Simulate data loading
   useEffect(() => {
@@ -187,7 +188,9 @@ export default function AgentDetail() {
       const controller = new AbortController();
       const signal = controller.signal;
 
-      const { data } = await abApi.detailListAddMessages(agent.id, payload, { signal });
+      const { data } = await abApi.detailListAddMessages(agent.id, payload, {
+        signal,
+      });
       if (!detailSession) {
         setDetailSession(data?.session_id || "");
       }
@@ -195,7 +198,9 @@ export default function AgentDetail() {
         const aiResponse = {
           id: Date.now() + 1,
           role: "assistant",
-          content: data?.answer || "Sorry, I couldn't process your request at the moment.",
+          content:
+            data?.answer ||
+            "Sorry, I couldn't process your request at the moment.",
           timestamp: new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
@@ -213,8 +218,8 @@ export default function AgentDetail() {
   const handleNewSession = async () => {
     setMessages([]);
     setDetailSession("");
-    setActiveTab("Chat")
-  }
+    setActiveTab("Chat");
+  };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -227,7 +232,7 @@ export default function AgentDetail() {
   const filterSessionsByTime = (sessions, timeFilter) => {
     const currentDate = new Date();
 
-    return sessions.filter(session => {
+    return sessions.filter((session) => {
       console.log(session);
 
       const sessionDate = new Date(session.updated_at);
@@ -240,7 +245,10 @@ export default function AgentDetail() {
         case "This week":
           return timeDifference <= 7 * 24 * 60 * 60 * 1000;
         case "This month":
-          return sessionDate.getMonth() === currentDate.getMonth() && sessionDate.getFullYear() === currentDate.getFullYear();
+          return (
+            sessionDate.getMonth() === currentDate.getMonth() &&
+            sessionDate.getFullYear() === currentDate.getFullYear()
+          );
         default:
           return true;
       }
@@ -248,14 +256,21 @@ export default function AgentDetail() {
   };
 
   // filter seacrh time
-  const filteredSessions = timeFilter === "All time"
-    ? sessions.filter((session) => {
-      return (session?.session_name || "").toLowerCase().includes(searchSessions.toLowerCase());
-    })
-    : filterSessionsByTime(
-      sessions.filter((session) => (session?.session_name || "").toLowerCase().includes(searchSessions.toLowerCase())),
-      timeFilter
-    );
+  const filteredSessions =
+    timeFilter === "All time"
+      ? sessions.filter((session) => {
+          return (session?.session_name || "")
+            .toLowerCase()
+            .includes(searchSessions.toLowerCase());
+        })
+      : filterSessionsByTime(
+          sessions.filter((session) =>
+            (session?.session_name || "")
+              .toLowerCase()
+              .includes(searchSessions.toLowerCase())
+          ),
+          timeFilter
+        );
 
   const knowledgeBaseDetails =
     agent?.dataSources === "Knowledge Bases"
@@ -263,7 +278,6 @@ export default function AgentDetail() {
         ? agent.kbDetails
         : []
       : [];
-
 
   const openDelete = () => setDelOpen(true);
   const closeDelete = () => {
@@ -311,10 +325,13 @@ export default function AgentDetail() {
     const { signal } = controller;
 
     try {
-      const resSessionMessages = await abApi.detailListSessionMessages(params.id, detailSession?.id, { signal });
+      const resSessionMessages = await abApi.detailListSessionMessages(
+        params.id,
+        detailSession?.id,
+        { signal }
+      );
       setDetailSession(detailSession?.id);
       setMessages(resSessionMessages.data || []);
-
     } catch (error) {
       if (error?.name !== "AbortError") {
         console.error("Failed to fetch session messages:", error);
@@ -329,7 +346,9 @@ export default function AgentDetail() {
     try {
       const controller = new AbortController();
       const { signal } = controller;
-      const resListSessions = await abApi.detailListSession(params.id, { signal });
+      const resListSessions = await abApi.detailListSession(params.id, {
+        signal,
+      });
       setSessions(resListSessions.data || []);
     } catch (e) {
       if (e?.name === "AbortError" || e?.code === "ERR_CANCELED") return;
@@ -337,7 +356,7 @@ export default function AgentDetail() {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const openSessionDelete = (session) => {
     setSelectedSession(session);
@@ -356,7 +375,11 @@ export default function AgentDetail() {
     const controller = new AbortController();
     const signal = controller.signal;
     try {
-      const response = await abApi.deleteSession(currentId, selectedSession.id, { signal });
+      const response = await abApi.deleteSession(
+        currentId,
+        selectedSession.id,
+        { signal }
+      );
 
       if (response.error) throw new Error("Failed to delete session");
 
@@ -369,7 +392,7 @@ export default function AgentDetail() {
         setMessages([]);
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
+      if (error.name === "AbortError") {
         console.log("Request was canceled");
       } else {
         console.error(error);
@@ -378,7 +401,6 @@ export default function AgentDetail() {
       setDelSessionLoading(false);
       setDelSessionOpen(false);
     }
-
   };
 
   const handleExport = () => {
@@ -784,7 +806,10 @@ export default function AgentDetail() {
                     <div className="p-2 rounded-lg bg-white/20">
                       <MessageSquare className="h-5 w-5 text-white" />
                     </div>
-                    <div className="flex items-center gap-1 text-white/80" onClick={() => setActiveTab("Sessions")}>
+                    <div
+                      className="flex items-center gap-1 text-white/80"
+                      onClick={() => setActiveTab("Sessions")}
+                    >
                       <span className="text-xs">View History</span>
                       <ChevronRight className="h-3 w-3" />
                     </div>
@@ -810,7 +835,10 @@ export default function AgentDetail() {
                     <div className="p-2 rounded-lg bg-white/20">
                       <Bot className="h-5 w-5 text-white" />
                     </div>
-                    <div className="flex items-center gap-1 text-white/80" onClick={() => router.push(`/agents/edit/${currentId}`)}>
+                    <div
+                      className="flex items-center gap-1 text-white/80"
+                      onClick={() => router.push(`/agents/edit/${currentId}`)}
+                    >
                       <span className="text-xs">Change</span>
                       <ChevronRight className="h-3 w-3" />
                     </div>
@@ -840,7 +868,6 @@ export default function AgentDetail() {
                     ? "Knowledge Base Details"
                     : "API Features"}
                 </h2>
-
               </div>
               <div className="space-y-4">
                 {knowledgeBaseDetails.length > 0 ? (
@@ -853,7 +880,9 @@ export default function AgentDetail() {
                             // whileTap={{ scale: 0.98 }}
                             className="text-sm font-medium cursor-pointer hover:underline text-end"
                             style={{ color: "var(--primary)" }}
-                            onClick={() => router.push(`/knowledge-base/update/${kb.id}`)}
+                            onClick={() =>
+                              router.push(`/knowledge-base/update/${kb.id}`)
+                            }
                           >
                             Edit
                           </motion.button>
@@ -863,7 +892,10 @@ export default function AgentDetail() {
                           key={index}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
+                          transition={{
+                            duration: 0.5,
+                            delay: 0.4 + index * 0.1,
+                          }}
                           className="p-4 rounded-lg border"
                           style={{
                             background: "var(--surface-elevated)",
@@ -920,7 +952,7 @@ export default function AgentDetail() {
                           </div>
                         </motion.div>
                       </div>
-                    )
+                    );
                   })
                 ) : (
                   <div
@@ -1091,12 +1123,14 @@ export default function AgentDetail() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className={`flex ${message?.role === "user" ? "justify-end" : "justify-start"
-                    }`}
+                  className={`flex ${
+                    message?.role === "user" ? "justify-end" : "justify-start"
+                  }`}
                 >
                   <div
-                    className={`max-w-[70%] ${message?.role === "user" ? "order-2" : "order-1"
-                      }`}
+                    className={`max-w-[70%] ${
+                      message?.role === "user" ? "order-2" : "order-1"
+                    }`}
                   >
                     {message?.role !== "user" && (
                       <div className="flex items-center gap-2 mb-1">
@@ -1115,30 +1149,46 @@ export default function AgentDetail() {
                       </div>
                     )}
                     <div
-                      className={`p-3 rounded-lg ${message?.role === "user"
-                        ? "rounded-br-sm"
-                        : "rounded-bl-sm"
-                        }`}
+                      className={`p-3 rounded-lg ${
+                        message?.role === "user"
+                          ? "rounded-br-sm"
+                          : "rounded-bl-sm"
+                      }`}
                       style={{
                         background:
                           message?.role === "user"
                             ? "var(--primary)"
                             : message?.role === "system"
-                              ? "var(--surface-secondary)"
-                              : "var(--surface-secondary)",
+                            ? "var(--surface-secondary)"
+                            : "var(--surface-secondary)",
                         color:
                           message?.role === "user"
                             ? "var(--text-inverse)"
                             : "var(--text-primary)",
                       }}
                     >
-                      <p className="text-sm whitespace-pre-wrap">
-                        {message.content}
+                      <p className="text-sm whitespace-pre-wrap text-black/80">
+                        {message.content
+                          .split(/(\*\*.*?\*\*)/)
+                          .map((part, index) => {
+                            if (part.startsWith("**") && part.endsWith("**")) {
+                              return (
+                                <strong
+                                  key={index}
+                                  className="font-bold text-black"
+                                >
+                                  {part.slice(2, -2)}
+                                </strong>
+                              );
+                            }
+                            return part;
+                          })}
                       </p>
                       <div className="flex items-center justify-between mt-2">
                         <span
-                          className={`text-xs ${message?.role === "user" ? "text-white/70" : ""
-                            }`}
+                          className={`text-xs ${
+                            message?.role === "user" ? "text-white/70" : ""
+                          }`}
                           style={{
                             color:
                               message?.role === "user"
@@ -1155,10 +1205,11 @@ export default function AgentDetail() {
                             onClick={() =>
                               navigator.clipboard.writeText(message.content)
                             }
-                            className={`ml-2 p-1 rounded ${message?.role === "user"
-                              ? "hover:bg-white/20"
-                              : "hover:bg-gray-100"
-                              }`}
+                            className={`ml-2 p-1 rounded ${
+                              message?.role === "user"
+                                ? "hover:bg-white/20"
+                                : "hover:bg-gray-100"
+                            }`}
                           >
                             <Copy className="h-3 w-3" />
                           </motion.button>
@@ -1699,7 +1750,9 @@ export default function AgentDetail() {
                       background: "var(--surface-secondary)",
                     }}
                   >
-                    <span className="font-medium">{selectedSession?.session_name || "-"}</span>
+                    <span className="font-medium">
+                      {selectedSession?.session_name || "-"}
+                    </span>
                     <div
                       className="mt-1 text-xs"
                       style={{ color: "var(--text-tertiary)" }}
@@ -1761,8 +1814,6 @@ export default function AgentDetail() {
           </>
         )}
       </AnimatePresence>
-
-
     </motion.main>
   );
 }
