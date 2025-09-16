@@ -381,6 +381,42 @@ export default function AgentDetail() {
 
   };
 
+  const handleExport = () => {
+    // import sementara
+    const csvContent = "data:text/csv;charset=utf-8,"
+      + [
+        "Session Name,Message Count,Last Active"
+      ]
+        .concat(sessions.map(session => {
+          const lastActiveDate = new Date(session.last_active);
+
+          const day = String(lastActiveDate.getDate()).padStart(2, '0');
+          const month = String(lastActiveDate.getMonth() + 1).padStart(2, '0');
+          const year = lastActiveDate.getFullYear();
+          let hours = lastActiveDate.getHours();
+          const minutes = String(lastActiveDate.getMinutes()).padStart(2, '0');
+          const ampm = hours >= 12 ? 'PM' : 'AM';
+
+          hours = hours % 12;
+          hours = hours ? hours : 12;
+
+          const formattedTime = `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
+
+          return `${session.session_name || ""},${session.message_count || 0},"${formattedTime.toString()}"`;
+        }))
+        .join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const safeName = (agent?.name || "agent").replace(/\s+/g, "_");
+    link.setAttribute("download", `${safeName}_sessions_data.csv`);
+    document.body.appendChild(link);
+    link.click();
+
+  }
+
   // Skeleton Components
   const HeaderSkeleton = () => (
     <div
@@ -1540,13 +1576,14 @@ export default function AgentDetail() {
                   <motion.button
                     whileHover={{ scale: 1.05, y: -1 }}
                     whileTap={{ scale: 0.95 }}
-                    className="px-4 py-2 text-xs font-bold rounded-xl border-2 transition-all duration-300 shadow-sm hover:shadow-md"
+                    className="px-4 py-2 text-xs font-bold rounded-xl border-2 transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer"
                     style={{
                       color: "var(--text-primary)",
                       borderColor: "rgba(59, 130, 246, 0.3)",
                       background:
                         "linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.9) 100%)",
                     }}
+                    onClick={handleExport}
                   >
                     Export
                   </motion.button>
