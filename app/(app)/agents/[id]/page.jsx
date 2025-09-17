@@ -405,27 +405,36 @@ export default function AgentDetail() {
 
   const handleExport = () => {
     // import sementara
-    const csvContent = "data:text/csv;charset=utf-8,"
-      + [
-        "Session Name,Message Count,Last Active"
-      ]
-        .concat(sessions.map(session => {
-          const lastActiveDate = new Date(session.last_active);
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      ["Session Name,Message Count,Last Active"]
+        .concat(
+          sessions.map((session) => {
+            const lastActiveDate = new Date(session.last_active);
 
-          const day = String(lastActiveDate.getDate()).padStart(2, '0');
-          const month = String(lastActiveDate.getMonth() + 1).padStart(2, '0');
-          const year = lastActiveDate.getFullYear();
-          let hours = lastActiveDate.getHours();
-          const minutes = String(lastActiveDate.getMinutes()).padStart(2, '0');
-          const ampm = hours >= 12 ? 'PM' : 'AM';
+            const day = String(lastActiveDate.getDate()).padStart(2, "0");
+            const month = String(lastActiveDate.getMonth() + 1).padStart(
+              2,
+              "0"
+            );
+            const year = lastActiveDate.getFullYear();
+            let hours = lastActiveDate.getHours();
+            const minutes = String(lastActiveDate.getMinutes()).padStart(
+              2,
+              "0"
+            );
+            const ampm = hours >= 12 ? "PM" : "AM";
 
-          hours = hours % 12;
-          hours = hours ? hours : 12;
+            hours = hours % 12;
+            hours = hours ? hours : 12;
 
-          const formattedTime = `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
+            const formattedTime = `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
 
-          return `${session.session_name || ""},${session.message_count || 0},"${formattedTime.toString()}"`;
-        }))
+            return `${session.session_name || ""},${
+              session.message_count || 0
+            },"${formattedTime.toString()}"`;
+          })
+        )
         .join("\n");
 
     const encodedUri = encodeURI(csvContent);
@@ -436,8 +445,7 @@ export default function AgentDetail() {
     link.setAttribute("download", `${safeName}_sessions_data.csv`);
     document.body.appendChild(link);
     link.click();
-
-  }
+  };
 
   // Skeleton Components
   const HeaderSkeleton = () => (
@@ -1167,7 +1175,13 @@ export default function AgentDetail() {
                             : "var(--text-primary)",
                       }}
                     >
-                      <p className="text-sm whitespace-pre-wrap text-black/80">
+                      <p
+                        className={`text-sm whitespace-pre-wrap ${
+                          message?.role === "user"
+                            ? "text-white/80"
+                            : "text-black/80"
+                        }`}
+                      >
                         {message.content
                           .split(/(\*\*.*?\*\*)/)
                           .map((part, index) => {
