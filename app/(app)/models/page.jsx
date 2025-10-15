@@ -78,11 +78,8 @@ export default function Models() {
       setToggling((prev) => ({ ...prev, [key]: false }));
     }
   };
-
-
-
+  
   // Skeleton Components
-
   const ProviderCardSkeleton = () => (
     <div
       className="rounded-xl border"

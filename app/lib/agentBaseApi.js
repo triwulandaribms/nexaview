@@ -19,6 +19,17 @@ export const abApi = {
         return request(base, {
             method: "POST", body: payload, ...(opts || {}),
         })
-    }
-
+    },
+    detailListSession(id, opts) {
+        return request(`${base}/${id}/sessions`, { method: 'GET', cache: 'no-store', ...(opts || {}) });
+    },
+    deleteSession(id, id_session, opts) {
+        return request(`${base}/${id}/sessions/${id_session}`, { method: 'DELETE', ...(opts || {}) });
+    },
+    detailListSessionMessages(id, id_session, opts) {
+        return request(`${base}/${id}/sessions/${id_session}/messages`, { method: 'GET', cache: 'no-store', ...(opts || {}) });
+    },
+    detailListAddMessages(id, payload, opts) {
+        return request(`${base}/${id}/sessions/messages`, { method: 'POST', body: payload, cache: 'no-store', ...(opts || {}) });
+    },
 }

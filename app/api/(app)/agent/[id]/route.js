@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { headers } from 'next/headers';
 import axios from 'axios';
 import { fail, normalizeAxiosError, ok } from '@/app/lib/utils';
 
@@ -7,9 +7,8 @@ export async function GET(_req, { params }) {
   const baseURL = process.env.API_BASE_URL;
   if (!baseURL) return fail('Server configuration error. Please contact administrator.', 500);
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
-  const idToken = cookieStore.get('id_token')?.value;
+  const reqHeaders = await headers();
+  const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
 
   try {
     const { data } = await axios.get(`${baseURL}/api/agent/${id}`, {
@@ -17,7 +16,6 @@ export async function GET(_req, { params }) {
         Accept: 'application/json',
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token || ''}`,
-        'x-id-token': idToken || '',
       },
       timeout: 30_000,
       validateStatus: s => s >= 200 && s < 300,
@@ -39,9 +37,9 @@ export async function PUT(req, { params }) {
   const baseURL = process.env.API_BASE_URL;
   if (!baseURL) return fail('Server configuration error. Please contact administrator.', 500);
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
-  const idToken = cookieStore.get('id_token')?.value;
+  const reqHeaders = await headers();
+  const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
+
   const body = await req.json();
 
   try {
@@ -50,7 +48,6 @@ export async function PUT(req, { params }) {
         Accept: 'application/json',
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token || ''}`,
-        'x-id-token': idToken || '',
       },
       timeout: 30_000,
       validateStatus: s => s >= 200 && s < 300,
@@ -68,9 +65,9 @@ export async function DELETE(_req, { params }) {
   const baseURL = process.env.API_BASE_URL;
   if (!baseURL) return fail('Server configuration error. Please contact administrator.', 500);
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
-  const idToken = cookieStore.get('id_token')?.value;
+  const reqHeaders = await headers();
+  const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
+
 
   try {
     await axios.delete(`${baseURL}/api/agent/${id}`, {
@@ -78,7 +75,6 @@ export async function DELETE(_req, { params }) {
         Accept: 'application/json',
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token || ''}`,
-        'x-id-token': idToken || '',
       },
       timeout: 30_000,
       validateStatus: s => s >= 200 && s < 300,

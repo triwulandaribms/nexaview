@@ -256,7 +256,7 @@ export default function EditRolePage() {
                 const { signal } = controllerRef;
                 const { data } = await menusbApi.list(signal);
 
-                const transformedData = (data?.menus || []).map(item => ({
+                const transformedData = (data || []).map(item => ({
                     key: item.mm_uid,
                     label: item.mm_name,
                     icon: <Shield className="h-4 w-4" />,

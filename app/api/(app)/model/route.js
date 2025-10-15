@@ -12,21 +12,19 @@ export async function GET() {
     try {
         const cookieStore = await cookies();
         const token = cookieStore.get("token")?.value;
-        const idToken = cookieStore.get("id_token")?.value;
 
         const { data } = await axios.get(`${baseURL}/api/model`, {
             headers: {
                 Accept: "application/json",
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${token || ""}`,
-                "x-id-token": idToken || "",
+                Authorization: `Bearer ${token || ""}`
             },
             timeout: 30_000,
             validateStatus: (s) => s >= 200 && s < 300,
         });
 
         const list = Array.isArray(data?.data) ? data.data : [];
- 
+
         const byProvider = {};
 
         for (const item of list) {

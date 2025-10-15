@@ -19,8 +19,11 @@ import {
   Search,
   RotateCcw,
   ChevronDown,
+  AlertTriangle,
+  X,
+  Loader2,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useParams } from "next/navigation";
 import { abApi } from "@/app/lib/agentBaseApi";
 import ConfirmDeleteModalAgent from "@/app/components/ConfirmDeleteModalAgent";
@@ -44,21 +47,29 @@ export default function AgentDetail() {
   const [activeTab, setActiveTab] = useState("Overview");
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: "system",
-      content: "Hello! I'm your AI assistant. How can I help you today?",
-      timestamp: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-    },
+    // {
+    //   id: 1,
+    //   type: "system",
+    //   content: "Hello! I'm your AI assistant. How can I help you today?",
+    //   timestamp: new Date().toLocaleTimeString([], {
+    //     hour: "2-digit",
+    //     minute: "2-digit",
+    //   }),
+    // },
   ]);
+  const [delSessionOpen, setDelSessionOpen] = useState(false);
+  const [delSessionLoading, setDelSessionLoading] = useState(false);
+  const [selectedSession, setSelectedSession] = useState(null);
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [searchSessions, setSearchSessions] = useState("");
   const [timeFilter, setTimeFilter] = useState("All time");
   const [agent, setAgent] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [detailSession, setDetailSession] = useState("");
+  const [delOpen, setDelOpen] = useState(false);
+  const [delLoading, setDelLoading] = useState(false);
+
   const currentId = agent?.id || params?.id;
   const messagesEndRef = useRef(null);
 
@@ -69,6 +80,10 @@ export default function AgentDetail() {
     (async () => {
       try {
         const res = await abApi.detail(params.id, { signal });
+        const resListSessions = await abApi.detailListSession(params.id, {
+          signal,
+        });
+
         const a = res?.data || {};
         const dataSourceLabel = (() => {
           const t = (a.data_source_type && a.data_source_type[0]) || "";
@@ -80,7 +95,7 @@ export default function AgentDetail() {
 
         const mapped = {
           id: a.id,
-          name: a.name || "-",
+          name: a?.name || "-",
           description: a.description || "",
           dataSources: dataSourceLabel,
           timestamp: a.created_at
@@ -102,7 +117,8 @@ export default function AgentDetail() {
           systemPrompt: a.system_prompt || "",
           kbDetails: Array.isArray(a.knowledgebases)
             ? a.knowledgebases.map((k) => ({
-                name: k.name,
+                id: k.id,
+                name: k?.name,
                 description: k.description || "",
                 docs:
                   typeof k.documentCount === "number"
@@ -116,6 +132,8 @@ export default function AgentDetail() {
         };
 
         setAgent(mapped);
+
+        setSessions(resListSessions.data || []);
       } catch (e) {
         if (e?.name === "AbortError" || e?.code === "ERR_CANCELED") return;
         console.error(e);
@@ -128,80 +146,6 @@ export default function AgentDetail() {
   }, [params.id]);
 
   const tabs = ["Overview", "Chat", "Sessions"];
-
-  // Mock session data
-  const sessions = [
-    {
-      id: 1,
-      title: `Chat with ${agent?.name}`,
-      messages: 2,
-      lastActive: "23 Jun 2025 11:36",
-      date: new Date("2025-06-23T11:36:00"),
-    },
-    {
-      id: 2,
-      title: `Chat with ${agent?.name}`,
-      messages: 24,
-      lastActive: "11 Jun 2025 23:52",
-      date: new Date("2025-06-11T23:52:00"),
-    },
-    {
-      id: 3,
-      title: "Financial Analysis Assistance Offered",
-      messages: 3,
-      lastActive: "12 Jun 2025 00:22",
-      date: new Date("2025-06-12T00:22:00"),
-    },
-    {
-      id: 4,
-      title: "Financial Analysis Assistance Offered",
-      messages: 19,
-      lastActive: "12 Jun 2025 00:03",
-      date: new Date("2025-06-12T00:03:00"),
-    },
-    {
-      id: 5,
-      title: "Financial Assistance Inquiry Opening",
-      messages: 2,
-      lastActive: "11 Jun 2025 23:50",
-      date: new Date("2025-06-11T23:50:00"),
-    },
-    {
-      id: 6,
-      title: "Financial Reports Assistance Inquiry",
-      messages: 7,
-      lastActive: "11 Jun 2025 23:45",
-      date: new Date("2025-06-11T23:45:00"),
-    },
-    {
-      id: 7,
-      title: "Financial Analysis Assistance Offer",
-      messages: 3,
-      lastActive: "11 Jun 2025 23:43",
-      date: new Date("2025-06-11T23:43:00"),
-    },
-    {
-      id: 8,
-      title: "Financial Assistance Query Initiated",
-      messages: 4,
-      lastActive: "11 Jun 2025 23:31",
-      date: new Date("2025-06-11T23:31:00"),
-    },
-    {
-      id: 9,
-      title: "Blue Bird: Indonesian Transport Giant",
-      messages: 6,
-      lastActive: "11 Jun 2025 15:03",
-      date: new Date("2025-06-11T15:03:00"),
-    },
-    {
-      id: 10,
-      title: "Forecasting Keuangan PT Bluebird",
-      messages: 4,
-      lastActive: "11 Jun 2025 14:24",
-      date: new Date("2025-06-11T14:24:00"),
-    },
-  ];
 
   // Simulate data loading
   useEffect(() => {
@@ -223,7 +167,7 @@ export default function AgentDetail() {
 
     const userMessage = {
       id: Date.now(),
-      type: "user",
+      role: "user",
       content: inputMessage,
       timestamp: new Date().toLocaleTimeString([], {
         hour: "2-digit",
@@ -235,20 +179,46 @@ export default function AgentDetail() {
     setInputMessage("");
     setIsSending(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse = {
-        id: Date.now() + 1,
-        type: "assistant",
-        content: `I understand you're asking about "${inputMessage}". As ${agent.name}, I can help you with that. This is a simulated response to demonstrate the chat interface.`,
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      setMessages((prev) => [...prev, aiResponse]);
+    const payload = {
+      content: inputMessage,
+      session_id: detailSession || null,
+    };
+
+    try {
+      const controller = new AbortController();
+      const signal = controller.signal;
+
+      const { data } = await abApi.detailListAddMessages(agent.id, payload, {
+        signal,
+      });
+      if (!detailSession) {
+        setDetailSession(data?.session_id || "");
+      }
+      setTimeout(() => {
+        const aiResponse = {
+          id: Date.now() + 1,
+          role: "assistant",
+          content:
+            data?.answer ||
+            "Sorry, I couldn't process your request at the moment.",
+          timestamp: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        };
+        setMessages((prev) => [...prev, aiResponse]);
+        setIsSending(false);
+      }, 1500);
+    } catch (err) {
+      console.error("Error sending message:", err);
       setIsSending(false);
-    }, 1500);
+    }
+  };
+
+  const handleNewSession = async () => {
+    setMessages([]);
+    setDetailSession("");
+    setActiveTab("Chat");
   };
 
   const handleKeyPress = (e) => {
@@ -258,14 +228,49 @@ export default function AgentDetail() {
     }
   };
 
-  // Filter sessions based on search and time
-  const filteredSessions = sessions.filter((session) => {
-    const matchesSearch = session.title
-      .toLowerCase()
-      .includes(searchSessions.toLowerCase());
-    // For now, we'll just filter by search. Time filtering can be expanded later
-    return matchesSearch;
-  });
+  // filter select time
+  const filterSessionsByTime = (sessions, timeFilter) => {
+    const currentDate = new Date();
+
+    return sessions.filter((session) => {
+      console.log(session);
+
+      const sessionDate = new Date(session.updated_at);
+
+      const timeDifference = currentDate - sessionDate;
+
+      switch (timeFilter) {
+        case "Today":
+          return sessionDate.toDateString() === currentDate.toDateString();
+        case "This week":
+          return timeDifference <= 7 * 24 * 60 * 60 * 1000;
+        case "This month":
+          return (
+            sessionDate.getMonth() === currentDate.getMonth() &&
+            sessionDate.getFullYear() === currentDate.getFullYear()
+          );
+        default:
+          return true;
+      }
+    });
+  };
+
+  // filter seacrh time
+  const filteredSessions =
+    timeFilter === "All time"
+      ? sessions.filter((session) => {
+          return (session?.session_name || "")
+            .toLowerCase()
+            .includes(searchSessions.toLowerCase());
+        })
+      : filterSessionsByTime(
+          sessions.filter((session) =>
+            (session?.session_name || "")
+              .toLowerCase()
+              .includes(searchSessions.toLowerCase())
+          ),
+          timeFilter
+        );
 
   const knowledgeBaseDetails =
     agent?.dataSources === "Knowledge Bases"
@@ -273,10 +278,6 @@ export default function AgentDetail() {
         ? agent.kbDetails
         : []
       : [];
-
-  // Delete modal state
-  const [delOpen, setDelOpen] = useState(false);
-  const [delLoading, setDelLoading] = useState(false);
 
   const openDelete = () => setDelOpen(true);
   const closeDelete = () => {
@@ -315,6 +316,135 @@ export default function AgentDetail() {
     })();
 
     return () => controller.abort();
+  };
+
+  const handleDetailSession = async (detailSession) => {
+    setActiveTab("Chat");
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    try {
+      const resSessionMessages = await abApi.detailListSessionMessages(
+        params.id,
+        detailSession?.id,
+        { signal }
+      );
+      setDetailSession(detailSession?.id);
+      setMessages(resSessionMessages.data || []);
+    } catch (error) {
+      if (error?.name !== "AbortError") {
+        console.error("Failed to fetch session messages:", error);
+      }
+      setMessages([]);
+    }
+
+    return () => controller.abort();
+  };
+
+  const handleRefreshSession = async () => {
+    try {
+      const controller = new AbortController();
+      const { signal } = controller;
+      const resListSessions = await abApi.detailListSession(params.id, {
+        signal,
+      });
+      setSessions(resListSessions.data || []);
+    } catch (e) {
+      if (e?.name === "AbortError" || e?.code === "ERR_CANCELED") return;
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const openSessionDelete = (session) => {
+    setSelectedSession(session);
+    setDelSessionOpen(true);
+  };
+
+  // Function to close the delete modal
+  const closeSessionDelete = () => {
+    if (!delSessionLoading) setDelSessionOpen(false);
+  };
+
+  // Function to confirm session deletion
+  const confirmSessionDelete = async () => {
+    setDelSessionLoading(true);
+
+    const controller = new AbortController();
+    const signal = controller.signal;
+    try {
+      const response = await abApi.deleteSession(
+        currentId,
+        selectedSession.id,
+        { signal }
+      );
+
+      if (response.error) throw new Error("Failed to delete session");
+
+      setSessions((prevSessions) =>
+        prevSessions.filter((session) => session.id !== selectedSession.id)
+      );
+
+      if (selectedSession.id == detailSession) {
+        setDetailSession("");
+        setMessages([]);
+      }
+    } catch (error) {
+      if (error.name === "AbortError") {
+        console.log("Request was canceled");
+      } else {
+        console.error(error);
+      }
+    } finally {
+      setDelSessionLoading(false);
+      setDelSessionOpen(false);
+    }
+  };
+
+  const handleExport = () => {
+    // import sementara
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      ["Session Name,Message Count,Last Active"]
+        .concat(
+          sessions.map((session) => {
+            const lastActiveDate = new Date(session.last_active);
+
+            const day = String(lastActiveDate.getDate()).padStart(2, "0");
+            const month = String(lastActiveDate.getMonth() + 1).padStart(
+              2,
+              "0"
+            );
+            const year = lastActiveDate.getFullYear();
+            let hours = lastActiveDate.getHours();
+            const minutes = String(lastActiveDate.getMinutes()).padStart(
+              2,
+              "0"
+            );
+            const ampm = hours >= 12 ? "PM" : "AM";
+
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+
+            const formattedTime = `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
+
+            return `${session.session_name || ""},${
+              session.message_count || 0
+            },"${formattedTime.toString()}"`;
+          })
+        )
+        .join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const safeName = (agent?.name || "agent").replace(/\s+/g, "_");
+    link.setAttribute("download", `${safeName}_sessions_data.csv`);
+    document.body.appendChild(link);
+    link.click();
   };
 
   // Skeleton Components
@@ -592,7 +722,10 @@ export default function AgentDetail() {
                   key={tab}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => {
+                    setActiveTab(tab);
+                    tab == "Sessions" && handleRefreshSession();
+                  }}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer transition-all"
                   style={{
                     background:
@@ -663,7 +796,7 @@ export default function AgentDetail() {
                   </p>
                   <p className="text-xs text-white/80">
                     {knowledgeBaseDetails.length > 0
-                      ? knowledgeBaseDetails[0].name
+                      ? knowledgeBaseDetails[0]?.name
                       : "General"}
                   </p>
                 </motion.div>
@@ -681,7 +814,10 @@ export default function AgentDetail() {
                     <div className="p-2 rounded-lg bg-white/20">
                       <MessageSquare className="h-5 w-5 text-white" />
                     </div>
-                    <div className="flex items-center gap-1 text-white/80">
+                    <div
+                      className="flex items-center gap-1 text-white/80"
+                      onClick={() => setActiveTab("Sessions")}
+                    >
                       <span className="text-xs">View History</span>
                       <ChevronRight className="h-3 w-3" />
                     </div>
@@ -690,7 +826,7 @@ export default function AgentDetail() {
                     Sessions
                   </h3>
                   <p className="text-2xl font-bold text-white">
-                    {agent?.sessions || 0}
+                    {sessions?.length || 0}
                   </p>
                 </motion.div>
 
@@ -707,7 +843,10 @@ export default function AgentDetail() {
                     <div className="p-2 rounded-lg bg-white/20">
                       <Bot className="h-5 w-5 text-white" />
                     </div>
-                    <div className="flex items-center gap-1 text-white/80">
+                    <div
+                      className="flex items-center gap-1 text-white/80"
+                      onClick={() => router.push(`/agents/edit/${currentId}`)}
+                    >
                       <span className="text-xs">Change</span>
                       <ChevronRight className="h-3 w-3" />
                     </div>
@@ -737,79 +876,92 @@ export default function AgentDetail() {
                     ? "Knowledge Base Details"
                     : "API Features"}
                 </h2>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="text-sm font-medium cursor-pointer hover:underline"
-                  style={{ color: "var(--primary)" }}
-                >
-                  Edit
-                </motion.button>
               </div>
               <div className="space-y-4">
                 {knowledgeBaseDetails.length > 0 ? (
-                  knowledgeBaseDetails.map((kb, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
-                      className="p-4 rounded-lg border"
-                      style={{
-                        background: "var(--surface-elevated)",
-                        borderColor: "var(--border-light)",
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center"
-                          style={{ background: "var(--primary)" }}
-                        >
-                          <Database className="h-5 w-5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3
-                            className="font-semibold mb-1"
-                            style={{ color: "var(--text-primary)" }}
+                  knowledgeBaseDetails.map((kb, index) => {
+                    return (
+                      <div className="flex flex-col gap-2">
+                        {kb?.id && (
+                          <motion.button
+                            // whileHover={{ scale: 1.02 }}
+                            // whileTap={{ scale: 0.98 }}
+                            className="text-sm font-medium cursor-pointer hover:underline text-end"
+                            style={{ color: "var(--primary)" }}
+                            onClick={() =>
+                              router.push(`/knowledge-base/update/${kb.id}`)
+                            }
                           >
-                            {kb.name}
-                          </h3>
-                          <p
-                            className="text-sm mb-2"
-                            style={{
-                              color: "var(--text-secondary)",
-                              overflowWrap: "anywhere",
-                              wordBreak: "break-word",
-                              whiteSpace: "normal",
-                            }}
-                          >
-                            {kb?.description}
-                          </p>
+                            Edit
+                          </motion.button>
+                        )}
 
-                          <div className="flex items-center gap-4 text-xs">
-                            <span
-                              className="px-2 py-1 rounded-md font-medium"
-                              style={{
-                                background: "var(--primary-light)",
-                                color: "var(--primary)",
-                              }}
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{
+                            duration: 0.5,
+                            delay: 0.4 + index * 0.1,
+                          }}
+                          className="p-4 rounded-lg border"
+                          style={{
+                            background: "var(--surface-elevated)",
+                            borderColor: "var(--border-light)",
+                          }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-10 h-10 rounded-lg flex items-center justify-center"
+                              style={{ background: "var(--primary)" }}
                             >
-                              {kb.docs} docs
-                            </span>
-                            <span
-                              className="px-2 py-1 rounded-md font-medium"
-                              style={{
-                                background: "var(--success-light)",
-                                color: "var(--success)",
-                              }}
-                            >
-                              {kb.category}
-                            </span>
+                              <Database className="h-5 w-5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3
+                                className="font-semibold mb-1"
+                                style={{ color: "var(--text-primary)" }}
+                              >
+                                {kb?.name}
+                              </h3>
+                              <p
+                                className="text-sm mb-2"
+                                style={{
+                                  color: "var(--text-secondary)",
+                                  overflowWrap: "anywhere",
+                                  wordBreak: "break-word",
+                                  whiteSpace: "normal",
+                                }}
+                              >
+                                {kb?.description}
+                              </p>
+
+                              <div className="flex items-center gap-4 text-xs">
+                                <span
+                                  className="px-2 py-1 rounded-md font-medium"
+                                  style={{
+                                    background: "var(--primary-light)",
+                                    color: "var(--primary)",
+                                  }}
+                                >
+                                  {kb.docs} docs
+                                </span>
+                                <span
+                                  className="px-2 py-1 rounded-md font-medium"
+                                  style={{
+                                    background: "var(--success-light)",
+                                    color: "var(--success)",
+                                  }}
+                                >
+                                  {kb.category}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
+                        </motion.div>
                       </div>
-                    </motion.div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div
                     className="p-8 rounded-lg border text-center"
@@ -854,6 +1006,7 @@ export default function AgentDetail() {
                   whileTap={{ scale: 0.98 }}
                   className="text-sm font-medium cursor-pointer hover:underline"
                   style={{ color: "var(--primary)" }}
+                  onClick={() => router.push(`/agents/edit/${currentId}`)}
                 >
                   Edit
                 </motion.button>
@@ -958,13 +1111,13 @@ export default function AgentDetail() {
                     className="font-semibold"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    {agent.name}
+                    {agent?.name}
                   </h3>
                   <p
                     className="text-sm"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    AI Assistant • {agent.model}
+                    AI Assistant • {agent?.model}
                   </p>
                 </div>
               </div>
@@ -979,15 +1132,15 @@ export default function AgentDetail() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                   className={`flex ${
-                    message.type === "user" ? "justify-end" : "justify-start"
+                    message?.role === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
                   <div
                     className={`max-w-[70%] ${
-                      message.type === "user" ? "order-2" : "order-1"
+                      message?.role === "user" ? "order-2" : "order-1"
                     }`}
                   >
-                    {message.type !== "user" && (
+                    {message?.role !== "user" && (
                       <div className="flex items-center gap-2 mb-1">
                         <div
                           className="w-6 h-6 rounded-full flex items-center justify-center"
@@ -999,47 +1152,67 @@ export default function AgentDetail() {
                           className="text-xs font-medium"
                           style={{ color: "var(--text-secondary)" }}
                         >
-                          {agent.name}
+                          {agent?.name}
                         </span>
                       </div>
                     )}
                     <div
                       className={`p-3 rounded-lg ${
-                        message.type === "user"
+                        message?.role === "user"
                           ? "rounded-br-sm"
                           : "rounded-bl-sm"
                       }`}
                       style={{
                         background:
-                          message.type === "user"
+                          message?.role === "user"
                             ? "var(--primary)"
-                            : message.type === "system"
+                            : message?.role === "system"
                             ? "var(--surface-secondary)"
                             : "var(--surface-secondary)",
                         color:
-                          message.type === "user"
+                          message?.role === "user"
                             ? "var(--text-inverse)"
                             : "var(--text-primary)",
                       }}
                     >
-                      <p className="text-sm whitespace-pre-wrap">
-                        {message.content}
+                      <p
+                        className={`text-sm whitespace-pre-wrap ${
+                          message?.role === "user"
+                            ? "text-white/80"
+                            : "text-black/80"
+                        }`}
+                      >
+                        {message.content
+                          .split(/(\*\*.*?\*\*)/)
+                          .map((part, index) => {
+                            if (part.startsWith("**") && part.endsWith("**")) {
+                              return (
+                                <strong
+                                  key={index}
+                                  className="font-bold text-black"
+                                >
+                                  {part.slice(2, -2)}
+                                </strong>
+                              );
+                            }
+                            return part;
+                          })}
                       </p>
                       <div className="flex items-center justify-between mt-2">
                         <span
                           className={`text-xs ${
-                            message.type === "user" ? "text-white/70" : ""
+                            message?.role === "user" ? "text-white/70" : ""
                           }`}
                           style={{
                             color:
-                              message.type === "user"
+                              message?.role === "user"
                                 ? "rgba(255, 255, 255, 0.7)"
                                 : "var(--text-tertiary)",
                           }}
                         >
                           {message.timestamp}
                         </span>
-                        {message.type !== "system" && (
+                        {message?.role !== "system" && (
                           <motion.button
                             whileHover={{ scale: 1.1 }}
                             whileTap={{ scale: 0.9 }}
@@ -1047,7 +1220,7 @@ export default function AgentDetail() {
                               navigator.clipboard.writeText(message.content)
                             }
                             className={`ml-2 p-1 rounded ${
-                              message.type === "user"
+                              message?.role === "user"
                                 ? "hover:bg-white/20"
                                 : "hover:bg-gray-100"
                             }`}
@@ -1080,7 +1253,7 @@ export default function AgentDetail() {
                         className="text-xs font-medium"
                         style={{ color: "var(--text-secondary)" }}
                       >
-                        {agent.name}
+                        {agent?.name}
                       </span>
                     </div>
                     <div
@@ -1154,7 +1327,7 @@ export default function AgentDetail() {
               </p>
 
               {/* Quick Suggestions */}
-              {messages.length === 1 && (
+              {/* {(messages.length === 1 || messages.length === 0) && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1220,7 +1393,7 @@ export default function AgentDetail() {
                     </motion.button>
                   </div>
                 </motion.div>
-              )}
+              )} */}
             </div>
           </motion.div>
         )}
@@ -1259,6 +1432,7 @@ export default function AgentDetail() {
                   </h2>
                   <motion.button
                     whileHover={{ scale: 1.1, rotate: 180 }}
+                    onClick={handleRefreshSession}
                     whileTap={{ scale: 0.9 }}
                     className="p-2 rounded-lg transition-all duration-200 hover:shadow-md"
                     style={{
@@ -1373,7 +1547,7 @@ export default function AgentDetail() {
                               className="font-semibold text-sm group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-purple-600 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300"
                               style={{ color: "var(--text-primary)" }}
                             >
-                              {session.title}
+                              {session?.session_name || "-"}
                             </span>
                           </div>
                         </div>
@@ -1387,7 +1561,7 @@ export default function AgentDetail() {
                             className="text-sm font-medium transition-colors duration-200"
                             style={{ color: "var(--text-secondary)" }}
                           >
-                            {session.messages}
+                            {session?.message_count || 0}
                           </span>
                         </div>
                       </td>
@@ -1400,7 +1574,7 @@ export default function AgentDetail() {
                             className="text-sm font-medium transition-colors duration-200"
                             style={{ color: "var(--text-secondary)" }}
                           >
-                            {session.lastActive}
+                            {session.last_active}
                           </span>
                         </div>
                       </td>
@@ -1416,6 +1590,7 @@ export default function AgentDetail() {
                               color: "var(--primary)",
                               border: "1px solid rgba(59, 130, 246, 0.2)",
                             }}
+                            onClick={() => handleDetailSession(session)}
                           >
                             <Eye className="h-3 w-3" />
                             <span>View</span>
@@ -1430,6 +1605,7 @@ export default function AgentDetail() {
                                 "linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%)",
                               border: "1px solid rgba(239, 68, 68, 0.2)",
                             }}
+                            onClick={() => openSessionDelete(session)}
                           >
                             <Trash2 className="h-3.5 w-3.5 text-red-500" />
                           </motion.button>
@@ -1465,13 +1641,14 @@ export default function AgentDetail() {
                   <motion.button
                     whileHover={{ scale: 1.05, y: -1 }}
                     whileTap={{ scale: 0.95 }}
-                    className="px-4 py-2 text-xs font-bold rounded-xl border-2 transition-all duration-300 shadow-sm hover:shadow-md"
+                    className="px-4 py-2 text-xs font-bold rounded-xl border-2 transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer"
                     style={{
                       color: "var(--text-primary)",
                       borderColor: "rgba(59, 130, 246, 0.3)",
                       background:
                         "linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.9) 100%)",
                     }}
+                    onClick={handleExport}
                   >
                     Export
                   </motion.button>
@@ -1485,6 +1662,7 @@ export default function AgentDetail() {
                         "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
                       boxShadow: "0 4px 15px rgba(59, 130, 246, 0.4)",
                     }}
+                    onClick={handleNewSession}
                   >
                     New Session
                   </motion.button>
@@ -1513,6 +1691,143 @@ export default function AgentDetail() {
         confirmText="Delete"
         cancelText="Cancel"
       />
+
+      <AnimatePresence>
+        {delSessionOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              key="overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50"
+              style={{ background: "rgba(0,0,0,0.5)" }}
+              onClick={closeSessionDelete}
+            />
+
+            {/* Dialog */}
+            <motion.div
+              key="dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-title"
+              aria-describedby="delete-desc"
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 320, damping: 28 }}
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+            >
+              <div
+                className="w-full max-w-[28rem] sm:max-w-md rounded-2xl border shadow-xl"
+                style={{
+                  background: "var(--surface-elevated)",
+                  borderColor: "var(--border-light)",
+                }}
+              >
+                {/* Header */}
+                <div className="flex items-center gap-3 px-5 pt-5">
+                  <div
+                    className="p-2 rounded-xl"
+                    style={{ background: "var(--surface-secondary)" }}
+                  >
+                    <AlertTriangle
+                      className="h-5 w-5"
+                      style={{ color: "var(--primary)" }}
+                    />
+                  </div>
+                  <h2
+                    id="delete-title"
+                    className="text-lg font-semibold"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    Delete Session?
+                  </h2>
+                </div>
+
+                {/* Body */}
+                <div className="px-5 pt-3 pb-5">
+                  <p
+                    id="delete-desc"
+                    className="text-sm"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    This action cannot be undone. You will delete:
+                  </p>
+
+                  <div
+                    className="mt-3 rounded-lg border px-4 py-3 text-sm"
+                    style={{
+                      borderColor: "var(--border-light)",
+                      color: "var(--text-primary)",
+                      background: "var(--surface-secondary)",
+                    }}
+                  >
+                    <span className="font-medium">
+                      {selectedSession?.session_name || "-"}
+                    </span>
+                    <div
+                      className="mt-1 text-xs"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      {selectedSession?.created_at || "-"}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-5 grid grid-cols-1 sm:flex sm:justify-end gap-2 sm:gap-3">
+                    {/* Cancel */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={closeSessionDelete}
+                      disabled={delSessionLoading}
+                      aria-label="Cancel"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl border font-medium transition-all disabled:opacity-60"
+                      style={{
+                        background: "var(--surface-elevated)",
+                        color: "var(--text-primary)",
+                        borderColor: "var(--border-light)",
+                        outline: "none",
+                        boxShadow:
+                          "0 1px 0 rgba(255,255,255,.04) inset, 0 6px 20px rgba(0,0,0,.04)",
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                      <span>Cancel</span>
+                    </motion.button>
+
+                    {/* Delete */}
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={confirmSessionDelete}
+                      disabled={delSessionLoading}
+                      aria-label="Delete"
+                      aria-busy={delSessionLoading}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 min-h-[44px] rounded-xl font-medium transition-all disabled:opacity-60"
+                      style={{
+                        background: "var(--primary)",
+                        color: "var(--text-inverse)",
+                        outline: "none",
+                        boxShadow: "0 10px 24px rgba(0,0,0,.10)",
+                      }}
+                    >
+                      {delSessionLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                      <span>{delSessionLoading ? "Deleting…" : "Delete"}</span>
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </motion.main>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from 'next/navigation'
+import Cookies from "js-cookie";
+import { useRouter } from "next/navigation";
 import {
   Home,
   MessageCircle,
@@ -20,31 +21,51 @@ import {
   Gamepad2,
   Users,
   Shield,
-  Key
+  Key,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [activeItem, setActiveItem] = useState("/dashboard");
+  const [user, setUser] = useState([]);
+  const [permissions, setPermissions] = useState([]);
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      try {
+        const decodedToken = JSON.parse(atob(token.split(".")[1]));
+        const userPermissions = decodedToken.permissions || [];
+        setPermissions(userPermissions);
+        setUser(decodedToken);
+      } catch (error) {
+        console.error("Gagal mendekode token:", error);
+      }
+    } else {
+      console.log("Token tidak ditemukan di cookies.");
+    }
+  }, []);
 
   const handleLogout = async () => {
     try {
       console.log("Logout clicked");
-      const res = await fetch('/api/auth/logout', {
-        method: 'POST'
+      const res = await fetch("/api/auth/logout", {
+        method: "POST",
       });
 
       if (res.ok) {
-        router.push('/login');
+        localStorage.removeItem("token");
+        router.push("/login");
       } else {
         const errorData = await res.json();
-        console.error('Logout gagal:', errorData);
+        console.error("Logout gagal:", errorData);
       }
     } catch (error) {
-      console.error('Error saat logout:', error);
+      console.error("Error saat logout:", error);
     }
 
     if (isMobile) setIsOpen(false);
@@ -71,7 +92,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   }, []);
 
   // Navigation items arrays with hrefs
-  const mainNavItems = [
+  const dataMainNavItems = [
     { icon: Home, label: "Home", href: "/dashboard" },
     // { icon: Gamepad2, label: 'Playground', href: '/playground' },
     { icon: MessageCircle, label: "Interact", href: "/interact" },
@@ -79,34 +100,48 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     { icon: LinkIcon, label: "Integration", href: "/integration" },
   ];
 
-  const applicationItems = [
+  const dataApplicationItems = [
     { icon: Wrench, label: "Tools", href: "/tools" },
     { icon: Bot, label: "Agents", href: "/agents" },
     { icon: GitBranch, label: "AI chain", href: "/ai-chain" },
   ];
 
-  const foundationDataItems = [
+  const dataFoundationDataItems = [
     { icon: Box, label: "Models", href: "/models" },
     { icon: Network, label: "Connections", href: "/connections" },
     { icon: Database, label: "Dataset", href: "/dataset" },
     { icon: BookOpen, label: "Knowledge base", href: "/knowledge-base" },
   ];
 
-  const managementItems = [
-    { icon: Users, label: "User Management", href: "/user-management" },
-    { icon: Shield , label: "Role Management", href: "/role-management" },
-  ];
+  const dataManagementItems = [];
 
-
-  const observeTestItems = [
+  const dataObserveTestItems = [
     { icon: Search, label: "Tracing", href: "/tracing" },
   ];
+  const filterMenuItems = (items) => {
+    return items
+      .map((item) => {
+        const permission = permissions.find((p) => p.menu === item.label);
+        if (permission) {
+          return { ...item, permission: permission.mrm_permission };
+        }
+        return null;
+      })
+      .filter((item) => item !== null);
+  };
+
+  const mainNavItems = dataMainNavItems;
+  const applicationItems = filterMenuItems(dataApplicationItems);
+  const foundationDataItems = filterMenuItems(dataFoundationDataItems);
+  const managementItems = filterMenuItems(dataManagementItems);
+  const observeTestItems = filterMenuItems(dataObserveTestItems);
 
   const NavItem = ({ icon: Icon, label, href, isActive = false, onClick }) => (
     <Link href={href} className="block">
       <div
-        className={`flex items-center space-x-3 p-[10px] rounded-md cursor-pointer transition-all duration-200 ${isActive ? "shadow-sm" : ""
-          }`}
+        className={`flex items-center space-x-3 p-[10px] rounded-md cursor-pointer transition-all duration-200 ${
+          isActive ? "shadow-sm" : ""
+        }`}
         style={{
           background: isActive ? "var(--sidebar-active-light)" : "transparent",
           color: isActive ? "var(--primary)" : "var(--sidebar-text)",
@@ -132,8 +167,9 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
       >
         <Icon className="h-4 sm:w-4 flex-shrink-0" />
         <span
-          className={`text-xs sm:text-sm ${isActive ? "font-semibold" : "font-medium"
-            }`}
+          className={`text-xs sm:text-sm ${
+            isActive ? "font-semibold" : "font-medium"
+          }`}
         >
           {label}
         </span>
@@ -170,12 +206,13 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] border-r flex flex-col z-50 transform transition-transform duration-300 ease-in-out ${isMobile
-          ? isOpen
-            ? "translate-x-0"
-            : "-translate-x-full"
-          : "translate-x-0"
-          }`}
+        className={`fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] border-r flex flex-col z-50 transform transition-transform duration-300 ease-in-out ${
+          isMobile
+            ? isOpen
+              ? "translate-x-0"
+              : "-translate-x-full"
+            : "translate-x-0"
+        }`}
         style={{
           background: "var(--sidebar-bg)",
           borderColor: "var(--sidebar-border)",
@@ -202,7 +239,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 className="font-semibold text-xs sm:text-sm truncate"
                 style={{ color: "var(--sidebar-text-hover)" }}
               >
-                Dika Irwandifika
+                {user?.name || ""}
               </p>
               <p className="text-xs" style={{ color: "var(--sidebar-text)" }}>
                 Premium User
@@ -248,17 +285,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             />
           ))}
 
-          {/* MANAGEMENT */}
-          <SectionHeader title="MANAGEMENT" />
-          {managementItems.map((item) => (
-            <NavItem
-              key={item.label}
-              icon={item.icon}
-              label={item.label}
-              href={item.href}
-              isActive={activeItem === item.href}
-            />
-          ))}
+          {/* Management section removed - moved to Settings */}
           {/* Observe & Test Section */}
           <SectionHeader title="OBSERVE & TEST" />
           {observeTestItems.map((item) => (
@@ -282,7 +309,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
               color: "var(--text-inverse)",
             }}
             onClick={handleLogout}
-
           >
             <div className="flex items-center space-x-3">
               <LogOut className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />

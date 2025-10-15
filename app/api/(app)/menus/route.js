@@ -11,27 +11,23 @@ export async function GET() {
         );
     }
 
-    const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
-    const idToken = cookieStore.get('id_token')?.value;
-
-    if (!token) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // if (!token) {
+    //     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
 
     try {
         const { data } = await axios.get(`${baseURL}/api/menus`, {
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-                'x-id-token': idToken || '',
             },
         });
 
-        const menuList = data?.data ?? data ?? [];
+        const menuList = data?.menus ?? data ?? [];
 
         return NextResponse.json({ data: menuList }, { status: 200 });
     } catch (e) {
+        console.log(e);
+
         const status = e?.response?.status ?? 500;
         const msg = e?.response?.data?.error || 'Failed to fetch menus';
         return NextResponse.json({ error: msg }, { status });
@@ -46,7 +42,6 @@ export async function POST(request) {
 
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
-    const idToken = cookieStore.get('id_token')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
@@ -56,7 +51,6 @@ export async function POST(request) {
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token || ''}`,
-                'x-id-token': idToken || ''
             }
         });
         return NextResponse.json({ data: data?.data ?? data }, { status: 201 });

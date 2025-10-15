@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { cookies } from "next/headers";
+import { headers } from 'next/headers';
 import axios from 'axios';
 import { formatDate } from '@/app/lib/utils';
-
 
 export async function GET() {
     const baseURL = process.env.API_BASE_URL;
@@ -13,20 +12,18 @@ export async function GET() {
         );
     }
 
-    const cookieStore = await cookies();
-    const token = cookieStore.get('acces_token').value;
-    const idToken = cookieStore.get('id_token').value;
+    const reqHeaders = await headers();
+    const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
 
     if (!token) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
+    
     try {
         const { data } = await axios.get(`${baseURL}/api/knowledge_bases`, {
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
-                'x-id-token': idToken || '',
             },
         });
 
@@ -53,9 +50,10 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
     }
 
-    const cookieStore = await cookies();
-    const token = cookieStore.get('acces_token').value;
-    const idToken = cookieStore.get('id_token').value;
+    const reqHeaders = await headers();
+    const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
+
+
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
@@ -65,7 +63,6 @@ export async function POST(request) {
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token || ''}`,
-                'x-id-token': idToken || ''
             }
         });
         return NextResponse.json({ data: data?.data ?? data }, { status: 201 });

@@ -22,20 +22,24 @@ import Alert from "@/app/components/Alert";
 import CollectionSkeleton from "@/app/components/CollectionSkeleton";
 import { rbApi } from "@/app/lib/rolesBaseApi";
 
-const pageFx = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.3 } } };
+const pageFx = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.3 } },
+};
 const listFx = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
-const cardFx = { hidden: { opacity: 0, scale: 0.96, y: 8 }, show: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.22 } } };
+const cardFx = {
+  hidden: { opacity: 0, scale: 0.96, y: 8 },
+  show: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.22 } },
+};
 
 export default function RoleManagement() {
   const router = useRouter();
 
-  const [roles, setRoles] = useState([
-  ]);
-
+  const [roles, setRoles] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid");
   const [isLoading, setIsLoading] = useState(true);
-
+  const [permission, setPermission] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -50,8 +54,9 @@ export default function RoleManagement() {
       setIsLoading(false);
     }, FORCE_SKELETON_MS);
   }
-  const filteredRoles = roles.filter((r) => r?.mr_name.toLowerCase().includes(searchTerm.toLowerCase()));
-
+  const filteredRoles = roles.filter((r) =>
+    r?.mr_name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   useEffect(() => {
     async function fetchRoles() {
@@ -70,7 +75,6 @@ export default function RoleManagement() {
 
     fetchRoles();
   }, []);
-
 
   function openEdit(role) {
     if (!role?.mr_uid) return;
@@ -105,7 +109,6 @@ export default function RoleManagement() {
       await rbApi.delete(selectedRole.mr_uid, { signal });
 
       setRoles((list) => list.filter((r) => r.mr_uid !== selectedRole.mr_uid));
-
     } catch (e) {
       if (e.name === "AbortError") {
       } else {
@@ -119,25 +122,44 @@ export default function RoleManagement() {
 
   if (isLoading || forceSkeleton) {
     return (
-      <motion.main variants={pageFx} initial="hidden" animate="show" className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]">
+      <motion.main
+        variants={pageFx}
+        initial="hidden"
+        animate="show"
+        className="min-h-screen py-4 overflow-y-auto bg-[var(--background)]"
+      >
         <CollectionSkeleton viewMode={viewMode} />
       </motion.main>
     );
   }
 
   return (
-    <motion.main variants={pageFx} initial="hidden" animate="show" className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]">
-      {errorMsg && <Alert variant="error" onDismiss={() => setErrorMsg("")}>{errorMsg}</Alert>}
+    <motion.main
+      variants={pageFx}
+      initial="hidden"
+      animate="show"
+      className="min-h-screen py-4 overflow-y-auto bg-[var(--background)]"
+    >
+      {errorMsg && (
+        <Alert variant="error" onDismiss={() => setErrorMsg("")}>
+          {errorMsg}
+        </Alert>
+      )}
 
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>
-          Role Management
-        </h1>
+        <h1
+          className="text-2xl font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        ></h1>
+
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium"
-          style={{ background: "var(--primary)", color: "var(--text-inverse)" }}
+          style={{
+            background: "var(--primary)",
+            color: "var(--text-inverse)",
+          }}
           onClick={() => router.push("/role-management/create")}
         >
           <Plus className="h-4 w-4" />
@@ -146,8 +168,11 @@ export default function RoleManagement() {
       </div>
 
       <div className="flex items-center justify-between mb-6">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--text-tertiary)" }} />
+        <div className="relative w-sm left-[2px]">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4"
+            style={{ color: "var(--text-tertiary)" }}
+          />
           <input
             type="text"
             placeholder="Search roles..."
@@ -163,12 +188,21 @@ export default function RoleManagement() {
           />
         </div>
 
-        <div className="flex items-center rounded-md border overflow-hidden " style={{ borderColor: "var(--border-light)" }}>
+        <div
+          className="flex items-center rounded-md border overflow-hidden "
+          style={{ borderColor: "var(--border-light)" }}
+        >
           <button
             className="px-3 py-2 flex items-center cursor-pointer"
             style={{
-              background: viewMode === "list" ? "var(--primary)" : "var(--surface-elevated)",
-              color: viewMode === "list" ? "var(--text-inverse)" : "var(--text-secondary)",
+              background:
+                viewMode === "list"
+                  ? "var(--primary)"
+                  : "var(--surface-elevated)",
+              color:
+                viewMode === "list"
+                  ? "var(--text-inverse)"
+                  : "var(--text-secondary)",
             }}
             onClick={() => setViewMode("list")}
           >
@@ -177,8 +211,14 @@ export default function RoleManagement() {
           <button
             className="px-3 py-2 border-l flex items-center cursor-pointer"
             style={{
-              background: viewMode === "grid" ? "var(--primary)" : "var(--surface-elevated)",
-              color: viewMode === "grid" ? "var(--text-inverse)" : "var(--text-secondary)",
+              background:
+                viewMode === "grid"
+                  ? "var(--primary)"
+                  : "var(--surface-elevated)",
+              color:
+                viewMode === "grid"
+                  ? "var(--text-inverse)"
+                  : "var(--text-secondary)",
               borderColor: "var(--border-light)",
             }}
             onClick={() => setViewMode("grid")}
@@ -191,7 +231,13 @@ export default function RoleManagement() {
       <LayoutGroup>
         <AnimatePresence mode="wait">
           {viewMode === "grid" ? (
-            <motion.div key="grid" variants={listFx} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <motion.div
+              key="grid"
+              variants={listFx}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+            >
               {filteredRoles.map((role) => (
                 <motion.div
                   key={role?.mr_uid || role?.id}
@@ -199,40 +245,83 @@ export default function RoleManagement() {
                   variants={cardFx}
                   whileHover={{ scale: 1.01 }}
                   className="relative rounded-lg border overflow-hidden hover:shadow-lg transition-shadow duration-200"
-                  style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}
+                  style={{
+                    background: "var(--surface-elevated)",
+                    borderColor: "var(--border-light)",
+                  }}
                 >
-                  <div className="h-1" style={{ background: "var(--primary)" }} />
+                  <div
+                    className="h-1"
+                    style={{ background: "var(--primary)" }}
+                  />
                   <div className="absolute top-3 right-3 flex gap-2">
-                    <button className="p-1 rounded hover:bg-gray-100 cursor-pointer" style={{ color: "var(--text-secondary)" }} onClick={() => openEdit(role)}>
+                    <button
+                      className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                      style={{ color: "var(--text-secondary)" }}
+                      onClick={() => openEdit(role)}
+                    >
                       <Edit className="h-4 w-4" />
                     </button>
-                    <button className="p-1 rounded hover:bg-gray-100 cursor-pointer" style={{ color: "var(--text-secondary)" }} onClick={() => openDelete(role)}>
+
+                    <button
+                      className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                      style={{ color: "var(--text-secondary)" }}
+                      onClick={() => openDelete(role)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
 
                   <div className="p-6">
                     <div className="flex gap-3 mb-4">
-                      <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "var(--primary)" }}>
+                      <div
+                        className="w-12 h-12 rounded-lg flex items-center justify-center"
+                        style={{ background: "var(--primary)" }}
+                      >
                         <Shield className="h-6 w-6 text-white" />
                       </div>
                       <div>
-                        <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>{role?.mr_name || "-"}</h3>
+                        <h3
+                          className="font-semibold"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          {role?.mr_name || "-"}
+                        </h3>
                       </div>
                     </div>
 
-                    <div className="space-y-2 mb-6 text-sm" style={{ color: "var(--text-secondary)" }}>
-                      <div className="flex gap-2 items-center"><Users className="h-4 w-4" /> {role.members || "0"} members</div>
-                      <div className="flex gap-2 items-center"><Key className="h-4 w-4" /> {role.permissions || "0"} permissions</div>
-                      <div className="flex gap-2 items-center"><Calendar className="h-4 w-4" /> {role.created_at || "-"}</div>
+                    <div
+                      className="space-y-2 mb-6 text-sm"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      <div className="flex gap-2 items-center">
+                        <Users className="h-4 w-4" /> {role.members || "0"}{" "}
+                        members
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <Key className="h-4 w-4" /> {role.permissions || "0"}{" "}
+                        permissions
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <Calendar className="h-4 w-4" />{" "}
+                        {role.created_at || "-"}
+                      </div>
                     </div>
 
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => router.push(`/role-management/${role?.mr_uid || role?.id}`)}
+                      onClick={() =>
+                        router.push(
+                          `/role-management/${role?.mr_uid || role?.id}`
+                        )
+                      }
                       className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
-                      style={{ background: "var(--surface-secondary)", color: "var(--text-primary)", border: "1px solid var(--border-light)" }}
+                      style={{
+                        background: "var(--surface-secondary)",
+                        color: "var(--text-primary)",
+                        border: "1px solid var(--border-light)",
+                      }}
                     >
                       View
                     </motion.button>
@@ -241,7 +330,13 @@ export default function RoleManagement() {
               ))}
             </motion.div>
           ) : (
-            <motion.div key="list" variants={listFx} initial="hidden" animate="show" className="space-y-3">
+            <motion.div
+              key="list"
+              variants={listFx}
+              initial="hidden"
+              animate="show"
+              className="space-y-3"
+            >
               {filteredRoles.map((role) => (
                 <motion.div
                   key={role?.mr_uid || role?.id}
@@ -249,28 +344,55 @@ export default function RoleManagement() {
                   variants={cardFx}
                   whileHover={{ scale: 1.005 }}
                   className="relative rounded-lg border overflow-hidden hover:shadow-md transition-shadow duration-200"
-                  style={{ background: "var(--surface-elevated)", borderColor: "var(--border-light)" }}
+                  style={{
+                    background: "var(--surface-elevated)",
+                    borderColor: "var(--border-light)",
+                  }}
                 >
-                  <div className="h-1" style={{ background: "var(--primary)" }} />
+                  <div
+                    className="h-1"
+                    style={{ background: "var(--primary)" }}
+                  />
                   <div className="px-6 pt-8 pb-6">
                     <div className="absolute top-3 right-3 flex items-center gap-2">
-                      <button className="p-1 rounded hover:bg-gray-100 cursor-pointer" style={{ color: "var(--text-secondary)" }} onClick={() => openEdit(role)}>
+                      <button
+                        className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                        style={{ color: "var(--text-secondary)" }}
+                        onClick={() => openEdit(role)}
+                      >
                         <Edit className="h-4 w-4" />
                       </button>
-                      <button className="p-1 rounded hover:bg-gray-100 cursor-pointer" style={{ color: "var(--text-secondary)" }} onClick={() => openDelete(role)}>
+
+                      <button
+                        className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                        style={{ color: "var(--text-secondary)" }}
+                        onClick={() => openDelete(role)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
 
                     <div className="flex gap-4">
-                      <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "var(--primary)" }}>
+                      <div
+                        className="w-12 h-12 rounded-lg flex items-center justify-center"
+                        style={{ background: "var(--primary)" }}
+                      >
                         <Shield className="h-6 w-6 text-white" />
                       </div>
 
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>{role.mr_name || '-'}</h3>
-                        <div className="text-xs" style={{ color: "var(--text-tertiary)" }}>
-                          {role.members} members • {role.permissions} permissions • {role.created_at}
+                        <h3
+                          className="font-semibold"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          {role.mr_name || "-"}
+                        </h3>
+                        <div
+                          className="text-xs"
+                          style={{ color: "var(--text-tertiary)" }}
+                        >
+                          {role.members} members • {role.permissions}{" "}
+                          permissions • {role.created_at}
                         </div>
                       </div>
 
@@ -278,9 +400,17 @@ export default function RoleManagement() {
                         <motion.button
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => router.push(`/role-management/${role?.mr_uid || role?.id}`)}
+                          onClick={() =>
+                            router.push(
+                              `/role-management/${role?.mr_uid || role?.id}`
+                            )
+                          }
                           className="px-4 py-2 rounded-lg font-medium cursor-pointer"
-                          style={{ background: "var(--surface-secondary)", color: "var(--text-primary)", border: "1px solid var(--border-light)" }}
+                          style={{
+                            background: "var(--surface-secondary)",
+                            color: "var(--text-primary)",
+                            border: "1px solid var(--border-light)",
+                          }}
                         >
                           View
                         </motion.button>
@@ -311,8 +441,7 @@ export default function RoleManagement() {
             className="text-sm mb-4"
             style={{ color: "var(--text-secondary)" }}
           >
-            Create your first role to enable semantic search across
-            your data.
+            Create your first role to enable semantic search across your data.
           </p>
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -342,9 +471,7 @@ export default function RoleManagement() {
             color: "var(--text-primary)",
           }}
         >
-          <h3 className="text-lg font-medium mb-2">
-            No role found
-          </h3>
+          <h3 className="text-lg font-medium mb-2">No role found</h3>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
             No role found matching "{searchTerm}"
           </p>
@@ -384,26 +511,51 @@ export default function RoleManagement() {
                 }}
               >
                 <div className="flex items-center gap-3 px-5 pt-5">
-                  <div className="p-2 rounded-xl" style={{ background: "var(--surface-secondary)" }}>
-                    <AlertTriangle className="h-5 w-5" style={{ color: "var(--primary)" }} />
+                  <div
+                    className="p-2 rounded-xl"
+                    style={{ background: "var(--surface-secondary)" }}
+                  >
+                    <AlertTriangle
+                      className="h-5 w-5"
+                      style={{ color: "var(--primary)" }}
+                    />
                   </div>
-                  <h2 id="delete-title" className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                  <h2
+                    id="delete-title"
+                    className="text-lg font-semibold"
+                    style={{ color: "var(--text-primary)" }}
+                  >
                     Delete Role?
                   </h2>
                 </div>
 
                 <div className="px-5 pt-3 pb-5">
-                  <p id="delete-desc" className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                  <p
+                    id="delete-desc"
+                    className="text-sm"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
                     This action cannot be undone. You will delete:
                   </p>
 
                   <div
                     className="mt-3 rounded-lg border px-4 py-3 text-sm"
-                    style={{ borderColor: "var(--border-light)", color: "var(--text-primary)", background: "var(--surface-secondary)" }}
+                    style={{
+                      borderColor: "var(--border-light)",
+                      color: "var(--text-primary)",
+                      background: "var(--surface-secondary)",
+                    }}
                   >
-                    <span className="font-medium">{selectedRole?.mr_name || '-'}</span>
-                    <div className="mt-1 text-xs" style={{ color: "var(--text-tertiary)" }}>
-                      {selectedRole?.members} members • {selectedRole?.permissions} permissions • {selectedRole?.created_at}
+                    <span className="font-medium">
+                      {selectedRole?.mr_name || "-"}
+                    </span>
+                    <div
+                      className="mt-1 text-xs"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      {selectedRole?.members} members •{" "}
+                      {selectedRole?.permissions} permissions •{" "}
+                      {selectedRole?.created_at}
                     </div>
                   </div>
 
@@ -420,7 +572,8 @@ export default function RoleManagement() {
                         color: "var(--text-primary)",
                         borderColor: "var(--border-light)",
                         outline: "none",
-                        boxShadow: "0 1px 0 rgba(255,255,255,.04) inset, 0 6px 20px rgba(0,0,0,.04)",
+                        boxShadow:
+                          "0 1px 0 rgba(255,255,255,.04) inset, 0 6px 20px rgba(0,0,0,.04)",
                       }}
                     >
                       <X className="h-4 w-4" />
@@ -442,7 +595,11 @@ export default function RoleManagement() {
                         boxShadow: "0 10px 24px rgba(0,0,0,.10)",
                       }}
                     >
-                      {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      {deleting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                       <span>{deleting ? "Deleting…" : "Delete"}</span>
                     </motion.button>
                   </div>
@@ -452,7 +609,6 @@ export default function RoleManagement() {
           </>
         )}
       </AnimatePresence>
-
     </motion.main>
   );
 }

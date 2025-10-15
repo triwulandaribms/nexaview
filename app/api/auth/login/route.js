@@ -27,9 +27,9 @@ export async function POST(request) {
       { email, password },
       { headers: { "Content-Type": "application/json" } }
     );
-    console.log(responseFromAPI.data);
 
-    const { access_token, id_token, token, user } = responseFromAPI.data;
+    const { token, id_token, access_token, user } = responseFromAPI.data;
+
     // Opsi cookie standar
     const baseCookieOptions = {
       secure: process.env.NODE_ENV === "production",
@@ -41,22 +41,17 @@ export async function POST(request) {
     const response = NextResponse.json({
       success: true,
       message: "Login successful",
-      user,
+      token,
     });
-
-    response.cookies.set("token", access_token, {
-      ...baseCookieOptions,
-      httpOnly: true, // Mengubah ke httpOnly: true untuk meningkatkan keamanan
-    });
-
-    response.cookies.set("acces_token", token, {
+    
+    response.cookies.set("id_token", id_token, {
       ...baseCookieOptions,
       httpOnly: false,
     });
 
-    response.cookies.set("id_token", id_token, {
+    response.cookies.set("access_token", access_token, {
       ...baseCookieOptions,
-      httpOnly: true, // Mengubah ke httpOnly: true untuk meningkatkan keamanan
+      httpOnly: false,
     });
 
     return response;

@@ -145,7 +145,7 @@ export default function UpdateKnowledgeBase() {
       >
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer"
         >
           <ChevronLeft className="h-5 w-5" />
           Edit Knowledge Base

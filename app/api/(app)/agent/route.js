@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { headers } from 'next/headers';
 import axios from 'axios';
 import { ok, fail, normalizeAxiosError, formatDate, } from '@/app/lib/utils';
 
@@ -7,18 +7,14 @@ export async function GET() {
     if (!baseURL) return fail('Server configuration error. Please contact administrator.', 500);
 
     try {
-
-        const cookieStore = await cookies();
-
-        const token = cookieStore.get('token')?.value;
-        const idToken = cookieStore.get('id_token')?.value;
+        const reqHeaders = await headers();
+        const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
 
         const { data } = await axios.get(`${baseURL}/api/agent`, {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token || ''}`,
-                'x-id-token': idToken || ''
             },
             timeout: 30_000,
             validateStatus: s => s >= 200 && s < 300,
@@ -45,16 +41,14 @@ export async function POST(req) {
     try { body = await req.json(); } catch { body = {}; }
 
     try {
-        const cookieStore = await cookies();
-        const token = cookieStore.get("token")?.value;
-        const idToken = cookieStore.get("id_token")?.value;
+        const reqHeaders = await headers();
+        const token = reqHeaders.get('Authorization')?.replace('Bearer ', '');
 
         const { data } = await axios.post(`${baseURL}/api/agent`, body, {
             headers: {
                 Accept: "application/json",
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token || ""}`,
-                "x-id-token": idToken || "",
             },
             timeout: 60_000,
             validateStatus: (s) => s >= 200 && s < 300,

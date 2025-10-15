@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import PageHeader from "../../components/PageHeader";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import EditDatasetModal from "../../components/EditDatasetModal";
 import DeleteConfirmDialog from "../../components/DeleteConfirmDialog";
 import { withTimeout } from "@/app/lib/http";
@@ -38,17 +38,17 @@ import {
 
 export default function Datasets() {
   const router = useRouter();
+  const pathname = usePathname();
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [datasets, setDatasets] = useState([]);
   const [errorMsg, setErrorMsg] = useState("");
-  const [editOpen, setEditOpen] = useState(false);
-  const [editIndex, setEditIndex] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectedKB, setSelectedKB] = useState(null);
+  const [permission, setPermission] = useState("");
   const itemsPerPage = 6;
 
   const getFileIcon = (fileName) => {
@@ -190,10 +190,27 @@ export default function Datasets() {
       const res = await dsApi.list({ signal });
 
       if (!mounted) return;
+      console.log(res.data, " hasil nya apa yah ");
 
-      if (res?.success == false)
+      if (res?.success == false) {
         setErrorMsg(res.error || "Failed to load datasets");
-      else setDatasets(res.data ?? []);
+      } else {
+        const sortedDatasets = res.data
+          ? res.data.sort((a, b) => {
+              const dateA = new Date(a.created_at);
+              const dateB = new Date(b.created_at);
+              return dateB - dateA;
+            })
+          : [];
+
+        const formattedDatasets = sortedDatasets.map((dataset) => {
+          const date = new Date(dataset.created_at);
+          const options = { year: "numeric", month: "short", day: "numeric" };
+          const formattedDate = date.toLocaleDateString("en-GB", options);
+          return { ...dataset, formatted_created_at: formattedDate };
+        });
+        setDatasets(formattedDatasets);
+      }
 
       setIsLoading(false);
     })().catch((e) => {
@@ -287,12 +304,30 @@ export default function Datasets() {
     </div>
   );
 
-  const getDatasetIcon = (type) => {
-    if (type.includes("Question-Answer")) return "💬";
-    if (type.includes("structured")) return "📊";
-    if (type.includes("unstructured")) return "📄";
-    return "📁";
-  };
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      try {
+        const decodedToken = JSON.parse(atob(token.split(".")[1]));
+        const permissions = decodedToken.permissions || [];
+
+        const filteredPermission = permissions.find(
+          (permission) => permission.path === pathname
+        );
+
+        if (filteredPermission) {
+          setPermission(filteredPermission.mrm_permission);
+        } else {
+          router.push("/");
+        }
+      } catch (error) {
+        console.error("Gagal mendekode token:", error);
+      }
+    }
+  }, [pathname]);
+
+  const hasPermission = (val) => permission.includes(val);
 
   const lcSearch = searchTerm.toLowerCase();
   const safeDatasets = Array.isArray(datasets) ? datasets : [];
@@ -367,19 +402,22 @@ export default function Datasets() {
               subtitle="Upload and manage your files. These can be used in knowledge bases or for fine-tuning models."
             />
           </div>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => router.push("/dataset/create")}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer"
-            style={{
-              background: "var(--primary)",
-              color: "var(--text-inverse)",
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            Add Document
-          </motion.button>
+
+          {hasPermission("C") && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => router.push("/dataset/create")}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer"
+              style={{
+                background: "var(--primary)",
+                color: "var(--text-inverse)",
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              Add Document
+            </motion.button>
+          )}
         </div>
 
         {/* Search and View Toggle */}
@@ -389,7 +427,7 @@ export default function Datasets() {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="relative max-w-md"
+            className="relative w-sm left-[2px]"
           >
             <Search
               className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4"
@@ -507,23 +545,6 @@ export default function Datasets() {
                                   </span>
                                 </div>
                               </div>
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                                style={{ color: "var(--text-secondary)" }}
-                                onClick={() => handleEdit(dataset?.id)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </motion.button>
-                              <motion.button
-                                whileHover={{ scale: 1.1 }}
-                                whileTap={{ scale: 0.9 }}
-                                className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
-                                onClick={() => openDelete(dataset)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </motion.button>
                             </div>
 
                             {/* Dataset Icon and Name */}
@@ -622,22 +643,49 @@ export default function Datasets() {
                             )}
                           </div>
 
-                          {/* View Button */}
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() =>
-                              router.push(`/dataset/${dataset?.id}`)
-                            }
-                            className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
-                            style={{
-                              background: "var(--surface-secondary)",
-                              color: "var(--text-primary)",
-                              border: "1px solid var(--border-light)",
-                            }}
-                          >
-                            View Dataset
-                          </motion.button>
+                          <div className="flex items-center gap-4 justify-between">
+                            {/* View Button */}
+                            {hasPermission("R") && (
+                              <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() =>
+                                  router.push(`/dataset/${dataset?.id}`)
+                                }
+                                className=" py-2 px-4 rounded-md font-medium cursor-pointer"
+                                style={{
+                                  background: "var(--surface-secondary)",
+                                  color: "var(--text-primary)",
+                                  border: "1px solid var(--border-light)",
+                                }}
+                              >
+                                View Dataset
+                              </motion.button>
+                            )}
+                            <div className="flex items-center gap-4 justify-end">
+                              {hasPermission("U") && (
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                                  style={{ color: "var(--text-secondary)" }}
+                                  onClick={() => handleEdit(dataset?.id)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </motion.button>
+                              )}
+                              {hasPermission("D") && (
+                                <motion.button
+                                  whileHover={{ scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
+                                  className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
+                                  onClick={() => openDelete(dataset)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </motion.button>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </motion.div>
                     ))}
@@ -690,23 +738,6 @@ export default function Datasets() {
                                 <span>{dataset.created_at}</span>
                               </div>
                             </div>
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                              style={{ color: "var(--text-secondary)" }}
-                              onClick={() => handleEdit(dataset?.id)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </motion.button>
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
-                              onClick={() => openDelete(dataset)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </motion.button>
                           </div>
 
                           {/* Horizontal Layout for Desktop, Vertical for Mobile */}
@@ -794,22 +825,49 @@ export default function Datasets() {
                             </div>
 
                             {/* View Button */}
-                            <div className="flex-shrink-0 flex items-end">
-                              <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() =>
-                                  router.push(`/dataset/${dataset.id}`)
-                                }
-                                className="px-4 py-2 rounded-lg font-medium cursor-pointer w-full sm:w-auto"
-                                style={{
-                                  background: "var(--surface-secondary)",
-                                  color: "var(--text-primary)",
-                                  border: "1px solid var(--border-light)",
-                                }}
-                              >
-                                View Dataset
-                              </motion.button>
+                            <div className="flex items-end gap-4 justify-end">
+                              <div className="h-[42px] items-center justify-center flex gap-3">
+                                {hasPermission("U") && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                                    style={{ color: "var(--text-secondary)" }}
+                                    onClick={() => handleEdit(dataset?.id)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </motion.button>
+                                )}
+                                {hasPermission("D") && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
+                                    onClick={() => openDelete(dataset)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </motion.button>
+                                )}
+                              </div>
+                              {hasPermission("R") && (
+                                <div className="flex-shrink-0 flex items-end">
+                                  <motion.button
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() =>
+                                      router.push(`/dataset/${dataset.id}`)
+                                    }
+                                    className="px-4 py-2 rounded-lg font-medium cursor-pointer w-full sm:w-auto"
+                                    style={{
+                                      background: "var(--surface-secondary)",
+                                      color: "var(--text-primary)",
+                                      border: "1px solid var(--border-light)",
+                                    }}
+                                  >
+                                    View Dataset
+                                  </motion.button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -821,31 +879,33 @@ export default function Datasets() {
         </LayoutGroup>
 
         {/* No Results Message */}
-        {allFilteredDatasets.length === 0 && searchTerm && (
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="p-8 rounded-md border text-center"
-            style={{
-              background: "var(--surface-elevated)",
-              borderColor: "var(--border-light)",
-            }}
-          >
-            <h3
-              className="text-lg font-medium mb-2"
-              style={{ color: "var(--text-primary)" }}
+        {allFilteredDatasets.length === 0 &&
+          searchTerm &&
+          isLoading == false && (
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="p-8 rounded-md border text-center"
+              style={{
+                background: "var(--surface-elevated)",
+                borderColor: "var(--border-light)",
+              }}
             >
-              No datasets found
-            </h3>
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-              No datasets found matching "{searchTerm}"
-            </p>
-          </motion.div>
-        )}
+              <h3
+                className="text-lg font-medium mb-2"
+                style={{ color: "var(--text-primary)" }}
+              >
+                No datasets found
+              </h3>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                No datasets found matching "{searchTerm}"
+              </p>
+            </motion.div>
+          )}
 
         {/* Empty State */}
-        {datasets.length === 0 && !searchTerm && (
+        {datasets.length === 0 && !searchTerm && isLoading == false && (
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -945,12 +1005,7 @@ export default function Datasets() {
           </motion.div>
         )}
       </motion.div>
-      {/* <EditDatasetModal
-        open={editOpen}
-        dataset={editIndex !== null ? datasets[editIndex] : null}
-        onClose={() => setEditOpen(false)}
-        onSave={handleSave}
-      />; */}
+
       <DeleteConfirmDialog
         open={confirmOpen}
         onClose={closeDelete}

@@ -8,7 +8,7 @@ export async function GET() {
 
     try {
         const cookieStore = await cookies();
-        const token = cookieStore.get('token')?.value;
+        const token = cookieStore.get('access_token')?.value;
         const idToken = cookieStore.get('id_token')?.value;
 
         const { data } = await axios.get(`${baseURL}/api/roles`, {
@@ -40,7 +40,7 @@ export async function POST(request) {
     if (!baseURL) return fail('Server configuration error. Please contact administrator.', 500);
 
     const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value;
+    const token = cookieStore.get('access_token')?.value;
     const idToken = cookieStore.get('id_token')?.value;
     const body = await request.json();
 
@@ -49,7 +49,7 @@ export async function POST(request) {
             headers: {
                 Accept: 'application/json',
                 Authorization: `Bearer ${token || ''}`,
-                'x-id-token': idToken || ''
+                "x-id-token": idToken
             },
             timeout: 30_000,
             validateStatus: s => s >= 200 && s < 300,

@@ -3,7 +3,7 @@
 :root {
   --background: #f2f2f2;
   --foreground: #0f0f23;
-  
+
   /* Light Theme Color Palette */
   --primary: #6366f1;
   --primary-hover: #4f46e5;
@@ -14,26 +14,26 @@
   --accent: #06b6d4;
   --accent-hover: #0891b2;
   --accent-light: #ecfeff;
-  
+
   /* Light Surface Colors */
   --surface: #ffffff;
   --surface-hover: #f8fafc;
   --surface-secondary: #f1f5f9;
   --surface-tertiary: #e2e8f0;
   --surface-elevated: #ffffff;
-  
+
   /* Light Text Colors */
   --text-primary: #0f172a;
   --text-secondary: #475569;
   --text-tertiary: #64748b;
   --text-inverse: #ffffff;
   --text-muted: #94a3b8;
-  
+
   /* Light Border Colors */
   --border-light: #e2e8f0;
   --border-medium: #cbd5e1;
   --border-strong: #94a3b8;
-  
+
   /* Status Colors */
   --success: #10b981;
   --success-light: #ecfdf5;
@@ -41,7 +41,7 @@
   --warning-light: #fffbeb;
   --error: #ef4444;
   --error-light: #fef2f2;
-  
+
   /* Light Header Colors */
   --header-bg: rgba(255, 255, 255, 0.95);
   --header-border: var(--border-light);
@@ -54,23 +54,29 @@
   --header-button-hover: var(--surface-tertiary);
   --header-input-border: var(--border-medium);
   --header-input-focus: var(--primary);
-  
+
   /* Light Sidebar Colors */
   --sidebar-bg: var(--surface-elevated);
   --sidebar-text: var(--text-secondary);
   --sidebar-text-hover: var(--text-primary);
-  --sidebar-active-bg: linear-gradient(135deg, var(--primary), var(--secondary));
+  --sidebar-active-bg: linear-gradient(
+    135deg,
+    var(--primary),
+    var(--secondary)
+  );
   --sidebar-active-light: var(--primary-light);
   --sidebar-hover-bg: var(--surface-hover);
   --sidebar-border: var(--border-light);
-  
+
   /* Enhanced Shadows for Light Theme */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
   --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-  
+
   /* Responsive Breakpoints */
   --mobile-max: 640px;
   --tablet-max: 768px;
@@ -83,7 +89,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  
+
   /* Light theme colors */
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
@@ -110,50 +116,36 @@
   :root {
     --background: #0f0f23;
     --foreground: #f2f2f2;
-    
+
     /* Dark mode adjustments - keeping light as default */
     --surface: #1e1e3f;
     --surface-hover: #2a2a5a;
     --surface-secondary: #1a1a35;
     --surface-tertiary: #16162e;
     --surface-elevated: #252547;
-    
+
     --text-primary: #ffffff;
     --text-secondary: #cbd5e1;
     --text-tertiary: #94a3b8;
     --text-muted: #64748b;
-    
+
     --border-light: #334155;
     --border-medium: #475569;
     --border-strong: #64748b;
-    
+
     /* Dark header colors */
     --header-bg: rgba(15, 15, 35, 0.95);
     --header-border: var(--border-light);
     --header-button-bg: var(--surface-secondary);
     --header-button-hover: var(--surface-hover);
-    
+
     /* Dark sidebar colors */
     --sidebar-bg: #0c0c1f;
     --sidebar-border: #1a1a35;
     --sidebar-hover-bg: rgba(100, 116, 139, 0.1);
   }
 }
-html, body {
-  overscroll-behavior: none;
-}
-
-html.lenis {
-  height: auto;
-}
-
-.lenis.lenis-smooth {
-  scroll-behavior: auto;
-}
-
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
+/* Lenis smooth scrolling styles removed */
 body {
   background: var(--background);
   color: var(--foreground);
@@ -212,4 +204,40 @@ body {
 nextjs-portal,
 [data-nextjs-toast] {
   display: none !important;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.modal-content {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* Custom scrollbar styles */
+.modal-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background-color: var(--border-medium);
+  border-radius: 20px;
+  border: 2px solid transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background-color: var(--border-strong);
 }

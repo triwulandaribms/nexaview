@@ -78,8 +78,8 @@ export default function CreateAgent() {
             typeof it.docs_count === "number"
               ? it.docs_count
               : Array.isArray(it.documents)
-              ? it.documents.length
-              : 0,
+                ? it.documents.length
+                : 0,
           description: it.description ?? "",
           color: it.color ?? "#4F46E5",
           createdAt: it.created_at ?? null,
@@ -217,14 +217,16 @@ export default function CreateAgent() {
         const kbList =
           selectedDataSource === "Knowledge Bases"
             ? knowledgeBases
-                .filter((kb) => selectedKnowledgeBases.includes(kb.id))
-                .map((kb) => ({
-                  name: kb.name,
-                  description: kb.description || "",
-                  documentCount:
-                    typeof kb.documents === "number" ? kb.documents : 0,
-                }))
+              .filter((kb) => selectedKnowledgeBases.includes(kb.id))
+              .map((kb) => ({
+                id: kb.id,
+                name: kb.name,
+                description: kb.description || "",
+                documentCount:
+                  typeof kb.documents === "number" ? kb.documents : 0,
+              }))
             : [];
+
         const DATA_SOURCE_KEY = {
           "Knowledge Bases": "knowledge-bases",
           "Database Connections": "database-connections",
@@ -275,9 +277,8 @@ export default function CreateAgent() {
         <div className="h-12 w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse" />
       ) : (
         <div
-          className={`h-${
-            rows * 6
-          } w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse`}
+          className={`h-${rows * 6
+            } w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse`}
         />
       )}
     </div>
@@ -658,11 +659,10 @@ export default function CreateAgent() {
                               {provider.name}
                             </h4>
                             <span
-                              className={`text-xs px-3 py-1 rounded-full font-medium ${
-                                provider.status === "Connected"
+                              className={`text-xs px-3 py-1 rounded-full font-medium ${provider.status === "Connected"
                                   ? "bg-green-50 text-green-600 border border-green-200"
                                   : "bg-gray-50 text-gray-600 border border-gray-200"
-                              }`}
+                                }`}
                             >
                               {provider.status}
                             </span>
@@ -672,15 +672,13 @@ export default function CreateAgent() {
                             {provider.models.map((model) => (
                               <label
                                 key={model.id}
-                                className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${
-                                  selectedModel === model.id
+                                className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${selectedModel === model.id
                                     ? "border-[var(--primary)] bg-[var(--primary)]/10"
                                     : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
-                                } ${
-                                  provider.status !== "Connected"
+                                  } ${provider.status !== "Connected"
                                     ? "opacity-50 cursor-not-allowed"
                                     : ""
-                                }`}
+                                  }`}
                                 style={{
                                   background:
                                     selectedModel === model.id
@@ -707,11 +705,10 @@ export default function CreateAgent() {
                                   }}
                                 />
                                 <span
-                                  className={`text-sm font-medium flex-1 ${
-                                    provider.status !== "Connected"
+                                  className={`text-sm font-medium flex-1 ${provider.status !== "Connected"
                                       ? "text-gray-400"
                                       : ""
-                                  }`}
+                                    }`}
                                   style={{
                                     color:
                                       provider.status !== "Connected"
@@ -778,11 +775,10 @@ export default function CreateAgent() {
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           onClick={() => setSelectedDataSource(option.id)}
-                          className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${
-                            selectedDataSource === option.id
+                          className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${selectedDataSource === option.id
                               ? "border-[var(--primary)] bg-[var(--primary)]/10"
                               : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
-                          }`}
+                            }`}
                           style={{
                             background:
                               selectedDataSource === option.id
@@ -990,9 +986,8 @@ export default function CreateAgent() {
                       style={{ color: "var(--text-secondary)" }}
                     >
                       {selectedKnowledgeBases.length > 0
-                        ? `${selectedKnowledgeBases.length} knowledge base${
-                            selectedKnowledgeBases.length !== 1 ? "s" : ""
-                          } selected`
+                        ? `${selectedKnowledgeBases.length} knowledge base${selectedKnowledgeBases.length !== 1 ? "s" : ""
+                        } selected`
                         : "No data sources selected"}
                     </p>
                   </div>
@@ -1047,16 +1042,16 @@ export default function CreateAgent() {
                 style={{
                   background:
                     !isSubmitting &&
-                    agentName.trim() &&
-                    description.trim() &&
-                    selectedModel
+                      agentName.trim() &&
+                      description.trim() &&
+                      selectedModel
                       ? "var(--primary)"
                       : "var(--surface-secondary)",
                   color:
                     !isSubmitting &&
-                    agentName.trim() &&
-                    description.trim() &&
-                    selectedModel
+                      agentName.trim() &&
+                      description.trim() &&
+                      selectedModel
                       ? "var(--text-inverse)"
                       : "var(--text-secondary)",
                 }}
