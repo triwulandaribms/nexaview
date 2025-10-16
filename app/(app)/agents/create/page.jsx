@@ -18,6 +18,8 @@ import {
   BookOpen,
   Server,
   FileText,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -44,8 +46,16 @@ export default function CreateAgent() {
   const [kbError, setKbError] = useState("");
   const [knowledgeBases, setKnowledgeBases] = useState([]);
 
+
+
   const [searchKnowledgeBases, setSearchKnowledgeBases] = useState("");
   const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState([]);
+  const [dbHost, setDbHost] = useState("");
+  const [dbName, setDbName] = useState("");
+  const [dbPort, setDbPort] = useState("");
+  const [dbUsername, setDbUsername] = useState("");
+  const [dbPassword, setDbPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   // Model Providers state
   const [modelProviders, setModelProviders] = useState([]);
   const [providersError, setProvidersError] = useState("");
@@ -179,6 +189,14 @@ export default function CreateAgent() {
   const filteredKnowledgeBases = knowledgeBases.filter((kb) =>
     kb.name.toLowerCase().includes(searchKnowledgeBases.toLowerCase())
   );
+
+  const isDbFormIncomplete =
+    selectedDataSource === "Database Connections" &&
+    (!dbHost.trim() ||
+      !dbName.trim() ||
+      !dbPort.trim() ||
+      !dbUsername.trim() ||
+      !dbPassword.trim());
 
   // Simulate loading state
   useEffect(() => {
@@ -660,8 +678,8 @@ export default function CreateAgent() {
                             </h4>
                             <span
                               className={`text-xs px-3 py-1 rounded-full font-medium ${provider.status === "Connected"
-                                  ? "bg-green-50 text-green-600 border border-green-200"
-                                  : "bg-gray-50 text-gray-600 border border-gray-200"
+                                ? "bg-green-50 text-green-600 border border-green-200"
+                                : "bg-gray-50 text-gray-600 border border-gray-200"
                                 }`}
                             >
                               {provider.status}
@@ -673,8 +691,8 @@ export default function CreateAgent() {
                               <label
                                 key={model.id}
                                 className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${selectedModel === model.id
-                                    ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                                    : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                                  ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                                  : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
                                   } ${provider.status !== "Connected"
                                     ? "opacity-50 cursor-not-allowed"
                                     : ""
@@ -706,8 +724,8 @@ export default function CreateAgent() {
                                 />
                                 <span
                                   className={`text-sm font-medium flex-1 ${provider.status !== "Connected"
-                                      ? "text-gray-400"
-                                      : ""
+                                    ? "text-gray-400"
+                                    : ""
                                     }`}
                                   style={{
                                     color:
@@ -776,8 +794,8 @@ export default function CreateAgent() {
                           whileTap={{ scale: 0.99 }}
                           onClick={() => setSelectedDataSource(option.id)}
                           className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${selectedDataSource === option.id
-                              ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                              : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                            ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                            : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
                             }`}
                           style={{
                             background:
@@ -887,6 +905,153 @@ export default function CreateAgent() {
                           ))}
                         </div>
                       </div>
+                    )}
+
+                    {/* Database Connections Selection */}
+                    {selectedDataSource === "Database Connections" && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <h4
+                          className="font-medium mb-4"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          Connection Details
+                        </h4>
+                        <div className="space-y-4">
+                          <div>
+                            <label
+                              className="block text-xs font-medium mb-1"
+                              style={{ color: "var(--text-secondary)" }}
+                            >
+                              Host
+                            </label>
+                            <input
+                              type="text"
+                              value={dbHost}
+                              onChange={(e) => setDbHost(e.target.value)}
+                              placeholder="e.g., localhost or 127.0.0.1"
+                              className="w-full px-4 py-3 rounded-xl border-2 border-transparent focus:outline-none focus:border-[var(--primary)] transition-all text-sm"
+                              style={{
+                                background: "var(--surface-secondary)",
+                                color: "var(--text-primary)",
+                              }}
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label
+                                className="block text-xs font-medium mb-1"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                Database
+                              </label>
+                              <input
+                                type="text"
+                                value={dbName}
+                                onChange={(e) => setDbName(e.target.value)}
+                                placeholder="e.g., my_app_db"
+                                className="w-full px-4 py-3 rounded-xl border-2 border-transparent focus:outline-none focus:border-[var(--primary)] transition-all text-sm"
+                                style={{
+                                  background: "var(--surface-secondary)",
+                                  color: "var(--text-primary)",
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <label
+                                className="block text-xs font-medium mb-1"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                Port
+                              </label>
+                              <input
+                                type="number"
+                                value={dbPort}
+                                onChange={(e) => setDbPort(e.target.value)}
+                                placeholder="e.g., 5432"
+                                className="w-full px-4 py-3 rounded-xl border-2 border-transparent focus:outline-none focus:border-[var(--primary)] transition-all text-sm"
+                                style={{
+                                  background: "var(--surface-secondary)",
+                                  color: "var(--text-primary)",
+                                }}
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label
+                              className="block text-xs font-medium mb-1"
+                              style={{ color: "var(--text-secondary)" }}
+                            >
+                              Username
+                            </label>
+                            <input
+                              type="text"
+                              value={dbUsername}
+                              onChange={(e) => setDbUsername(e.target.value)}
+                              placeholder="e.g., admin"
+                              className="w-full px-4 py-3 rounded-xl border-2 border-transparent focus:outline-none focus:border-[var(--primary)] transition-all text-sm"
+                              style={{
+                                background: "var(--surface-secondary)",
+                                color: "var(--text-primary)",
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label
+                              className="block text-xs font-medium mb-1"
+                              style={{ color: "var(--text-secondary)" }}
+                            >
+                              Password
+                            </label>
+                            <div className="relative">
+                              <input
+                                type={showPassword ? "text" : "password"}
+                                value={dbPassword}
+                                onChange={(e) => setDbPassword(e.target.value)}
+                                placeholder="••••••••"
+                                className="w-full pl-4 pr-10 py-3 rounded-xl border-2 border-transparent focus:outline-none focus:border-[var(--primary)] transition-all text-sm"
+                                style={{
+                                  background: "var(--surface-secondary)",
+                                  color: "var(--text-primary)",
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute top-1/2 right-3 transform -translate-y-1/2 p-1 rounded-full text-gray-500 hover:bg-gray-200  transition-colors cursor-pointer"
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="h-4 w-4" />
+                                ) : (
+                                  <Eye className="h-4 w-4" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                          <div className="pt-2">
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              className="w-full justify-center text-sm font-medium px-4 py-3 rounded-xl transition-all flex items-center gap-2"
+                              style={{
+                                background: "var(--surface-secondary)",
+                                color: "var(--text-primary)",
+                                border: "1px solid var(--border-light)",
+                              }}
+                            >
+                              <Zap className="h-4 w-4" />
+                              Test Connection
+                            </motion.button>
+                          </div>
+                        </div>
+                      </motion.div>
                     )}
                   </div>
                 </div>
@@ -1036,7 +1201,8 @@ export default function CreateAgent() {
                   isSubmitting ||
                   !agentName.trim() ||
                   !description.trim() ||
-                  !selectedModel
+                  !selectedModel ||
+                  isDbFormIncomplete
                 }
                 className="px-6 py-3 md:px-4 md:py-2 text-sm md:text-sm font-medium rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 w-full justify-center cursor-pointer"
                 style={{
@@ -1044,14 +1210,16 @@ export default function CreateAgent() {
                     !isSubmitting &&
                       agentName.trim() &&
                       description.trim() &&
-                      selectedModel
+                      selectedModel &&
+                      !isDbFormIncomplete
                       ? "var(--primary)"
                       : "var(--surface-secondary)",
                   color:
                     !isSubmitting &&
                       agentName.trim() &&
                       description.trim() &&
-                      selectedModel
+                      selectedModel &&
+                      !isDbFormIncomplete
                       ? "var(--text-inverse)"
                       : "var(--text-secondary)",
                 }}
