@@ -46,8 +46,6 @@ export default function CreateAgent() {
   const [kbError, setKbError] = useState("");
   const [knowledgeBases, setKnowledgeBases] = useState([]);
 
-
-
   const [searchKnowledgeBases, setSearchKnowledgeBases] = useState("");
   const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState([]);
   const [dbHost, setDbHost] = useState("");
@@ -56,6 +54,10 @@ export default function CreateAgent() {
   const [dbUsername, setDbUsername] = useState("");
   const [dbPassword, setDbPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState("");
+  const [connectionMessage, setConnectionMessage] = useState("");
   // Model Providers state
   const [modelProviders, setModelProviders] = useState([]);
   const [providersError, setProvidersError] = useState("");
@@ -212,21 +214,20 @@ export default function CreateAgent() {
     );
   };
 
-  const handleCreateAgent = () => {
+const handleCreateAgent = () => {
     const controller = new AbortController();
     const { signal } = controller;
 
     (async () => {
       setIsSubmitting(true);
-      setSubmitErr("");
+      setSubmitErr(""); 
 
       try {
-        // cari provider & model yang dipilih
         const prov =
           modelProviders.find((p) =>
             p.models.some((m) => m.id === selectedModel)
           ) ||
-          modelProviders.find((p) => p.id === selectedProviderId) ||
+          modelProviders.find((p) => p.id === selectedProvider) ||
           null;
 
         const providerId = (prov?.id || "").toLowerCase();
@@ -235,15 +236,28 @@ export default function CreateAgent() {
         const kbList =
           selectedDataSource === "Knowledge Bases"
             ? knowledgeBases
-              .filter((kb) => selectedKnowledgeBases.includes(kb.id))
-              .map((kb) => ({
-                id: kb.id,
-                name: kb.name,
-                description: kb.description || "",
-                documentCount:
-                  typeof kb.documents === "number" ? kb.documents : 0,
-              }))
+                .filter((kb) => selectedKnowledgeBases.includes(kb.id))
+                .map((kb) => ({
+                  id: kb.id,
+                  name: kb.name,
+                  description: kb.description || "",
+                  documentCount:
+                    typeof kb.documents === "number" ? kb.documents : 0,
+                }))
             : [];
+
+        const databasesList = [];
+        if (selectedDataSource === "Database Connections" && !isDbFormIncomplete) {
+          databasesList.push({
+            type: "postgres",
+            label: `${dbName.trim()} Connection`, 
+            host: dbHost.trim(),
+            port: Number(dbPort.trim()),
+            database: dbName.trim(),
+            username: dbUsername.trim(), 
+            password: dbPassword,
+          });
+        }
 
         const DATA_SOURCE_KEY = {
           "Knowledge Bases": "knowledge-bases",
@@ -263,7 +277,7 @@ export default function CreateAgent() {
             name: mdl?.name || selectedModel,
           },
           knowledgebases: kbList,
-          databases: [],
+          databases: databasesList,
           features_knowledge: [],
           data_source_type: chosenType ? [chosenType] : [],
         };
@@ -280,13 +294,67 @@ export default function CreateAgent() {
         router.push("/agents");
       } catch (e) {
         if (e.name !== "AbortError")
-          setSubmitErr(e?.message || "Terjadi kesalahan.");
+          setSubmitErr(e?.message || "An unexpected error occurred.");
       } finally {
         setIsSubmitting(false);
       }
     })();
   };
 
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true);
+    setConnectionStatus("");
+    setConnectionMessage("");
+
+    const payload = {
+      host: dbHost.trim(),
+      port: dbPort.trim(),
+      db: dbName.trim(),
+      user: dbUsername.trim(),
+      password: dbPassword, 
+    };
+
+    if (!payload.host || !payload.port || !payload.db || !payload.user || !payload.password) {
+      setConnectionStatus("error");
+      setConnectionMessage("Please fill in all required database fields.");
+      setIsTestingConnection(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    try {
+      const res = await abApi.testConnection(payload, { signal });
+
+      if (!res || res.error) {
+        throw new Error(res?.error || "Connection test failed.");
+      }
+
+      setConnectionStatus("success");
+      setConnectionMessage(res?.message || "Connection successful!");
+
+    } catch (e) {
+      if (e.name !== "AbortError") {
+        setConnectionStatus("error");
+
+        let errMsg = e?.message || "An unknown error occurred.";
+        if (errMsg.includes("refused")) {
+          errMsg = "Connection refused. Check if the Port is correct and the database server is running.";
+        } else if (errMsg.includes("timed out")) {
+          errMsg = "Connection timed out. Check if the Host is correct and reachable (check firewall).";
+        } else if (errMsg.includes("Authentication") || errMsg.includes("Access denied")) {
+          errMsg = "Authentication failed. Please check your Username and Password.";
+        } else if (errMsg.includes("does not exist")) {
+          errMsg = "Database not found. Check the Database name.";
+        }
+    
+        setConnectionMessage(errMsg);
+      }
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
   // Skeleton Components
   const FormFieldSkeleton = ({ rows = 1 }) => (
     <div className="space-y-2">
@@ -1035,11 +1103,11 @@ export default function CreateAgent() {
                               </button>
                             </div>
                           </div>
-                          <div className="pt-2">
+                          {/* <div className="pt-2">
                             <motion.button
                               whileHover={{ scale: 1.02 }}
                               whileTap={{ scale: 0.98 }}
-                              className="w-full justify-center text-sm font-medium px-4 py-3 rounded-xl transition-all flex items-center gap-2"
+                              className="w-full justify-center text-sm font-medium px-4 py-3 rounded-xl transition-all flex items-center gap-2 cursor-pointer"
                               style={{
                                 background: "var(--surface-secondary)",
                                 color: "var(--text-primary)",
@@ -1049,7 +1117,48 @@ export default function CreateAgent() {
                               <Zap className="h-4 w-4" />
                               Test Connection
                             </motion.button>
+                          </div> */}
+                          <div className="pt-2">
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={handleTestConnection}
+                              disabled={isTestingConnection || isDbFormIncomplete}
+                              className="w-full justify-center text-sm font-medium px-4 py-3 rounded-xl transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                              style={{
+                                background: "var(--surface-secondary)",
+                                color: "var(--text-primary)",
+                                border: "1px solid var(--border-light)",
+                              }}
+                            >
+                              <Zap className={`h-4 w-4 ${isTestingConnection ? "animate-pulse" : ""}`} />
+                              {isTestingConnection ? "Testing..." : "Test Connection"}
+                            </motion.button>
+
+                            {connectionMessage && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`flex items-start gap-2.5 mt-3 p-3 rounded-lg text-sm ${connectionStatus === "success"
+                                  ? "bg-green-50 text-green-800"
+                                  : "bg-red-50 text-red-800"
+                                  }`}
+                              >
+                                <AlertCircle
+                                  className="h-4 w-4 shrink-0 mt-0.5"
+                                  style={{
+                                    color:
+                                      connectionStatus === "success"
+                                        ? "var(--success)" 
+                                        : "var(--danger)", 
+                                  }}
+                                />
+                                <span>{connectionMessage}</span>
+                              </motion.div>
+                            )}
                           </div>
+
+
                         </div>
                       </motion.div>
                     )}

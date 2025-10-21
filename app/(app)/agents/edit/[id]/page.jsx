@@ -1118,7 +1118,7 @@ export default function EditAgent() {
                             <motion.button
                               whileHover={{ scale: 1.02 }}
                               whileTap={{ scale: 0.98 }}
-                              className="w-full justify-center text-sm font-medium px-4 py-3 rounded-xl transition-all flex items-center gap-2"
+                              className="w-full justify-center text-sm font-medium px-4 py-3 rounded-xl transition-all flex items-center gap-2 cursor-pointer"
                               style={{
                                 background: "var(--surface-secondary)",
                                 color: "var(--text-primary)",

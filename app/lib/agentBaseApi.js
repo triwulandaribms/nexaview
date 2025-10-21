@@ -32,4 +32,7 @@ export const abApi = {
     detailListAddMessages(id, payload, opts) {
         return request(`${base}/${id}/sessions/messages`, { method: 'POST', body: payload, cache: 'no-store', ...(opts || {}) });
     },
-}
+    testConnection(payload, opts) {
+        return request(`${base}/test-connection`, { method: 'POST', body: payload, cache: 'no-store', ...(opts || {}) });
+    },
+} 

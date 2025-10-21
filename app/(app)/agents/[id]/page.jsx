@@ -88,7 +88,7 @@ export default function AgentDetail() {
         const dataSourceLabel = (() => {
           const t = (a.data_source_type && a.data_source_type[0]) || "";
           if (t === "knowledge-bases") return "Knowledge Bases";
-          if (t === "database-connections") return "Database Connections";
+          if (t === "databases") return "Database Connections";
           if (t === "api-features") return "API Features";
           return "-";
         })();
@@ -100,12 +100,12 @@ export default function AgentDetail() {
           dataSources: dataSourceLabel,
           timestamp: a.created_at
             ? new Date(a.created_at).toLocaleString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
             : "-",
           model: a?.default_model?.id || "-",
           knowledgeBases: Array.isArray(a.knowledgebases)
@@ -117,17 +117,17 @@ export default function AgentDetail() {
           systemPrompt: a.system_prompt || "",
           kbDetails: Array.isArray(a.knowledgebases)
             ? a.knowledgebases.map((k) => ({
-                id: k.id,
-                name: k?.name,
-                description: k.description || "",
-                docs:
-                  typeof k.documentCount === "number"
-                    ? k.documentCount
-                    : typeof k.docs === "number"
+              id: k.id,
+              name: k?.name,
+              description: k.description || "",
+              docs:
+                typeof k.documentCount === "number"
+                  ? k.documentCount
+                  : typeof k.docs === "number"
                     ? k.docs
                     : 0,
-                category: "General",
-              }))
+              category: "General",
+            }))
             : [],
         };
 
@@ -259,18 +259,18 @@ export default function AgentDetail() {
   const filteredSessions =
     timeFilter === "All time"
       ? sessions.filter((session) => {
-          return (session?.session_name || "")
-            .toLowerCase()
-            .includes(searchSessions.toLowerCase());
-        })
+        return (session?.session_name || "")
+          .toLowerCase()
+          .includes(searchSessions.toLowerCase());
+      })
       : filterSessionsByTime(
-          sessions.filter((session) =>
-            (session?.session_name || "")
-              .toLowerCase()
-              .includes(searchSessions.toLowerCase())
-          ),
-          timeFilter
-        );
+        sessions.filter((session) =>
+          (session?.session_name || "")
+            .toLowerCase()
+            .includes(searchSessions.toLowerCase())
+        ),
+        timeFilter
+      );
 
   const knowledgeBaseDetails =
     agent?.dataSources === "Knowledge Bases"
@@ -430,9 +430,8 @@ export default function AgentDetail() {
 
             const formattedTime = `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
 
-            return `${session.session_name || ""},${
-              session.message_count || 0
-            },"${formattedTime.toString()}"`;
+            return `${session.session_name || ""},${session.message_count || 0
+              },"${formattedTime.toString()}"`;
           })
         )
         .join("\n");
@@ -866,8 +865,11 @@ export default function AgentDetail() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.3 }}
+              style={{
+                display: agent?.dataSources == "Database Connections" ? 'none' : 'block',
+              }}
             >
-              <div className="flex items-center justify-between mb-6">
+              <div className={`flex items-center justify-between mb-6 `}>
                 <h2
                   className="text-xl font-semibold"
                   style={{ color: "var(--text-primary)" }}
@@ -1131,14 +1133,12 @@ export default function AgentDetail() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className={`flex ${
-                    message?.role === "user" ? "justify-end" : "justify-start"
-                  }`}
+                  className={`flex ${message?.role === "user" ? "justify-end" : "justify-start"
+                    }`}
                 >
                   <div
-                    className={`max-w-[70%] ${
-                      message?.role === "user" ? "order-2" : "order-1"
-                    }`}
+                    className={`max-w-[70%] ${message?.role === "user" ? "order-2" : "order-1"
+                      }`}
                   >
                     {message?.role !== "user" && (
                       <div className="flex items-center gap-2 mb-1">
@@ -1157,18 +1157,17 @@ export default function AgentDetail() {
                       </div>
                     )}
                     <div
-                      className={`p-3 rounded-lg ${
-                        message?.role === "user"
-                          ? "rounded-br-sm"
-                          : "rounded-bl-sm"
-                      }`}
+                      className={`p-3 rounded-lg ${message?.role === "user"
+                        ? "rounded-br-sm"
+                        : "rounded-bl-sm"
+                        }`}
                       style={{
                         background:
                           message?.role === "user"
                             ? "var(--primary)"
                             : message?.role === "system"
-                            ? "var(--surface-secondary)"
-                            : "var(--surface-secondary)",
+                              ? "var(--surface-secondary)"
+                              : "var(--surface-secondary)",
                         color:
                           message?.role === "user"
                             ? "var(--text-inverse)"
@@ -1176,11 +1175,10 @@ export default function AgentDetail() {
                       }}
                     >
                       <p
-                        className={`text-sm whitespace-pre-wrap ${
-                          message?.role === "user"
-                            ? "text-white/80"
-                            : "text-black/80"
-                        }`}
+                        className={`text-sm whitespace-pre-wrap ${message?.role === "user"
+                          ? "text-white/80"
+                          : "text-black/80"
+                          }`}
                       >
                         {message.content
                           .split(/(\*\*.*?\*\*)/)
@@ -1200,9 +1198,8 @@ export default function AgentDetail() {
                       </p>
                       <div className="flex items-center justify-between mt-2">
                         <span
-                          className={`text-xs ${
-                            message?.role === "user" ? "text-white/70" : ""
-                          }`}
+                          className={`text-xs ${message?.role === "user" ? "text-white/70" : ""
+                            }`}
                           style={{
                             color:
                               message?.role === "user"
@@ -1219,11 +1216,10 @@ export default function AgentDetail() {
                             onClick={() =>
                               navigator.clipboard.writeText(message.content)
                             }
-                            className={`ml-2 p-1 rounded ${
-                              message?.role === "user"
-                                ? "hover:bg-white/20"
-                                : "hover:bg-gray-100"
-                            }`}
+                            className={`ml-2 p-1 rounded ${message?.role === "user"
+                              ? "hover:bg-white/20"
+                              : "hover:bg-gray-100"
+                              }`}
                           >
                             <Copy className="h-3 w-3" />
                           </motion.button>
