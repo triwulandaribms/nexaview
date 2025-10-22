@@ -278,7 +278,7 @@ export default function EditAgent() {
 
         const DATA_SOURCE_KEY = {
           "Knowledge Bases": "knowledge-bases",
-          "Database Connections": "database-connections",
+          "Database Connections": "databases",
           "API Features": "api-features",
         };
         const chosenType = DATA_SOURCE_KEY[selectedDataSource] || "";
