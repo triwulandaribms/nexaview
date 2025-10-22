@@ -49,7 +49,6 @@ export default function EditAgent() {
   const [selectedDataSource, setSelectedDataSource] =
     useState("Knowledge Bases");
 
-
   const [searchKnowledgeBases, setSearchKnowledgeBases] = useState("");
   const [selectedKnowledgeBases, setSelectedKnowledgeBases] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,6 +61,9 @@ export default function EditAgent() {
   const [dbPassword, setDbPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState("");
+  const [connectionMessage, setConnectionMessage] = useState("");
 
   const [modelProviders, setModelProviders] = useState([]);
   const [knowledgeBases, setKnowledgeBases] = useState([]);
@@ -93,8 +95,15 @@ export default function EditAgent() {
   const filteredKnowledgeBases = knowledgeBases.filter((kb) =>
     kb.name.toLowerCase().includes(searchKnowledgeBases.toLowerCase())
   );
+  
+  const isDbFormIncomplete =
+    selectedDataSource === "Database Connections" &&
+    (!dbHost.trim() ||
+      !dbName.trim() ||
+      !dbPort.trim() ||
+      !dbUsername.trim() ||
+      !dbPassword.trim());
 
-  // Simulate initial page loading
   useEffect(() => {
     const timer = setTimeout(() => {
       setPageLoading(false);
@@ -113,7 +122,6 @@ export default function EditAgent() {
           mbApi.list({ signal }),
         ]);
 
-        // KB
         const kbRaw = Array.isArray(resKB?.data) ? resKB.data : [];
         const mappedKB = kbRaw.map((it, i) => ({
           id: it.id ?? String(i),
@@ -122,13 +130,12 @@ export default function EditAgent() {
             typeof it.docs_count === "number"
               ? it.docs_count
               : Array.isArray(it.documents)
-                ? it.documents.length
-                : 0,
+              ? it.documents.length
+              : 0,
           description: it.description ?? "",
         }));
         setKnowledgeBases(mappedKB);
 
-        // Providers
         const iconName = {
           openai: "Bot",
           anthropic: "Sparkles",
@@ -163,12 +170,13 @@ export default function EditAgent() {
     };
   }, []);
 
-  // Simulate fetching agent data
   useEffect(() => {
-    if (!agentId) return;
+    if (!agentId || (knowledgeBases && knowledgeBases.length === 0)) return;
 
     const controller = new AbortController();
     const { signal } = controller;
+
+    setLoading(true);
 
     (async () => {
       try {
@@ -195,27 +203,41 @@ export default function EditAgent() {
         setSelectedProvider(providerNameMap[providerId] || providerId || "");
 
         const type =
-          (Array.isArray(a.data_source_type) ? a.data_source_type[0] : "") ||
-          "";
+          (Array.isArray(a.data_source_type) ? a.data_source_type[0] : "") || "";
         const typeMap = {
           "knowledge-bases": "Knowledge Bases",
-          "database-connections": "Database Connections",
+          databases: "Database Connections",
           "api-features": "API Features",
         };
-        setSelectedDataSource(typeMap[type] || "Knowledge Bases");
+        const resolvedDataSource = typeMap[type] || "Knowledge Bases";
+        setSelectedDataSource(resolvedDataSource);
 
-        const kbNames = Array.isArray(a.knowledgebases)
-          ? a.knowledgebases.map((k) => k.name)
+        const kbIdsFromData = Array.isArray(a.knowledgebases)
+          ? a.knowledgebases.map((k) => k.id)
           : [];
         setSelectedKnowledgeBases(
-          knowledgeBases
-            .filter((kb) => kbNames.includes(kb.name))
-            .map((kb) => kb.id)
+          knowledgeBases.filter((kb) => kbIdsFromData.includes(kb.id)).map((kb) => kb.id)
         );
+        
+        if (resolvedDataSource === "Database Connections" && Array.isArray(a.databases) && a.databases.length > 0) {
+            const dbData = a.databases[0];
+            setDbHost(dbData.host || "");
+            setDbName(dbData.db || "");
+            setDbPort(String(dbData.port || ""));
+            setDbUsername(dbData.user || "");
+            setDbPassword(dbData.password || "");
+        } else {
+            setDbHost("");
+            setDbName("");
+            setDbPort("");
+            setDbUsername("");
+            setDbPassword("");
+        }
+
       } catch (e) {
         if (e?.name === "AbortError" || e?.code === "ERR_CANCELED") return;
-        setKbError(e?.message || "Unexpected error.");
-        setProvidersError(e?.message || "Unexpected error.");
+        setSubmitErr(e?.message || "Failed to load agent data.");
+        console.error("Failed to load agent details:", e);
       } finally {
         setLoading(false);
       }
@@ -243,7 +265,6 @@ export default function EditAgent() {
           OpenAI: "openai",
           Anthropic: "anthropic",
           DeepSeek: "deepseek",
-          Deepseek: "deepseek",
           Qwen: "qwen",
           Mistral: "mistral",
           Ollama: "ollama",
@@ -265,15 +286,28 @@ export default function EditAgent() {
         const kbList =
           selectedDataSource === "Knowledge Bases"
             ? knowledgeBases
-              .filter((kb) => selectedKnowledgeBases.includes(kb.id))
-              .map((kb) => ({
-                id: kb.id,
-                name: kb.name,
-                description: kb.description || "",
-                documentCount:
-                  typeof kb.documents === "number" ? kb.documents : 0,
-              }))
+                .filter((kb) => selectedKnowledgeBases.includes(kb.id))
+                .map((kb) => ({
+                  id: kb.id,
+                  name: kb.name,
+                  description: kb.description || "",
+                  documentCount:
+                    typeof kb.documents === "number" ? kb.documents : 0,
+                }))
             : [];
+        
+        const databasesList = [];
+        if (selectedDataSource === "Database Connections" && !isDbFormIncomplete) {
+          databasesList.push({
+            type: "postgres",
+            label: `${dbName.trim()} Connection`,
+            host: dbHost.trim(),
+            port: Number(dbPort.trim()),
+            database: dbName.trim(),
+            username: dbUsername.trim(),
+            password: dbPassword,
+          });
+        }
 
         const payload = {
           name: agentName.trim(),
@@ -286,7 +320,7 @@ export default function EditAgent() {
             name: mdl?.name || selectedModel,
           },
           knowledgebases: kbList,
-          databases: [],
+          databases: databasesList,
           features_knowledge: [],
           data_source_type: chosenType ? [chosenType] : [],
         };
@@ -313,6 +347,61 @@ export default function EditAgent() {
   const openDelete = () => setDelOpen(true);
   const closeDelete = () => {
     if (!delLoading) setDelOpen(false);
+  };
+  
+  const handleTestConnection = async () => {
+    setIsTestingConnection(true);
+    setConnectionStatus("");
+    setConnectionMessage("");
+
+    const payload = {
+      host: dbHost.trim(),
+      port: dbPort.trim(),
+      db: dbName.trim(),
+      user: dbUsername.trim(),
+      password: dbPassword,
+    };
+
+    if (!payload.host || !payload.port || !payload.db || !payload.user || !payload.password) {
+      setConnectionStatus("error");
+      setConnectionMessage("Please fill in all required database fields.");
+      setIsTestingConnection(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    try {
+      const res = await abApi.testConnection(payload, { signal });
+
+      if (res.error) {
+        throw new Error(res.error);
+      }
+
+      setConnectionStatus("success");
+      setConnectionMessage(res?.message || "Connection successful!");
+
+    } catch (e) {
+      if (e.name !== "AbortError") {
+        setConnectionStatus("error");
+
+        let errMsg = e?.message || "An unknown error occurred.";
+        if (errMsg.includes("refused")) {
+          errMsg = "Connection refused. Check if the Port is correct and the database server is running.";
+        } else if (errMsg.includes("timed out")) {
+          errMsg = "Connection timed out. Check if the Host is correct and reachable (check firewall).";
+        } else if (errMsg.includes("Authentication") || errMsg.includes("Access denied")) {
+          errMsg = "Authentication failed. Please check your Username and Password.";
+        } else if (errMsg.includes("does not exist")) {
+          errMsg = "Database not found. Check the Database name.";
+        }
+
+        setConnectionMessage(errMsg);
+      }
+    } finally {
+      setIsTestingConnection(false);
+    }
   };
 
   const handleDeleteAgent = () => {
@@ -356,8 +445,9 @@ export default function EditAgent() {
         <div className="h-12 w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse" />
       ) : (
         <div
-          className={`h-${rows * 6
-            } w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse`}
+          className={`h-${
+            rows * 6
+          } w-full bg-gray-200 dark:bg-gray-400 rounded-xl animate-pulse`}
         />
       )}
     </div>
@@ -763,10 +853,11 @@ export default function EditAgent() {
                               {provider.name}
                             </h4>
                             <span
-                              className={`text-xs px-3 py-1 rounded-full font-medium ${provider.status === "Connected"
-                                ? "bg-green-50 text-green-600 border border-green-200"
-                                : "bg-gray-50 text-gray-600 border border-gray-200"
-                                }`}
+                              className={`text-xs px-3 py-1 rounded-full font-medium ${
+                                provider.status === "Connected"
+                                  ? "bg-green-50 text-green-600 border border-green-200"
+                                  : "bg-gray-50 text-gray-600 border border-gray-200"
+                              }`}
                             >
                               {provider.status}
                             </span>
@@ -776,13 +867,15 @@ export default function EditAgent() {
                             {provider.models.map((model) => (
                               <label
                                 key={model.id}
-                                className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${selectedModel === model.id
-                                  ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                                  : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
-                                  } ${provider.status !== "Connected"
+                                className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${
+                                  selectedModel === model.id
+                                    ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                                    : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                                } ${
+                                  provider.status !== "Connected"
                                     ? "opacity-50 cursor-not-allowed"
                                     : ""
-                                  }`}
+                                }`}
                                 style={{
                                   background:
                                     selectedModel === model.id
@@ -809,10 +902,11 @@ export default function EditAgent() {
                                   }}
                                 />
                                 <span
-                                  className={`text-sm font-medium flex-1 ${provider.status !== "Connected"
-                                    ? "text-gray-400"
-                                    : ""
-                                    }`}
+                                  className={`text-sm font-medium flex-1 ${
+                                    provider.status !== "Connected"
+                                      ? "text-gray-400"
+                                      : ""
+                                  }`}
                                   style={{
                                     color:
                                       provider.status !== "Connected"
@@ -872,10 +966,11 @@ export default function EditAgent() {
                           whileHover={{ scale: 1.01 }}
                           whileTap={{ scale: 0.99 }}
                           onClick={() => setSelectedDataSource(option.id)}
-                          className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${selectedDataSource === option.id
-                            ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                            : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
-                            }`}
+                          className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${
+                            selectedDataSource === option.id
+                              ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                              : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                          }`}
                           style={{
                             background:
                               selectedDataSource === option.id
@@ -1104,7 +1199,9 @@ export default function EditAgent() {
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute top-1/2 right-3 transform -translate-y-1/2 p-1 rounded-full text-gray-500 hover:bg-gray-200  transition-colors cursor-pointer"
-                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                aria-label={
+                                  showPassword ? "Hide password" : "Show password"
+                                }
                               >
                                 {showPassword ? (
                                   <EyeOff className="h-4 w-4" />
@@ -1114,21 +1211,49 @@ export default function EditAgent() {
                               </button>
                             </div>
                           </div>
+                          
                           <div className="pt-2">
                             <motion.button
                               whileHover={{ scale: 1.02 }}
                               whileTap={{ scale: 0.98 }}
-                              className="w-full justify-center text-sm font-medium px-4 py-3 rounded-xl transition-all flex items-center gap-2 cursor-pointer"
+                              onClick={handleTestConnection}
+                              disabled={isTestingConnection || isDbFormIncomplete}
+                              className="w-full justify-center text-sm font-medium px-4 py-3 rounded-xl transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
                               style={{
                                 background: "var(--surface-secondary)",
                                 color: "var(--text-primary)",
                                 border: "1px solid var(--border-light)",
                               }}
                             >
-                              <Zap className="h-4 w-4" />
-                              Test Connection
+                              <Zap className={`h-4 w-4 ${isTestingConnection ? "animate-pulse" : ""}`} />
+                              {isTestingConnection ? "Testing..." : "Test Connection"}
                             </motion.button>
+
+                            {connectionMessage && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`flex items-start gap-2.5 mt-3 p-3 rounded-lg text-sm ${
+                                  connectionStatus === "success"
+                                    ? "bg-green-50 text-green-800"
+                                    : "bg-red-50 text-red-800"
+                                }`}
+                              >
+                                <AlertCircle
+                                  className="h-4 w-4 shrink-0 mt-0.5"
+                                  style={{
+                                    color:
+                                      connectionStatus === "success"
+                                        ? "var(--success)"
+                                        : "var(--danger)",
+                                  }}
+                                />
+                                <span>{connectionMessage}</span>
+                              </motion.div>
+                            )}
                           </div>
+
+
                         </div>
                       </motion.div>
                     )}
@@ -1230,8 +1355,9 @@ export default function EditAgent() {
                       style={{ color: "var(--text-secondary)" }}
                     >
                       {selectedKnowledgeBases.length > 0
-                        ? `${selectedKnowledgeBases.length} knowledge base${selectedKnowledgeBases.length !== 1 ? "s" : ""
-                        } selected`
+                        ? `${selectedKnowledgeBases.length} knowledge base${
+                            selectedKnowledgeBases.length !== 1 ? "s" : ""
+                          } selected`
                         : "No data sources selected"}
                     </p>
                   </div>

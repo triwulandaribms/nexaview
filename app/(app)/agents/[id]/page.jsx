@@ -129,6 +129,17 @@ export default function AgentDetail() {
               category: "General",
             }))
             : [],
+          dbDetails: Array.isArray(a.databases)
+            ? a.databases.map((d) => ({
+              id: d.id,
+              label: d.label || `${d.type} DB`,
+              type: d.type,
+              host: d.host,
+              port: d.port,
+              user: d.user,
+              db: d.db,
+            }))
+            : [],
         };
 
         setAgent(mapped);
@@ -860,111 +871,244 @@ export default function AgentDetail() {
               </div>
             </motion.div>
 
-            {/* Knowledge Base Details or API Features */}
+            {/* Knowledge Base Details, DB Connections, or API Features */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              style={{
-                display: agent?.dataSources == "Database Connections" ? 'none' : 'block',
-              }}
             >
-              <div className={`flex items-center justify-between mb-6 `}>
+              <div className={`flex items-center justify-between mb-2 `}>
                 <h2
                   className="text-xl font-semibold"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  {agent?.dataSources === "Knowledge Bases"
-                    ? "Knowledge Base Details"
-                    : "API Features"}
+                  {agent?.dataSources === "Knowledge Bases" && "Knowledge Base Details"}
+                  {agent?.dataSources === "Database Connections" && "Database Connections"}
+                  {agent?.dataSources === "API Features" && "API Features"}
+                  {agent?.dataSources === "-" && "Data Source"}
                 </h2>
               </div>
+
               <div className="space-y-4">
-                {knowledgeBaseDetails.length > 0 ? (
-                  knowledgeBaseDetails.map((kb, index) => {
-                    return (
-                      <div className="flex flex-col gap-2">
-                        {kb?.id && (
-                          <motion.button
-                            // whileHover={{ scale: 1.02 }}
-                            // whileTap={{ scale: 0.98 }}
-                            className="text-sm font-medium cursor-pointer hover:underline text-end"
-                            style={{ color: "var(--primary)" }}
-                            onClick={() =>
-                              router.push(`/knowledge-base/update/${kb.id}`)
-                            }
-                          >
-                            Edit
-                          </motion.button>
-                        )}
-
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{
-                            duration: 0.5,
-                            delay: 0.4 + index * 0.1,
-                          }}
-                          className="p-4 rounded-lg border"
-                          style={{
-                            background: "var(--surface-elevated)",
-                            borderColor: "var(--border-light)",
-                          }}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-10 h-10 rounded-lg flex items-center justify-center"
-                              style={{ background: "var(--primary)" }}
+                {agent?.dataSources === "Knowledge Bases" && (
+                  <>
+                    {Array.isArray(agent?.kbDetails) && agent.kbDetails.length > 0 ? (
+                      agent.kbDetails.map((kb, index) => (
+                        <div className="flex flex-col gap-2" key={kb.id || index}>
+                          {kb?.id && (
+                            <motion.button
+                              className="text-sm font-medium cursor-pointer hover:underline text-end"
+                              style={{ color: "var(--primary)" }}
+                              onClick={() =>
+                                router.push(`/knowledge-base/update/${kb.id}`)
+                              }
                             >
-                              <Database className="h-5 w-5 text-white" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3
-                                className="font-semibold mb-1"
-                                style={{ color: "var(--text-primary)" }}
+                              Edit
+                            </motion.button>
+                          )}
+                          <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{
+                              duration: 0.5,
+                              delay: 0.4 + index * 0.1,
+                            }}
+                            className="p-4 rounded-lg border"
+                            style={{
+                              background: "var(--surface-elevated)",
+                              borderColor: "var(--border-light)",
+                            }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-10 h-10 rounded-lg flex items-center justify-center"
+                                style={{ background: "var(--primary)" }}
                               >
-                                {kb?.name}
-                              </h3>
-                              <p
-                                className="text-sm mb-2"
-                                style={{
-                                  color: "var(--text-secondary)",
-                                  overflowWrap: "anywhere",
-                                  wordBreak: "break-word",
-                                  whiteSpace: "normal",
-                                }}
-                              >
-                                {kb?.description}
-                              </p>
-
-                              <div className="flex items-center gap-4 text-xs">
-                                <span
-                                  className="px-2 py-1 rounded-md font-medium"
+                                <Database className="h-5 w-5 text-white" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3
+                                  className="font-semibold mb-1 truncate"
+                                  style={{ color: "var(--text-primary)" }}
+                                  title={kb?.name}
+                                >
+                                  {kb?.name}
+                                </h3>
+                                <p
+                                  className="text-sm mb-2"
                                   style={{
-                                    background: "var(--primary-light)",
-                                    color: "var(--primary)",
+                                    color: "var(--text-secondary)",
+                                    overflowWrap: "anywhere",
+                                    wordBreak: "break-word",
+                                    whiteSpace: "normal",
                                   }}
                                 >
-                                  {kb.docs} docs
-                                </span>
-                                <span
-                                  className="px-2 py-1 rounded-md font-medium"
-                                  style={{
-                                    background: "var(--success-light)",
-                                    color: "var(--success)",
-                                  }}
-                                >
-                                  {kb.category}
-                                </span>
+                                  {kb?.description}
+                                </p>
+                                <div className="flex items-center gap-4 text-xs">
+                                  <span
+                                    className="px-2 py-1 rounded-md font-medium"
+                                    style={{
+                                      background: "var(--primary-light)",
+                                      color: "var(--primary)",
+                                    }}
+                                  >
+                                    {kb.docs} docs
+                                  </span>
+                                  <span
+                                    className="px-2 py-1 rounded-md font-medium"
+                                    style={{
+                                      background: "var(--success-light)",
+                                      color: "var(--success)",
+                                    }}
+                                  >
+                                    {kb.category}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </motion.div>
+                          </motion.div>
+                        </div>
+                      ))
+                    ) : (
+                      <div
+                        className="p-8 rounded-lg border text-center"
+                        style={{
+                          background: "var(--surface-elevated)",
+                          borderColor: "var(--border-light)",
+                        }}
+                      >
+                        <h3
+                          className="text-lg font-medium mb-2"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          No Knowledge Bases
+                        </h3>
+                        <p
+                          className="text-sm"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          This agent has no knowledge bases configured.
+                        </p>
                       </div>
-                    );
-                  })
-                ) : (
+                    )}
+                  </>
+                )}
+
+                {agent?.dataSources === "Database Connections" && (
+                  <>
+                    {Array.isArray(agent?.dbDetails) && agent.dbDetails.length > 0 ? (
+                      agent.dbDetails.map((db, index) => (
+                        <div className="flex flex-col gap-2" key={db.id || index}>
+                          {db?.id && (
+                            <motion.button
+                              className="text-sm font-medium cursor-pointer hover:underline text-end"
+                              style={{ color: "var(--primary)" }}
+                              onClick={() =>
+                                router.push(`/agents/edit/${currentId}`)
+                              }
+                            >
+                              Edit
+                            </motion.button>
+                          )}
+                          <motion.div
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{
+                              duration: 0.5,
+                              delay: 0.4 + index * 0.1,
+                            }}
+                            className="p-4 rounded-lg border"
+                            style={{
+                              background: "var(--surface-elevated)",
+                              borderColor: "var(--border-light)",
+                            }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className="w-10 h-10 rounded-lg flex items-center justify-center"
+                                style={{ background: "var(--primary)" }}
+                              >
+                                <Database className="h-5 w-5 text-white" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3
+                                  className="font-semibold mb-1 truncate"
+                                  style={{ color: "var(--text-primary)" }}
+                                  title={db?.label}
+                                >
+                                  {db?.label}
+                                </h3>
+                                <p
+                                  className="text-sm mb-2"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  Connection to {db?.host}:{db?.port}
+                                </p>
+                                <div className="flex flex-wrap items-center gap-2 text-xs">
+                                  <span
+                                    className="px-2 py-1 rounded-md font-medium capitalize"
+                                    style={{
+                                      background: "var(--primary-light)",
+                                      color: "var(--primary)",
+                                    }}
+                                  >
+                                    {db.type}
+                                  </span>
+                                  <span
+                                    className="px-2 py-1 rounded-md font-medium"
+                                    style={{
+                                      background: "var(--surface-secondary)",
+                                      color: "var(--text-secondary)",
+                                      borderColor: "var(--border-light)",
+                                      borderWidth: "1px",
+                                    }}
+                                  >
+                                    User: {db.user}
+                                  </span>
+                                  <span
+                                    className="px-2 py-1 rounded-md font-medium"
+                                    style={{
+                                      background: "var(--surface-secondary)",
+                                      color: "var(--text-secondary)",
+                                      borderColor: "var(--border-light)",
+                                      borderWidth: "1px",
+                                    }}
+                                  >
+                                    DB: {db.db}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        </div>
+                      ))
+                    ) : (
+                      <div
+                        className="p-8 rounded-lg border text-center"
+                        style={{
+                          background: "var(--surface-elevated)",
+                          borderColor: "var(--border-light)",
+                        }}
+                      >
+                        <h3
+                          className="text-lg font-medium mb-2"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          No Database Connections
+                        </h3>
+                        <p
+                          className="text-sm"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          This agent has no database connections configured.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {agent?.dataSources === "API Features" && (
                   <div
                     className="p-8 rounded-lg border text-center"
                     style={{
@@ -983,7 +1127,30 @@ export default function AgentDetail() {
                       style={{ color: "var(--text-secondary)" }}
                     >
                       This agent uses {agent?.apiFeatures || 0} API features for
-                      enhanced functionality
+                      enhanced functionality.
+                    </p>
+                  </div>
+                )}
+
+                {agent?.dataSources === "-" && (
+                  <div
+                    className="p-8 rounded-lg border text-center"
+                    style={{
+                      background: "var(--surface-elevated)",
+                      borderColor: "var(--border-light)",
+                    }}
+                  >
+                    <h3
+                      className="text-lg font-medium mb-2"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      No Data Source
+                    </h3>
+                    <p
+                      className="text-sm"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      This agent has no data source configured.
                     </p>
                   </div>
                 )}
