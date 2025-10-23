@@ -18,7 +18,7 @@ export async function GET() {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token || ''}`,
             },
-            timeout: 120_000, 
+            timeout: 30_000, 
             validateStatus: s => s >= 200 && s < 300,
         });
 

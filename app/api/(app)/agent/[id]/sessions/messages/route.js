@@ -20,7 +20,7 @@ export async function POST(req, { params }) {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token || ''}`,
       },
-      timeout: 30_000,
+      timeout: 120_000,
       validateStatus: s => s >= 200 && s < 300, // Validate the response status
     });
 
