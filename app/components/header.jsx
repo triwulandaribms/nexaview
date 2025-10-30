@@ -14,7 +14,7 @@ const Header = ({ toggleSidebar }) => {
   return (
     <>
       <header
-        className="h-16 flex items-center px-4 sm:px-6 sticky top-0 z-50 glass border-b"
+        className="h-16 flex items-center px-4 sm:px-6 fixed top-0 z-50 glass border-b w-full"
         style={{
           background: "var(--header-bg)",
           borderColor: "var(--header-border)",
@@ -37,7 +37,7 @@ const Header = ({ toggleSidebar }) => {
           </h1>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex space-x-6 items-center">
+          {/* <nav className="hidden lg:flex space-x-6 items-center">
             <div className="flex items-center gap-2">
               <Link
                 href="/experience-center"
@@ -71,14 +71,14 @@ const Header = ({ toggleSidebar }) => {
             >
               Studio
             </button>
-          </nav>
+          </nav> */}
         </div>
 
         {/* Right side */}
         <div className="ml-auto flex items-center space-x-2 sm:space-x-4 ">
           {/* User info */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <div className="hidden sm:flex items-center space-x-2">
+            {/* <div className="hidden sm:flex items-center space-x-2">
               <button
                 onClick={() => setIsFeedbackModalOpen(true)}
                 className="text-xs sm:text-sm font-medium transition-colors duration-200 hover:opacity-80 cursor-pointer"
@@ -125,7 +125,7 @@ const Header = ({ toggleSidebar }) => {
               }}
             >
               Upgrade
-            </button>
+            </button> */}
 
             {/* Mobile sidebar toggle button */}
             <button
@@ -148,7 +148,7 @@ const Header = ({ toggleSidebar }) => {
             </button>
 
             {/* Mobile menu button */}
-            <button
+            {/* <button
               className="lg:hidden p-2 rounded-md transition-all duration-200 hover:scale-110"
               style={{
                 background: "var(--surface-secondary)",
@@ -165,7 +165,7 @@ const Header = ({ toggleSidebar }) => {
               }}
             >
               <Menu className="h-5 w-5" />
-            </button>
+            </button> */}
           </div>
         </div>
       </header>

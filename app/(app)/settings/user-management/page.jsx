@@ -59,7 +59,7 @@ export default function UserManagement() {
 
   function openEdit(user) {
     if (!user?.id) return;
-    router.push(`/user-management/update/${user?.id}`);
+    router.push(`/settings/user-management/update/${user?.id}`);
   }
   function openDelete(user) {
     setSelectedUser(user);
@@ -163,7 +163,7 @@ export default function UserManagement() {
           whileTap={{ scale: 0.98 }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium"
           style={{ background: "var(--primary)", color: "var(--text-inverse)" }}
-          onClick={() => router.push("/user-management/create")}
+          onClick={() => router.push("/settings/user-management/create")}
         >
           <Plus className="h-4 w-4" />
           New User
@@ -316,7 +316,7 @@ export default function UserManagement() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() =>
-                        router.push(`/user-management/${user?.id}`)
+                        router.push(`/settings/user-management/${user?.id}`)
                       }
                       className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
                       style={{
@@ -401,7 +401,7 @@ export default function UserManagement() {
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                           onClick={() =>
-                            router.push(`/user-management/${user.id}`)
+                            router.push(`/settings/user-management/${user.id}`)
                           }
                           className="px-4 py-2 rounded-lg font-medium cursor-pointer"
                           style={{
@@ -448,7 +448,7 @@ export default function UserManagement() {
               background: "var(--primary)",
               color: "var(--text-inverse)",
             }}
-            onClick={() => router.push("/user-management/create")}
+            onClick={() => router.push("/settings/user-management/create")}
           >
             <Plus className="h-4 w-4" />
             New User
