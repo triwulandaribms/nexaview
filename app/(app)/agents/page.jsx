@@ -272,13 +272,15 @@ export default function Agents() {
 
     if (token) {
       try {
-        const decodedToken = JSON.parse(atob(token.split('.')[1]));
+        const decodedToken = JSON.parse(atob(token.split(".")[1]));
         const permissions = decodedToken.permissions || [];
 
-        const filteredPermission = permissions.find(permission => permission.path === pathname);
+        const filteredPermission = permissions.find(
+          (permission) => permission.path === pathname
+        );
 
         if (filteredPermission) {
-          setPermission(filteredPermission.mrm_permission)
+          setPermission(filteredPermission.mrm_permission);
         } else {
           router.push("/");
         }
@@ -330,7 +332,7 @@ export default function Agents() {
               AI Agents
             </h1>
           </div>
-          {hasPermission('C') && (
+          {hasPermission("C") && (
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -345,7 +347,6 @@ export default function Agents() {
               New Agent
             </motion.button>
           )}
-
         </div>
 
         {/* Search and View Toggle */}
@@ -441,119 +442,129 @@ export default function Agents() {
                   >
                     {isLoading
                       ? Array.from({ length: 6 }, (_, index) => (
-                        <SkeletonCard key={index} />
-                      ))
+                          <SkeletonCard key={index} />
+                        ))
                       : agents.map((agent, index) => (
-                        <motion.div
-                          key={agent.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.3, delay: index * 0.1 }}
-                          className="relative rounded-lg border overflow-hidden hover:shadow-lg transition-shadow duration-200"
-                          style={{
-                            background: "var(--surface-elevated)",
-                            borderColor: "var(--border-light)",
-                          }}
-                        >
-                          {/* Card Header */}
-                          <div
-                            className="h-1"
-                            style={{ background: "var(--primary)" }}
-                          />
+                          <motion.div
+                            key={agent.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                            className="relative rounded-lg border overflow-hidden hover:shadow-lg transition-shadow duration-200"
+                            style={{
+                              background: "var(--surface-elevated)",
+                              borderColor: "var(--border-light)",
+                            }}
+                          >
+                            {/* Card Header */}
+                            <div
+                              className="h-1"
+                              style={{ background: "var(--primary)" }}
+                            />
 
-                          <div className="p-6 flex flex-col h-full">
-                            {/* Actions Menu */}
-                            <div className="flex-1">
-                              <div className="absolute top-4 right-4 flex items-center gap-2">
+                            <div className="p-6 flex flex-col h-full">
+                              {/* Actions Menu */}
+                              <div className="flex-1 pt-5">
+                                <div className="absolute top-4 right-4 flex items-center gap-2">
+                                  {hasPermission("U") && (
+                                    <motion.button
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                      onClick={() =>
+                                        router.push(`/agents/edit/${agent.id}`)
+                                      }
+                                      className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                                      style={{ color: "var(--text-secondary)" }}
+                                    >
+                                      <Edit className="h-4 w-4" />
+                                    </motion.button>
+                                  )}
 
-                                {hasPermission('U') && (
-                                  <motion.button
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    onClick={() =>
-                                      router.push(`/agents/edit/${agent.id}`)
-                                    }
-                                    className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                                    style={{ color: "var(--text-secondary)" }}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </motion.button>
-                                )}
-
-                                {hasPermission('D') && (
-                                  <motion.button
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.9 }}
-                                    className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
-                                    onClick={() => openDelete(agent)}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </motion.button>
-                                )}
-
-
-                              </div>
-
-                              {/* Agent Icon and Name */}
-                              <div className="flex items-start gap-3 mb-4">
-                                <div
-                                  className="w-12 h-12 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
-                                  style={{
-                                    background: "var(--primary)",
-                                    color: "var(--text-inverse)",
-                                  }}
-                                >
-                                  <Bot className="h-6 w-6" />
+                                  {hasPermission("D") && (
+                                    <motion.button
+                                      whileHover={{ scale: 1.1 }}
+                                      whileTap={{ scale: 0.9 }}
+                                      className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
+                                      onClick={() => openDelete(agent)}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </motion.button>
+                                  )}
                                 </div>
-                                <div className="min-w-0 flex-1">
-                                  <h3
-                                    className="font-semibold text-lg mb-1 truncate"
-                                    style={{ color: "var(--text-primary)" }}
-                                  >
-                                    {agent.name}
-                                  </h3>
-                                  <p
-                                    className="text-sm line-clamp-2"
-                                    style={{ color: "var(--text-secondary)" }}
-                                  >
-                                    {agent.description}
-                                  </p>
-                                </div>
-                              </div>
 
-                              {/* Data Sources */}
-                              <div className="mb-4">
-                                <p
-                                  className="text-xs font-medium mb-2"
-                                  style={{ color: "var(--text-secondary)" }}
-                                >
-                                  Data Sources
-                                </p>
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className="px-2 py-1 text-xs rounded-md font-medium"
+                                {/* Agent Icon and Name */}
+                                <div className="flex items-start gap-3 mb-4">
+                                  <div
+                                    className="w-12 h-12 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
                                     style={{
-                                      background: "var(--primary-light)",
-                                      color: "var(--primary)",
+                                      background: "var(--primary)",
+                                      color: "var(--text-inverse)",
                                     }}
                                   >
-                                    {agent.data_source_type[0]}
-                                  </span>
+                                    <Bot className="h-6 w-6" />
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <h3
+                                      className="font-semibold text-lg mb-1 truncate"
+                                      style={{ color: "var(--text-primary)" }}
+                                    >
+                                      {agent.name}
+                                    </h3>
+                                    <p
+                                      className="text-sm line-clamp-2"
+                                      style={{ color: "var(--text-secondary)" }}
+                                    >
+                                      {agent.description}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
 
-                              {/* Metadata */}
-                              <div className="space-y-2 mb-6">
-                                <div
-                                  className="flex items-center gap-2 text-sm"
-                                  style={{ color: "var(--text-secondary)" }}
-                                >
-                                  <Calendar className="h-4 w-4" />
-                                  <span>{agent.created_at}</span>
+                                {/* Data Sources */}
+                                <div className="mb-4">
+                                  <p
+                                    className="text-xs font-medium mb-2"
+                                    style={{ color: "var(--text-secondary)" }}
+                                  >
+                                    Data Sources
+                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className="px-2 py-1 text-xs rounded-md font-medium"
+                                      style={{
+                                        background: "var(--primary-light)",
+                                        color: "var(--primary)",
+                                      }}
+                                    >
+                                      {agent.data_source_type[0]}
+                                    </span>
+                                  </div>
                                 </div>
 
-                                <div
+                                {/* Metadata */}
+                                <div className="space-y-2 mb-6">
+                                  <div
+                                    className="flex items-center gap-2 text-sm"
+                                    style={{ color: "var(--text-secondary)" }}
+                                  >
+                                    <Database className="h-4 w-4" />
+                                    <span>
+                                      {agent.knowledgebases
+                                        ? `Knowledge Bases: ${agent?.knowledgebases.length}`
+                                        : agent.apiFeatures
+                                        ? `API Features: ${agent.apiFeatures}`
+                                        : "No data sources"}
+                                    </span>
+                                  </div>
+                                  <div
+                                    className="flex items-center gap-2 text-sm"
+                                    style={{ color: "var(--text-secondary)" }}
+                                  >
+                                    <Calendar className="h-4 w-4" />
+                                    <span>{agent.created_at}</span>
+                                  </div>
+
+                                  {/* <div
                                   className="flex items-center gap-2 text-sm"
                                   style={{ color: "var(--text-secondary)" }}
                                 >
@@ -561,58 +572,41 @@ export default function Agents() {
                                   <span>
                                     {agent?.default_model?.name || ""}
                                   </span>
-                                </div>
+                                </div> */}
 
-                                <div
-                                  className="flex items-center gap-2 text-sm"
-                                  style={{ color: "var(--text-secondary)" }}
-                                >
-                                  <Database className="h-4 w-4" />
-                                  <span>
-                                    {agent.knowledgebases
-                                      ? `Knowledge Bases: ${agent?.knowledgebases.length}`
-                                      : agent.apiFeatures
-                                        ? `API Features: ${agent.apiFeatures}`
-                                        : "No data sources"}
-                                  </span>
-                                </div>
-
-                                <div
-                                  className="flex items-center gap-2 text-sm"
-                                  style={{ color: "var(--text-secondary)" }}
-                                >
-                                  <User className="h-4 w-4" />
-                                  <span>
-                                    Created by {agent?.created_by_name || "-"}
-                                  </span>
+                                  <div
+                                    className="flex items-center gap-2 text-sm"
+                                    style={{ color: "var(--text-secondary)" }}
+                                  >
+                                    <User className="h-4 w-4" />
+                                    <span>
+                                      Created by {agent?.created_by_name || "-"}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
+
+                              {/* View Button */}
+                              {hasPermission("R") && (
+                                <motion.button
+                                  whileHover={{ scale: 1.02 }}
+                                  whileTap={{ scale: 0.98 }}
+                                  onClick={() =>
+                                    router.push(`/agents/${agent.id}`)
+                                  }
+                                  className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
+                                  style={{
+                                    background: "var(--surface-secondary)",
+                                    color: "var(--text-primary)",
+                                    border: "1px solid var(--border-light)",
+                                  }}
+                                >
+                                  View
+                                </motion.button>
+                              )}
                             </div>
-
-
-                            {/* View Button */}
-                            {hasPermission('R') && (
-                              <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() =>
-                                  router.push(`/agents/${agent.id}`)
-                                }
-                                className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
-                                style={{
-                                  background: "var(--surface-secondary)",
-                                  color: "var(--text-primary)",
-                                  border: "1px solid var(--border-light)",
-                                }}
-                              >
-                                View
-                              </motion.button>
-                            )}
-
-
-                          </div>
-                        </motion.div>
-                      ))}
+                          </motion.div>
+                        ))}
                   </motion.div>
                 )}
 
@@ -628,151 +622,148 @@ export default function Agents() {
                   >
                     {isLoading
                       ? Array.from({ length: 6 }, (_, index) => (
-                        <SkeletonList key={index} />
-                      ))
+                          <SkeletonList key={index} />
+                        ))
                       : agents.map((agent, index) => (
-                        <motion.div
-                          key={agent.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          transition={{ duration: 0.3, delay: index * 0.1 }}
-                          className="relative rounded-lg border overflow-hidden hover:shadow-md transition-shadow duration-200"
-                          style={{
-                            background: "var(--surface-elevated)",
-                            borderColor: "var(--border-light)",
-                          }}
-                        >
-                          {/* Card Header */}
-                          <div
-                            className="h-1"
-                            style={{ background: "var(--primary)" }}
-                          />
+                          <motion.div
+                            key={agent.id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                            className="relative rounded-lg border overflow-hidden hover:shadow-md transition-shadow duration-200"
+                            style={{
+                              background: "var(--surface-elevated)",
+                              borderColor: "var(--border-light)",
+                            }}
+                          >
+                            {/* Card Header */}
+                            <div
+                              className="h-1"
+                              style={{ background: "var(--primary)" }}
+                            />
 
-                          <div className="p-4">
-                            {/* Actions Menu */}
-                            <div className="absolute top-3 right-3 flex items-center gap-2">
-
-
-                              {hasPermission('U') && (
-                                <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                  onClick={() =>
-                                    router.push(`/agents/edit/${agent.id}`)
-                                  }
-                                  className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                                  style={{ color: "var(--text-secondary)" }}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </motion.button>
-                              )}
-                              {hasPermission('D') && (
-                                <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                  className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                                  style={{ color: "var(--text-secondary)" }}
-                                  onClick={() => openDelete(agent)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </motion.button>
-                              )}
-
-                            </div>
-
-                            {/* Horizontal Layout for List */}
-                            <div className="flex gap-4">
-                              {/* Agent Icon */}
-                              <div
-                                className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0"
-                                style={{
-                                  background: "var(--primary)",
-                                  color: "var(--text-inverse)",
-                                }}
-                              >
-                                <Bot className="h-7 w-7" />
+                            <div className="p-4">
+                              {/* Actions Menu */}
+                              <div className="absolute top-3 right-3 flex items-center gap-2">
+                                {hasPermission("U") && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() =>
+                                      router.push(`/agents/edit/${agent.id}`)
+                                    }
+                                    className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                                    style={{ color: "var(--text-secondary)" }}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </motion.button>
+                                )}
+                                {hasPermission("D") && (
+                                  <motion.button
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                                    style={{ color: "var(--text-secondary)" }}
+                                    onClick={() => openDelete(agent)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </motion.button>
+                                )}
                               </div>
 
-                              {/* Agent Info */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-4 mb-2">
-                                  <h3
-                                    className="font-semibold text-lg"
-                                    style={{ color: "var(--text-primary)" }}
-                                  >
-                                    {agent.name}
-                                  </h3>
-                                  <span
-                                    className="px-2 py-1 text-xs rounded-md font-medium"
-                                    style={{
-                                      background: "var(--primary-light)",
-                                      color: "var(--primary)",
-                                    }}
-                                  >
-                                    {agent.dataSources}
-                                  </span>
-                                </div>
-                                <p
-                                  className="text-sm mb-2 line-clamp-1"
-                                  style={{ color: "var(--text-secondary)" }}
-                                >
-                                  {agent.description}
-                                </p>
+                              {/* Horizontal Layout for List */}
+                              <div className="flex gap-4">
+                                {/* Agent Icon */}
                                 <div
-                                  className="flex items-center gap-4 text-xs"
-                                  style={{ color: "var(--text-tertiary)" }}
+                                  className="w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0"
+                                  style={{
+                                    background: "var(--primary)",
+                                    color: "var(--text-inverse)",
+                                  }}
                                 >
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    <span>{agent.created_at}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Bot className="h-3 w-3" />
-                                    <span>{agent.model}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Database className="h-3 w-3" />
-                                    <span>
-                                      {agent.knowledgebases
-                                        ? `KB: ${agent.knowledgebases.length}`
-                                        : agent.apiFeatures
-                                          ? `API: ${agent.apiFeatures}`
-                                          : "No data"}
+                                  <Bot className="h-7 w-7" />
+                                </div>
+
+                                {/* Agent Info */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-4 mb-2">
+                                    <h3
+                                      className="font-semibold text-lg"
+                                      style={{ color: "var(--text-primary)" }}
+                                    >
+                                      {agent.name}
+                                    </h3>
+                                    <span
+                                      className="px-2 py-1 text-xs rounded-md font-medium"
+                                      style={{
+                                        background: "var(--primary-light)",
+                                        color: "var(--primary)",
+                                      }}
+                                    >
+                                      {agent.dataSources}
                                     </span>
                                   </div>
-                                  <div className="flex items-center gap-1">
-                                    <User className="h-3 w-3" />
-                                    <span>{agent.created_by_name}</span>
+                                  <p
+                                    className="text-sm mb-2 line-clamp-1"
+                                    style={{ color: "var(--text-secondary)" }}
+                                  >
+                                    {agent.description}
+                                  </p>
+                                  <div
+                                    className="flex items-center gap-4 text-xs"
+                                    style={{ color: "var(--text-tertiary)" }}
+                                  >
+                                    <div className="flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      <span>{agent.created_at}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Bot className="h-3 w-3" />
+                                      <span>{agent.model}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Database className="h-3 w-3" />
+                                      <span>
+                                        {agent.knowledgebases
+                                          ? `KB: ${agent.knowledgebases.length}`
+                                          : agent.apiFeatures
+                                          ? `API: ${agent.apiFeatures}`
+                                          : "No data"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <User className="h-3 w-3" />
+                                      <span>{agent.created_by_name}</span>
+                                    </div>
                                   </div>
                                 </div>
+
+                                {/* View Button */}
+
+                                {hasPermission("R") && (
+                                  <div className="flex-shrink-0 items-end flex">
+                                    <motion.button
+                                      whileHover={{ scale: 1.02 }}
+                                      whileTap={{ scale: 0.98 }}
+                                      onClick={() =>
+                                        router.push(`/agents/${agent.id}`)
+                                      }
+                                      className="px-4 py-2 rounded-lg font-medium cursor-pointer"
+                                      style={{
+                                        background: "var(--surface-secondary)",
+                                        color: "var(--text-primary)",
+                                        border: "1px solid var(--border-light)",
+                                      }}
+                                    >
+                                      View
+                                    </motion.button>
+                                  </div>
+                                )}
                               </div>
-
-                              {/* View Button */}
-
-                              {hasPermission('R') && (
-                                <div className="flex-shrink-0 items-end flex">
-                                  <motion.button
-                                    whileHover={{ scale: 1.02 }}
-                                    whileTap={{ scale: 0.98 }}
-                                    onClick={() =>
-                                      router.push(`/agents/${agent.id}`)
-                                    }
-                                    className="px-4 py-2 rounded-lg font-medium cursor-pointer"
-                                    style={{
-                                      background: "var(--surface-secondary)",
-                                      color: "var(--text-primary)",
-                                      border: "1px solid var(--border-light)",
-                                    }}
-                                  >
-                                    View
-                                  </motion.button>
-                                </div>
-                              )}
                             </div>
-                          </div>
-                        </motion.div>
-                      ))}
+                          </motion.div>
+                        ))}
                   </motion.div>
                 )}
               </>

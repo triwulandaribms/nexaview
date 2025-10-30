@@ -24,7 +24,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { abApi } from "@/app/lib/agentBaseApi";
 import ConfirmDeleteModalAgent from "@/app/components/ConfirmDeleteModalAgent";
 import {
@@ -44,6 +44,7 @@ import {
 export default function AgentDetail() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState("Overview");
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState([
@@ -69,9 +70,22 @@ export default function AgentDetail() {
   const [detailSession, setDetailSession] = useState("");
   const [delOpen, setDelOpen] = useState(false);
   const [delLoading, setDelLoading] = useState(false);
+  const [agentInteraction, setAgentInteraction] = useState(false);
 
   const currentId = agent?.id || params?.id;
   const messagesEndRef = useRef(null);
+
+  // Check if coming from interact page and auto-switch to Chat tab
+  useEffect(() => {
+    const fromInteract = searchParams.get("fromInteract");
+    if (fromInteract === "true") {
+      setActiveTab("Chat");
+      setAgentInteraction(true);
+      console.log(
+        "Agent opened from Interact page - agentInteraction set to true"
+      );
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -640,116 +654,117 @@ export default function AgentDetail() {
         </motion.button>
 
         {/* Agent Header Card */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="rounded-xl border mb-8 overflow-hidden"
-          style={{
-            background: "var(--surface-elevated)",
-            borderColor: "var(--border-light)",
-          }}
-        >
-          <div className="p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-16 h-16 rounded-xl flex items-center justify-center"
-                  style={{ background: "var(--primary)" }}
-                >
-                  <Bot className="h-8 w-8 text-white" />
-                </div>
-                <div>
-                  <h1
-                    className="text-2xl font-bold mb-1"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    {agent?.name || "-"}
-                  </h1>
+        {!agentInteraction && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="rounded-xl border mb-8 overflow-hidden"
+            style={{
+              background: "var(--surface-elevated)",
+              borderColor: "var(--border-light)",
+            }}
+          >
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-4">
                   <div
-                    className="flex items-center gap-4 text-sm"
-                    style={{ color: "var(--text-secondary)" }}
+                    className="w-16 h-16 rounded-xl flex items-center justify-center"
+                    style={{ background: "var(--primary)" }}
                   >
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      Created {agent?.timestamp || ""}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <User className="h-4 w-4" />
-                      {agent?.createdBy || ""}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <FileText className="h-4 w-4" />
-                      {agent?.agentId || ""}
-                    </span>
+                    <Bot className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h1
+                      className="text-2xl font-bold mb-1"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {agent?.name || "-"}
+                    </h1>
+                    <div
+                      className="flex items-center gap-4 text-sm"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        Created {agent?.timestamp || ""}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <User className="h-4 w-4" />
+                        {agent?.createdBy || ""}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <FileText className="h-4 w-4" />
+                        {agent?.agentId || ""}
+                      </span>
+                    </div>
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-2 rounded-lg border cursor-pointer"
+                    style={{
+                      background: "var(--surface-secondary)",
+                      borderColor: "var(--border-light)",
+                      color: "var(--text-secondary)",
+                    }}
+                    onClick={() => router.push(`/agents/edit/${currentId}`)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-2 rounded-lg border cursor-pointer"
+                    style={{
+                      background: "var(--surface-secondary)",
+                      borderColor: "var(--border-light)",
+                      color: "var(--text-secondary)",
+                    }}
+                    onClick={openDelete}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </motion.button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2 rounded-lg border cursor-pointer"
-                  style={{
-                    background: "var(--surface-secondary)",
-                    borderColor: "var(--border-light)",
-                    color: "var(--text-secondary)",
-                  }}
-                  onClick={() => router.push(`/agents/edit/${currentId}`)}
-                >
-                  <Edit className="h-4 w-4" />
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2 rounded-lg border cursor-pointer"
-                  style={{
-                    background: "var(--surface-secondary)",
-                    borderColor: "var(--border-light)",
-                    color: "var(--text-secondary)",
-                  }}
-                  onClick={openDelete}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </motion.button>
-              </div>
-            </div>
 
-            {/* Tabs */}
-            <div className="flex items-center gap-1">
-              {tabs.map((tab) => (
-                <motion.button
-                  key={tab}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    setActiveTab(tab);
-                    tab == "Sessions" && handleRefreshSession();
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer transition-all"
-                  style={{
-                    background:
-                      activeTab === tab ? "var(--primary)" : "transparent",
-                    color:
-                      activeTab === tab
-                        ? "var(--text-inverse)"
-                        : "var(--text-secondary)",
-                  }}
-                >
-                  {tab === "Overview" && <Eye className="h-4 w-4" />}
-                  {tab === "Chat" && <MessageSquare className="h-4 w-4" />}
-                  {tab === "Sessions" && <Settings className="h-4 w-4" />}
-                  {tab}
-                  {tab === "Sessions" && (
-                    <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
-                      1
-                    </span>
-                  )}
-                </motion.button>
-              ))}
+              <div className="flex items-center gap-1">
+                {tabs.map((tab) => (
+                  <motion.button
+                    key={tab}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setActiveTab(tab);
+                      tab == "Sessions" && handleRefreshSession();
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer transition-all"
+                    style={{
+                      background:
+                        activeTab === tab ? "var(--primary)" : "transparent",
+                      color:
+                        activeTab === tab
+                          ? "var(--text-inverse)"
+                          : "var(--text-secondary)",
+                    }}
+                  >
+                    {tab === "Overview" && <Eye className="h-4 w-4" />}
+                    {tab === "Chat" && <MessageSquare className="h-4 w-4" />}
+                    {tab === "Sessions" && <Settings className="h-4 w-4" />}
+                    {tab}
+                    {tab === "Sessions" && (
+                      <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
+                        1
+                      </span>
+                    )}
+                  </motion.button>
+                ))}
+              </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* Content based on active tab */}
         {activeTab === "Overview" && (
@@ -1124,7 +1139,7 @@ export default function AgentDetail() {
             </div>
 
             {/* Messages Area */}
-            <div className="h-96 overflow-y-auto p-4 space-y-4">
+            <div className="h-[63vh] overflow-y-auto p-4 space-y-4">
               {messages.map((message) => (
                 <motion.div
                   key={message.id}

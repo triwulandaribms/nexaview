@@ -22,6 +22,8 @@ import { useRouter, usePathname } from "next/navigation";
 import { kbApi } from "@/app/lib/knowledgeBaseApi";
 import { withTimeout } from "@/app/lib/http";
 import Alert from "@/app/components/Alert";
+import CreateKnowledgeBase from "./create/page";
+import UpdateKnowledgeBase from "./update/[id]/page";
 
 export default function KnowledgeBase() {
   const [knowledgeBases, setKnowledgeBases] = useState([]);
@@ -33,6 +35,9 @@ export default function KnowledgeBase() {
   const [deleting, setDeleting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [permission, setPermission] = useState("");
+  const [showCreateKnowledgeBase, setShowCreateKnowledgeBase] = useState(false);
+  const [showUpdateKnowledgeBase, setShowUpdateKnowledgeBase] = useState(false);
+  const [selectedKnowledgeBaseId, setSelectedKnowledgeBaseId] = useState(null);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -43,9 +48,21 @@ export default function KnowledgeBase() {
     (async () => {
       const { signal, cancel } = withTimeout(20000);
       setIsLoading(true);
+
       try {
         const { data } = await kbApi.all({ signal });
-        if (mounted) setKnowledgeBases(Array.isArray(data) ? data : []);
+
+        if (mounted) {
+          // Pastikan data array
+          const dataArray = Array.isArray(data) ? data : [];
+
+          // Sort DESC berdasarkan tanggal created_at (terbaru ke terlama)
+          const sortedData = dataArray.sort(
+            (a, b) => new Date(b.created_at) - new Date(a.created_at)
+          );
+
+          setKnowledgeBases(sortedData);
+        }
       } catch (e) {
         console.error(e);
         if (mounted) setKnowledgeBases([]);
@@ -241,7 +258,8 @@ export default function KnowledgeBase() {
 
   function openEdit(kb) {
     if (!kb?.id) return;
-    router.push(`/knowledge-base/update/${kb.id}`);
+    setSelectedKnowledgeBaseId(kb.id);
+    setShowUpdateKnowledgeBase(true);
   }
 
   useEffect(() => {
@@ -294,6 +312,21 @@ export default function KnowledgeBase() {
       transition={{ duration: 0.3 }}
       className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]"
     >
+      <AnimatePresence>
+        {showCreateKnowledgeBase && (
+          <CreateKnowledgeBase
+            setShowCreateKnowledgeBase={setShowCreateKnowledgeBase}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showUpdateKnowledgeBase && selectedKnowledgeBaseId && (
+          <UpdateKnowledgeBase
+            setShowUpdateKnowledgeBase={setShowUpdateKnowledgeBase}
+            knowledgeBaseId={selectedKnowledgeBaseId}
+          />
+        )}
+      </AnimatePresence>
       {errorMsg && (
         <Alert variant="error" onDismiss={() => setErrorMsg("")}>
           {errorMsg}
@@ -325,7 +358,7 @@ export default function KnowledgeBase() {
                 background: "var(--primary)",
                 color: "var(--text-inverse)",
               }}
-              onClick={() => router.push("/knowledge-base/create")}
+              onClick={() => setShowCreateKnowledgeBase(true)}
             >
               <Plus className="h-4 w-4" />
               New Knowledge Base
@@ -469,7 +502,7 @@ export default function KnowledgeBase() {
                       )}
                     </div>
 
-                    <div className="p-6">
+                    <div className="p-6 pt-10">
                       {/* KB Header */}
                       <div className="flex items-start gap-3 mb-4">
                         <div

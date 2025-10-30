@@ -35,6 +35,8 @@ import {
   FaFileAudio,
   FaFileVideo,
 } from "react-icons/fa";
+import CreateDataset from "./create/page";
+import UpdateDataset from "./update/[id]/page";
 
 export default function Datasets() {
   const router = useRouter();
@@ -49,6 +51,9 @@ export default function Datasets() {
   const [deleting, setDeleting] = useState(false);
   const [selectedKB, setSelectedKB] = useState(null);
   const [permission, setPermission] = useState("");
+  const [showCreateDataset, setShowCreateDataset] = useState(false);
+  const [showUpdateDataset, setShowUpdateDataset] = useState(false);
+  const [selectedDatasetId, setSelectedDatasetId] = useState(null);
   const itemsPerPage = 6;
 
   const getFileIcon = (fileName) => {
@@ -154,7 +159,8 @@ export default function Datasets() {
   };
 
   const handleEdit = (idx) => {
-    router.push("/dataset/update/" + idx);
+    setSelectedDatasetId(idx);
+    setShowUpdateDataset(true);
   };
 
   const handlePageChange = (page) => {
@@ -389,6 +395,19 @@ export default function Datasets() {
       transition={{ duration: 0.3 }}
       className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]"
     >
+      <AnimatePresence>
+        {showCreateDataset && (
+          <CreateDataset setShowCreateDataset={setShowCreateDataset} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showUpdateDataset && selectedDatasetId && (
+          <UpdateDataset
+            setShowUpdateDataset={setShowUpdateDataset}
+            datasetId={selectedDatasetId}
+          />
+        )}
+      </AnimatePresence>
       <motion.div
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -407,7 +426,7 @@ export default function Datasets() {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => router.push("/dataset/create")}
+              onClick={() => setShowCreateDataset(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer"
               style={{
                 background: "var(--primary)",
@@ -532,21 +551,32 @@ export default function Datasets() {
                           style={{ background: "var(--primary)" }}
                         />
 
+                        <div className="absolute top-4 right-4 flex items-center gap-2">
+                          {hasPermission("U") && (
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              className="p-1 rounded hover:bg-gray-100 cursor-pointer"
+                              style={{ color: "var(--text-secondary)" }}
+                              onClick={() => handleEdit(dataset?.id)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </motion.button>
+                          )}
+                          {hasPermission("D") && (
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
+                              onClick={() => openDelete(dataset)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </motion.button>
+                          )}
+                        </div>
                         <div className="p-6 flex flex-col h-full">
                           {/* Actions Menu */}
                           <div className="flex-1 pt-4">
-                            <div className="absolute top-4 right-4 flex items-center gap-2">
-                              {/* Metadata */}
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-sm text-(--text-secondary)/80">
-                                  <Calendar className="h-4 w-4" />
-                                  <span>
-                                    {dataset?.updated_at || dataset?.created_at}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-
                             {/* Dataset Icon and Name */}
                             <div className="flex items-start gap-3 mb-4 pt-4 ">
                               <div
@@ -565,7 +595,7 @@ export default function Datasets() {
                               </div>
                               <div className="min-w-0 flex-1">
                                 <h3
-                                  className="font-semibold text-lg mb-1 truncate"
+                                  className="font-semibold text-lg truncate"
                                   style={{ color: "var(--text-primary)" }}
                                 >
                                   {dataset.filename}
@@ -641,51 +671,34 @@ export default function Datasets() {
                                 </div>
                               </div>
                             )}
-                          </div>
-
-                          <div className="flex items-center gap-4 justify-between">
-                            {/* View Button */}
-                            {hasPermission("R") && (
-                              <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() =>
-                                  router.push(`/dataset/${dataset?.id}`)
-                                }
-                                className=" py-2 px-4 rounded-md font-medium cursor-pointer"
-                                style={{
-                                  background: "var(--surface-secondary)",
-                                  color: "var(--text-primary)",
-                                  border: "1px solid var(--border-light)",
-                                }}
-                              >
-                                View Dataset
-                              </motion.button>
-                            )}
-                            <div className="flex items-center gap-4 justify-end">
-                              {hasPermission("U") && (
-                                <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                  className="p-1 rounded hover:bg-gray-100 cursor-pointer"
-                                  style={{ color: "var(--text-secondary)" }}
-                                  onClick={() => handleEdit(dataset?.id)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </motion.button>
-                              )}
-                              {hasPermission("D") && (
-                                <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.9 }}
-                                  className="p-1 rounded hover:bg-gray-100 cursor-pointer text-(--error)"
-                                  onClick={() => openDelete(dataset)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </motion.button>
-                              )}
+                            {/* Metadata */}
+                            <div className="mb-4">
+                              <div className="flex items-center gap-2 text-sm text-(--text-secondary)/80">
+                                <Calendar className="h-4 w-4" />
+                                <span>
+                                  {dataset?.updated_at || dataset?.created_at}
+                                </span>
+                              </div>
                             </div>
                           </div>
+                          {/* View Button */}
+                          {hasPermission("R") && (
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() =>
+                                router.push(`/dataset/${dataset?.id}`)
+                              }
+                              className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
+                              style={{
+                                background: "var(--surface-secondary)",
+                                color: "var(--text-primary)",
+                                border: "1px solid var(--border-light)",
+                              }}
+                            >
+                              View Dataset
+                            </motion.button>
+                          )}
                         </div>
                       </motion.div>
                     ))}

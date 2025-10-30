@@ -95,20 +95,20 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const dataMainNavItems = [
     { icon: Home, label: "Home", href: "/dashboard" },
     // { icon: Gamepad2, label: 'Playground', href: '/playground' },
-    { icon: MessageCircle, label: "Interact", href: "/interact" },
     { icon: Settings, label: "Settings", href: "/settings" },
-    { icon: LinkIcon, label: "Integration", href: "/integration" },
+    // { icon: LinkIcon, label: "Integration", href: "/integration" },
   ];
 
   const dataApplicationItems = [
-    { icon: Wrench, label: "Tools", href: "/tools" },
+    // { icon: Wrench, label: "Tools", href: "/tools" },
+    { icon: MessageCircle, label: "Interact", href: "/interact" },
     { icon: Bot, label: "Agents", href: "/agents" },
-    { icon: GitBranch, label: "AI chain", href: "/ai-chain" },
+    // { icon: GitBranch, label: "AI chain", href: "/ai-chain" },
   ];
 
   const dataFoundationDataItems = [
     { icon: Box, label: "Models", href: "/models" },
-    { icon: Network, label: "Connections", href: "/connections" },
+    // { icon: Network, label: "Connections", href: "/connections" },
     { icon: Database, label: "Dataset", href: "/dataset" },
     { icon: BookOpen, label: "Knowledge base", href: "/knowledge-base" },
   ];
@@ -116,12 +116,13 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const dataManagementItems = [];
 
   const dataObserveTestItems = [
-    { icon: Search, label: "Tracing", href: "/tracing" },
+    // { icon: Search, label: "Tracing", href: "/tracing" },
   ];
   const filterMenuItems = (items) => {
     return items
       .map((item) => {
         const permission = permissions.find((p) => p.menu === item.label);
+        console.log(permission);
         if (permission) {
           return { ...item, permission: permission.mrm_permission };
         }
@@ -131,7 +132,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   };
 
   const mainNavItems = dataMainNavItems;
-  const applicationItems = filterMenuItems(dataApplicationItems);
+  const applicationItems = dataApplicationItems;
   const foundationDataItems = filterMenuItems(dataFoundationDataItems);
   const managementItems = filterMenuItems(dataManagementItems);
   const observeTestItems = filterMenuItems(dataObserveTestItems);
@@ -239,10 +240,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 className="font-semibold text-xs sm:text-sm truncate"
                 style={{ color: "var(--sidebar-text-hover)" }}
               >
-                {user?.name || ""}
-              </p>
-              <p className="text-xs" style={{ color: "var(--sidebar-text)" }}>
-                Premium User
+                Divkum
               </p>
             </div>
           </div>
@@ -287,7 +285,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
           {/* Management section removed - moved to Settings */}
           {/* Observe & Test Section */}
-          <SectionHeader title="OBSERVE & TEST" />
+          {/* <SectionHeader title="OBSERVE & TEST" /> */}
           {observeTestItems.map((item) => (
             <NavItem
               key={item.label}

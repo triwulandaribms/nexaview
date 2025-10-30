@@ -2,13 +2,13 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Upload, Plus, X, ArrowLeft } from "lucide-react";
+import { Upload, Plus, X, ArrowLeft, XIcon } from "lucide-react";
 import PageHeader from "../../../components/PageHeader";
 import Alert from "@/app/components/Alert";
 import { withTimeout } from "@/app/lib/http";
 import { dsApi } from "@/app/lib/datasetBaseApi";
 
-export default function CreateDataset() {
+export default function CreateDataset({ setShowCreateDataset }) {
   const router = useRouter();
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -19,7 +19,7 @@ export default function CreateDataset() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState("");
   // Simulate loading
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -133,24 +133,20 @@ export default function CreateDataset() {
     const { signal } = controller;
 
     setUploading(true);
-    setErrorMsg('');
+    setErrorMsg("");
 
     try {
-      const res = await dsApi.upload(
-        file,
-        { categories, tags },
-        { signal }
-      );
+      const res = await dsApi.upload(file, { categories, tags }, { signal });
 
       if (!res?.data?.success) {
-        setErrorMsg(res?.error || 'Upload failed');
+        setErrorMsg(res?.error || "Upload failed");
         return;
       }
 
-      router.push('/dataset');
+      router.push("/dataset");
     } catch (err) {
-      if (err?.name === 'AbortError' || err?.code === 'ERR_CANCELED') {
-        setErrorMsg('Request timed out. Please try again.');
+      if (err?.name === "AbortError" || err?.code === "ERR_CANCELED") {
+        setErrorMsg("Request timed out. Please try again.");
       } else {
         const msg =
           err?.response?.data?.error ||
@@ -167,19 +163,26 @@ export default function CreateDataset() {
 
   return (
     <motion.main
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]"
+      transition={{ duration: 0.3 }}
+      className="min-h-screen  overflow-y-auto w-full fixed top-0 right-0 z-50 bg-black/10 backdrop-blur-sm flex"
     >
+      <div className="flex-1" onClick={() => setShowCreateDataset(false)}></div>
       <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
+        initial={{ x: 600 }}
+        animate={{ x: 0 }}
+        exit={{ x: 600 }}
+        transition={{ type: "spring", stiffness: 260, damping: 24 }}
+        className="w-[600px] z-50 bg-white h-screen p-4 sm:p-6 lg:p-8 max-sm:w-full"
       >
+        <div className="absolute top-4 right-4">
+          <XIcon
+            className="h-6 w-6 text-red-500 cursor-pointer"
+            onClick={() => setShowCreateDataset(false)}
+          />
+        </div>
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <motion.button
+          {/* <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => router.back()}
@@ -187,7 +190,7 @@ export default function CreateDataset() {
             style={{ color: "var(--text-secondary)" }}
           >
             <ArrowLeft className="h-5 w-5" />
-          </motion.button>
+          </motion.button> */}
           {isLoading ? (
             <div className="flex-1">
               <div className="h-8 bg-gray-200 animate-pulse rounded w-1/4 mb-2" />
@@ -201,20 +204,19 @@ export default function CreateDataset() {
           )}
         </div>
 
-
-
         {isLoading ? (
           <SkeletonUpload />
         ) : (
           <motion.div className="max-w-3xl mx-auto">
             {errorMsg && (
-              <Alert variant="error" onDismiss={() => setErrorMsg('')}>
+              <Alert variant="error" onDismiss={() => setErrorMsg("")}>
                 {errorMsg}
               </Alert>
             )}
             <div
-              className={`relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"
-                }`}
+              className={`relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                isDragging ? "border-primary bg-primary/5" : "border-gray-300"
+              }`}
               style={{
                 background: "var(--surface-elevated)",
                 borderColor: isDragging
