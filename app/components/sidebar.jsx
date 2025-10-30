@@ -122,7 +122,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     return items
       .map((item) => {
         const permission = permissions.find((p) => p.menu === item.label);
-        console.log(permission);
         if (permission) {
           return { ...item, permission: permission.mrm_permission };
         }

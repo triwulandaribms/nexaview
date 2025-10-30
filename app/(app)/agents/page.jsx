@@ -105,6 +105,15 @@ export default function Agents() {
           throw new Error(res?.error || "Gagal memuat dataset.");
         }
 
+        console.log("Agents List API Response:", res?.data);
+        if (res?.data && res.data.length > 0) {
+          console.log("First agent sample:", res.data[0]);
+          console.log(
+            "created_by_name in first agent:",
+            res.data[0]?.created_by_name
+          );
+        }
+
         setAgents(res?.data);
       } catch (e) {
         if (e.name !== "AbortError") {

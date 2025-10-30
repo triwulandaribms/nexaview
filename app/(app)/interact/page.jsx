@@ -14,8 +14,6 @@ export default function Interact() {
   const [conversationalAgents, setConversationalAgents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  console.log(conversationalAgents);
-
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -41,7 +39,7 @@ export default function Interact() {
               description: agent.description || "No description available",
               model: agent.default_model?.id || "Unknown Model",
               sessions: agent.sessions_count || 0,
-              bgColor: "#8b5cf6",
+              bgColor: "#6366f1",
             }));
           setConversationalAgents(mappedAgents);
           setIsLoading(false);
@@ -217,7 +215,7 @@ export default function Interact() {
             isLoading ? (
               // Loading skeleton
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full h-full">
-                {[1, 2, 3].map((i) => (
+                {[...Array(filteredAgents.length)].map((_, i) => (
                   <div
                     key={i}
                     className="p-6 rounded-md border animate-pulse"
