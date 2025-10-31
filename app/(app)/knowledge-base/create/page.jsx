@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { ChevronLeft, BookOpen } from "lucide-react";
+import { ChevronLeft, BookOpen, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { kbApi } from "@/app/lib/knowledgeBaseApi";
@@ -44,8 +44,7 @@ const SkeletonLoader = () => (
   </div>
 );
 
-
-export default function CreateKnowledgeBase() {
+export default function CreateKnowledgeBase({ setShowCreateKnowledgeBase }) {
   const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
@@ -72,7 +71,9 @@ export default function CreateKnowledgeBase() {
       description: description?.trim() || undefined,
       roles: Array.isArray(selectedRoles) ? selectedRoles : [],
     };
-    return Object.fromEntries(Object.entries(payload).filter(([, v]) => v !== undefined));
+    return Object.fromEntries(
+      Object.entries(payload).filter(([, v]) => v !== undefined)
+    );
   }
 
   const handleSubmit = async (e) => {
@@ -89,15 +90,20 @@ export default function CreateKnowledgeBase() {
 
     setSubmitting(true);
     try {
-      const { data } = await kbApi.create({ ...payload, documents: [] }, { signal });
+      const { data } = await kbApi.create(
+        { ...payload, documents: [] },
+        { signal }
+      );
       const kbId = data?.id;
       router.push(kbId ? `/knowledge-base/${kbId}` : "/knowledge-base");
     } catch (err) {
       const status = err?.status ?? 500;
       let msg = err?.message || "Failed to create knowledge base";
-      if (status === 400 || status === 422) msg = "Invalid input. Please check the form fields.";
+      if (status === 400 || status === 422)
+        msg = "Invalid input. Please check the form fields.";
       else if (status === 401) msg = "Unauthorized. Please sign in again.";
-      else if (status === 403) msg = "Forbidden. You do not have permission for this action.";
+      else if (status === 403)
+        msg = "Forbidden. You do not have permission for this action.";
       else if (status === 404) msg = "Endpoint not found.";
       else if (status >= 500) msg = "Server error. Please try again later.";
       setErrorMsg(msg);
@@ -115,25 +121,40 @@ export default function CreateKnowledgeBase() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="min-h-screen fixed top-0 right-0 z-50 w-full bg-black/10 backdrop-blur-sm flex">
       {/* Header */}
-      <motion.div
+      {/* <motion.div
         className="px-4 sm:px-6 py-4 border-b border-[var(--border-light)]"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
         <button
-          onClick={() => router.back()}
+          onClick={() => setShowCreateKnowledgeBase(false)}
           className="flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         >
           <ChevronLeft className="h-5 w-5" />
           Create Knowledge Base
         </button>
-      </motion.div>
-
+      </motion.div> */}
+      <div
+        className="flex-1"
+        onClick={() => setShowCreateKnowledgeBase(false)}
+      ></div>
       {/* Main Content */}
-      <div className="p-4 sm:p-6 flex justify-start">
+      <motion.div
+        className="p-4 sm:p-6 z-50 w-[600px] h-screen bg-white max-sm:w-full"
+        initial={{ x: 600 }}
+        animate={{ x: 0 }}
+        exit={{ x: 600 }}
+        transition={{ type: "spring", stiffness: 260, damping: 24 }}
+      >
+        <div className="absolute top-4 right-4">
+          <XIcon
+            className="h-6 w-6 text-red-500 cursor-pointer"
+            onClick={() => setShowCreateKnowledgeBase(false)}
+          />
+        </div>
         <div className="w-full">
           {isLoading ? (
             <SkeletonLoader />
@@ -160,7 +181,8 @@ export default function CreateKnowledgeBase() {
                       New Knowledge Base
                     </h2>
                     <p className="text-sm text-[var(--text-secondary)]">
-                      Created by dika@ifabula.com • {formData.selectedRoles.length} roles selected
+                      Created by dika@ifabula.com •{" "}
+                      {formData.selectedRoles.length} roles selected
                     </p>
                   </div>
                 </div>
@@ -270,7 +292,8 @@ export default function CreateKnowledgeBase() {
                     {/* Knowledge Base Name */}
                     <div className="mb-6">
                       <label className="block mb-2 font-medium text-[var(--text-primary)]">
-                        Knowledge Base Name <span className="text-red-500">*</span>
+                        Knowledge Base Name{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -278,25 +301,28 @@ export default function CreateKnowledgeBase() {
                         value={formData.name}
                         onChange={handleInputChange}
                         placeholder="Enter knowledge base name"
-                        className="w-full lg:w-3/4 px-4 py-2.5 rounded-lg border border-[var(--border-light)] bg-white text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-all duration-200"
+                        className="w-full px-4 py-2.5 rounded-lg border border-[var(--border-light)] bg-white text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition-all duration-200"
                         required
                       />
                     </div>
 
                     {/* Description */}
                     <div>
-                      <label className="block mb-2 font-medium text-[var(--text-primary)]">Description</label>
+                      <label className="block mb-2 font-medium text-[var(--text-primary)]">
+                        Description
+                      </label>
                       <textarea
                         name="description"
                         value={formData.description}
                         onChange={handleInputChange}
                         placeholder="Enter knowledge base description"
-                        className="w-full lg:w-3/4 px-4 py-2.5 rounded-lg border border-[var(--border-light)] bg-white text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] min-h-[120px] resize-none transition-all duration-200"
+                        className="w-full px-4 py-2.5 rounded-lg border border-[var(--border-light)] bg-white text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] min-h-[120px] resize-none transition-all duration-200"
                         maxLength={500}
                       />
-                      <div className="text-sm text-[var(--text-tertiary)] mt-2">500 characters remaining</div>
+                      <div className="text-sm text-[var(--text-tertiary)] mt-2">
+                        500 characters remaining
+                      </div>
                     </div>
-
                   </form>
                 </div>
 
@@ -320,11 +346,24 @@ export default function CreateKnowledgeBase() {
                     type="submit"
                     form="kb-form"
                     disabled={submitting}
-                    className={`px-4 py-2 rounded-lg font-medium text-[var(--text-inverse)] bg-[var(--primary)] hover:opacity-90 flex items-center gap-2 transition-opacity duration-200 ${submitting ? "opacity-60 cursor-not-allowed" : ""
-                      }`}
+                    className={`px-4 py-2 rounded-lg font-medium text-[var(--text-inverse)] bg-[var(--primary)] hover:opacity-90 flex items-center gap-2 transition-opacity duration-200 ${
+                      submitting ? "opacity-60 cursor-not-allowed" : ""
+                    }`}
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M12 5V19M5 12H19"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                     {submitting ? "Creating…" : "Create Knowledge Base"}
                   </motion.button>
@@ -333,7 +372,7 @@ export default function CreateKnowledgeBase() {
             </motion.div>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

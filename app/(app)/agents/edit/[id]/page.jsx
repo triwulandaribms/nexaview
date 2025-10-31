@@ -750,7 +750,7 @@ export default function EditAgent() {
                           onChange={(e) => setDescription(e.target.value)}
                           placeholder="Describe what this agent does and its purpose..."
                           rows={4}
-                          className="w-full px-4 py-4 rounded-xl border-2 border-transparent focus:outline-none focus:border-[var(--primary)] resize-none transition-all"
+                          className="w-full px-4 py-4 rounded-xl border-2 border-transparent focus:outline-none focus:border-[var(--primary)] "
                           style={{
                             background: "var(--surface-secondary)",
                             color: "var(--text-primary)",
@@ -785,7 +785,7 @@ export default function EditAgent() {
                             value={systemPrompt}
                             onChange={(e) => setSystemPrompt(e.target.value)}
                             rows={6}
-                            className="w-full px-4 py-4 rounded-xl border-2 border-transparent focus:outline-none focus:border-[var(--primary)] resize-none transition-all"
+                            className="w-full px-4 py-4 rounded-xl border-2 border-transparent focus:outline-none focus:border-[var(--primary)]"
                             style={{
                               background: "var(--surface-secondary)",
                               color: "var(--text-primary)",

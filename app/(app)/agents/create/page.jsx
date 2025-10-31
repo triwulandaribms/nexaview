@@ -1,31 +1,30 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import {
-  ArrowLeft,
-  Bot,
-  Search,
-  ChevronDown,
-  Database,
-  Globe,
-  Brain,
-  Code,
-  Check,
-  AlertCircle,
-  Cpu,
-  Zap,
-  Rocket,
-  Sparkles,
-  BookOpen,
-  Server,
-  FileText,
-  Eye,
-  EyeOff,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { abApi } from "@/app/lib/agentBaseApi";
 import { kbApi } from "@/app/lib/knowledgeBaseApi";
 import { mbApi } from "@/app/lib/modelBaseApi";
-import { abApi } from "@/app/lib/agentBaseApi";
+import { motion } from "framer-motion";
+import {
+  AlertCircle,
+  ArrowLeft,
+  BookOpen,
+  Bot,
+  Brain,
+  Check,
+  ChevronDown,
+  Code,
+  Cpu,
+  Database,
+  Eye,
+  EyeOff,
+  FileText,
+  Rocket,
+  Search,
+  Server,
+  Sparkles,
+  Zap
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const ICONS = { Bot, Sparkles, Rocket, Zap, Brain, Database };
 
@@ -64,6 +63,8 @@ export default function CreateAgent() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState("");
+
+  console.log(knowledgeBases);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -214,13 +215,13 @@ export default function CreateAgent() {
     );
   };
 
-const handleCreateAgent = () => {
+  const handleCreateAgent = () => {
     const controller = new AbortController();
     const { signal } = controller;
 
     (async () => {
       setIsSubmitting(true);
-      setSubmitErr(""); 
+      setSubmitErr("");
 
       try {
         const prov =
@@ -236,25 +237,25 @@ const handleCreateAgent = () => {
         const kbList =
           selectedDataSource === "Knowledge Bases"
             ? knowledgeBases
-                .filter((kb) => selectedKnowledgeBases.includes(kb.id))
-                .map((kb) => ({
-                  id: kb.id,
-                  name: kb.name,
-                  description: kb.description || "",
-                  documentCount:
-                    typeof kb.documents === "number" ? kb.documents : 0,
-                }))
+              .filter((kb) => selectedKnowledgeBases.includes(kb.id))
+              .map((kb) => ({
+                id: kb.id,
+                name: kb.name,
+                description: kb.description || "",
+                documentCount:
+                  typeof kb.documents === "number" ? kb.documents : 0,
+              }))
             : [];
 
         const databasesList = [];
         if (selectedDataSource === "Database Connections" && !isDbFormIncomplete) {
           databasesList.push({
             type: "postgres",
-            label: `${dbName.trim()} Connection`, 
+            label: `${dbName.trim()} Connection`,
             host: dbHost.trim(),
             port: Number(dbPort.trim()),
             database: dbName.trim(),
-            username: dbUsername.trim(), 
+            username: dbUsername.trim(),
             password: dbPassword,
           });
         }
@@ -311,7 +312,7 @@ const handleCreateAgent = () => {
       port: dbPort.trim(),
       db: dbName.trim(),
       user: dbUsername.trim(),
-      password: dbPassword, 
+      password: dbPassword,
     };
 
     if (!payload.host || !payload.port || !payload.db || !payload.user || !payload.password) {
@@ -348,7 +349,7 @@ const handleCreateAgent = () => {
         } else if (errMsg.includes("does not exist")) {
           errMsg = "Database not found. Check the Database name.";
         }
-    
+
         setConnectionMessage(errMsg);
       }
     } finally {
@@ -746,8 +747,8 @@ const handleCreateAgent = () => {
                             </h4>
                             <span
                               className={`text-xs px-3 py-1 rounded-full font-medium ${provider.status === "Connected"
-                                ? "bg-green-50 text-green-600 border border-green-200"
-                                : "bg-gray-50 text-gray-600 border border-gray-200"
+                                  ? "bg-green-50 text-green-600 border border-green-200"
+                                  : "bg-gray-50 text-gray-600 border border-gray-200"
                                 }`}
                             >
                               {provider.status}
@@ -759,8 +760,8 @@ const handleCreateAgent = () => {
                               <label
                                 key={model.id}
                                 className={`flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl cursor-pointer transition-all border-2 ${selectedModel === model.id
-                                  ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                                  : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                                    ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                                    : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
                                   } ${provider.status !== "Connected"
                                     ? "opacity-50 cursor-not-allowed"
                                     : ""
@@ -792,8 +793,8 @@ const handleCreateAgent = () => {
                                 />
                                 <span
                                   className={`text-sm font-medium flex-1 ${provider.status !== "Connected"
-                                    ? "text-gray-400"
-                                    : ""
+                                      ? "text-gray-400"
+                                      : ""
                                     }`}
                                   style={{
                                     color:
@@ -862,8 +863,8 @@ const handleCreateAgent = () => {
                           whileTap={{ scale: 0.99 }}
                           onClick={() => setSelectedDataSource(option.id)}
                           className={`p-4 md:p-6 rounded-xl border-2 cursor-pointer transition-all flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center gap-3 md:gap-4 ${selectedDataSource === option.id
-                            ? "border-[var(--primary)] bg-[var(--primary)]/10"
-                            : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
+                              ? "border-[var(--primary)] bg-[var(--primary)]/10"
+                              : "border-transparent hover:border-[var(--border-light)] hover:bg-[var(--surface-secondary)]"
                             }`}
                           style={{
                             background:
@@ -1149,8 +1150,8 @@ const handleCreateAgent = () => {
                                   style={{
                                     color:
                                       connectionStatus === "success"
-                                        ? "var(--success)" 
-                                        : "var(--danger)", 
+                                        ? "var(--success)"
+                                        : "var(--danger)",
                                   }}
                                 />
                                 <span>{connectionMessage}</span>
@@ -1319,16 +1320,14 @@ const handleCreateAgent = () => {
                     !isSubmitting &&
                       agentName.trim() &&
                       description.trim() &&
-                      selectedModel &&
-                      !isDbFormIncomplete
+                      selectedModel
                       ? "var(--primary)"
                       : "var(--surface-secondary)",
                   color:
                     !isSubmitting &&
                       agentName.trim() &&
                       description.trim() &&
-                      selectedModel &&
-                      !isDbFormIncomplete
+                      selectedModel
                       ? "var(--text-inverse)"
                       : "var(--text-secondary)",
                 }}

@@ -78,7 +78,7 @@ export default function RoleManagement() {
 
   function openEdit(role) {
     if (!role?.mr_uid) return;
-    router.push(`/role-management/update/${role.mr_uid}`);
+    router.push(`/settings/role-management/update/${role.mr_uid}`);
   }
   function openDelete(role) {
     setSelectedRole(role);
@@ -160,7 +160,7 @@ export default function RoleManagement() {
             background: "var(--primary)",
             color: "var(--text-inverse)",
           }}
-          onClick={() => router.push("/role-management/create")}
+          onClick={() => router.push("/settings/role-management/create")}
         >
           <Plus className="h-4 w-4" />
           New Role
@@ -313,7 +313,9 @@ export default function RoleManagement() {
                       whileTap={{ scale: 0.98 }}
                       onClick={() =>
                         router.push(
-                          `/role-management/${role?.mr_uid || role?.id}`
+                          `/settings/role-management/${
+                            role?.mr_uid || role?.id
+                          }`
                         )
                       }
                       className="w-full py-2 px-4 rounded-md font-medium cursor-pointer"
@@ -402,7 +404,9 @@ export default function RoleManagement() {
                           whileTap={{ scale: 0.98 }}
                           onClick={() =>
                             router.push(
-                              `/role-management/${role?.mr_uid || role?.id}`
+                              `/settings/role-management/${
+                                role?.mr_uid || role?.id
+                              }`
                             )
                           }
                           className="px-4 py-2 rounded-lg font-medium cursor-pointer"
@@ -451,7 +455,7 @@ export default function RoleManagement() {
               background: "var(--primary)",
               color: "var(--text-inverse)",
             }}
-            onClick={() => router.push("/role-management/create")}
+            onClick={() => router.push("/settings/role-management/create")}
           >
             <Plus className="h-4 w-4" />
             New Role

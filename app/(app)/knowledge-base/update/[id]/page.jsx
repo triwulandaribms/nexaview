@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { ChevronLeft, BookOpen } from "lucide-react";
+import { ChevronLeft, BookOpen, XIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { kbApi } from "@/app/lib/knowledgeBaseApi";
@@ -27,8 +27,10 @@ const SkeletonLoader = () => (
   </div>
 );
 
-
-export default function UpdateKnowledgeBase() {
+export default function UpdateKnowledgeBase({
+  setShowUpdateKnowledgeBase,
+  knowledgeBaseId,
+}) {
   const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
@@ -37,10 +39,10 @@ export default function UpdateKnowledgeBase() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState("");
   const params = useParams();
 
-  const id = params?.id;
+  const id = knowledgeBaseId;
 
   React.useEffect(() => {
     let mounted = true;
@@ -49,13 +51,13 @@ export default function UpdateKnowledgeBase() {
     (async () => {
       if (!id) return;
       setIsLoading(true);
-      setErrorMsg('');
+      setErrorMsg("");
 
       try {
         const { data } = await kbApi.detail(id, { signal });
         if (!mounted) return;
 
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           name: data?.name || "",
           description: data?.description || "",
@@ -69,7 +71,10 @@ export default function UpdateKnowledgeBase() {
       }
     })();
 
-    return () => { mounted = false; cancel(); };
+    return () => {
+      mounted = false;
+      cancel();
+    };
   }, [id]);
 
   const handleInputChange = (e) => {
@@ -80,26 +85,27 @@ export default function UpdateKnowledgeBase() {
     }));
   };
 
-
   function sanitizePayload({ name, description, selectedRoles }) {
     const payload = {
       name: name?.trim(),
       description: description?.trim() || undefined,
       roles: Array.isArray(selectedRoles) ? selectedRoles : [],
     };
-    return Object.fromEntries(Object.entries(payload).filter(([, v]) => v !== undefined));
+    return Object.fromEntries(
+      Object.entries(payload).filter(([, v]) => v !== undefined)
+    );
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMsg('');
+    setErrorMsg("");
 
     if (!formData.name?.trim()) {
-      setErrorMsg('Name is required.');
+      setErrorMsg("Name is required.");
       return;
     }
     if (!id) {
-      setErrorMsg('Invalid knowledge base id.');
+      setErrorMsg("Invalid knowledge base id.");
       return;
     }
 
@@ -110,23 +116,25 @@ export default function UpdateKnowledgeBase() {
     setSubmitting(true);
     try {
       const { data, message } = await kbApi.update(id, payload, { signal });
-      router.back()
+      router.back();
     } catch (err) {
       const status = err?.status ?? 500;
-      let msg = err?.message || 'Failed to update knowledge base';
+      let msg = err?.message || "Failed to update knowledge base";
 
-      if (status === 400 || status === 422) msg = 'Invalid input. Please check the form fields.';
-      else if (status === 401) msg = 'Unauthorized. Please sign in again.';
-      else if (status === 403) msg = 'Forbidden. You do not have permission for this action.';
-      else if (status === 404) msg = 'Knowledge base not found.';
-      else if (status >= 500) msg = 'Server error. Please try again later.';
+      if (status === 400 || status === 422)
+        msg = "Invalid input. Please check the form fields.";
+      else if (status === 401) msg = "Unauthorized. Please sign in again.";
+      else if (status === 403)
+        msg = "Forbidden. You do not have permission for this action.";
+      else if (status === 404) msg = "Knowledge base not found.";
+      else if (status >= 500) msg = "Server error. Please try again later.";
 
       setErrorMsg(msg);
     } finally {
       cancel();
       setSubmitting(false);
     }
-  }
+  };
 
   const fadeIn = {
     initial: { opacity: 0 },
@@ -135,9 +143,16 @@ export default function UpdateKnowledgeBase() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <motion.div
+      className="min-h-screen bg-black/10 backdrop-blur-sm flex fixed top-0 right-0 z-50 w-full"
+      transition={{ type: "spring", stiffness: 260, damping: 24 }}
+    >
+      <div
+        className="flex-1"
+        onClick={() => setShowUpdateKnowledgeBase(false)}
+      ></div>
       {/* Header */}
-      <motion.div
+      {/* <motion.div
         className="px-4 sm:px-6 py-4 border-b border-[var(--border-light)]"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -150,10 +165,22 @@ export default function UpdateKnowledgeBase() {
           <ChevronLeft className="h-5 w-5" />
           Edit Knowledge Base
         </button>
-      </motion.div>
+      </motion.div> */}
 
       {/* Main Content */}
-      <div className="p-4 sm:p-6">
+      <motion.div
+        className="p-4 sm:p-6 z-50 w-[600px] h-screen bg-white max-sm:w-full"
+        initial={{ x: 600 }}
+        animate={{ x: 0 }}
+        exit={{ x: 600 }}
+        transition={{ type: "spring", stiffness: 260, damping: 24 }}
+      >
+        <div className="absolute top-4 right-4">
+          <XIcon
+            className="h-6 w-6 text-red-500 cursor-pointer"
+            onClick={() => setShowUpdateKnowledgeBase(false)}
+          />
+        </div>
         {isLoading ? (
           <SkeletonLoader />
         ) : (
@@ -164,7 +191,6 @@ export default function UpdateKnowledgeBase() {
             variants={fadeIn}
             transition={{ duration: 0.3 }}
           >
-
             {/* Header Card */}
             <div className="mb-6 sm:mb-8">
               <div className="flex items-start gap-4">
@@ -177,7 +203,7 @@ export default function UpdateKnowledgeBase() {
                 </motion.div>
                 <div>
                   <h2 className="text-lg sm:text-xl font-semibold text-[var(--text-primary)]">
-                    Edit  Knowledge Base
+                    Edit Knowledge Base
                   </h2>
                   <p className="text-sm text-[var(--text-secondary)]">
                     Created by dika@ifabula.com •{" "}
@@ -205,7 +231,8 @@ export default function UpdateKnowledgeBase() {
                     {/* Knowledge Base Name */}
                     <div className="mb-6">
                       <label className="block mb-2 font-medium text-[var(--text-primary)]">
-                        Knowledge Base Name <span className="text-red-500">*</span>
+                        Knowledge Base Name{" "}
+                        <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -239,9 +266,6 @@ export default function UpdateKnowledgeBase() {
                 </div>
               </div>
 
-
-
-
               {/* Action Buttons */}
               <motion.div
                 className="flex justify-end gap-3 mt-6"
@@ -249,22 +273,21 @@ export default function UpdateKnowledgeBase() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
               >
-                <button
+                {/* <button
                   type="button"
                   onClick={() => router.back()}
                   className="px-4 py-2 rounded-lg font-medium text-[var(--text-primary)] bg-[var(--surface-secondary)] hover:bg-[var(--surface-secondary-hover)] transition-colors duration-200"
                 >
                   Cancel
-                </button>
+                </button> */}
                 <motion.button
-
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   form="kb-form"
                   disabled={submitting}
                   className={`px-4 py-2 rounded-lg font-medium text-[var(--text-inverse)] bg-[var(--primary)] hover:opacity-90 flex items-center gap-2 transition-opacity duration-200
-    ${submitting ? 'opacity-60 cursor-not-allowed' : ''}`}
+    ${submitting ? "opacity-60 cursor-not-allowed" : ""}`}
                 >
                   <svg
                     width="20"
@@ -281,13 +304,13 @@ export default function UpdateKnowledgeBase() {
                       strokeLinejoin="round"
                     />
                   </svg>
-                  {submitting ? 'Saving…' : 'Save Changes'}
+                  {submitting ? "Saving…" : "Save Changes"}
                 </motion.button>
               </motion.div>
             </div>
           </motion.div>
         )}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

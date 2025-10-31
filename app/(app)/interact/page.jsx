@@ -1,17 +1,62 @@
-'use client'
-import React, { useState } from 'react'
-import { Search, FileText, CheckCircle } from 'lucide-react'
-import PageHeader from '@/app/components/PageHeader'
-import Link from 'next/link'
-import { motion } from 'framer-motion'
+"use client";
+import React, { useState, useEffect } from "react";
+import { Search, FileText, CheckCircle, Bot } from "lucide-react";
+import PageHeader from "@/app/components/PageHeader";
+import Link from "next/link";
+import { motion } from "framer-motion";
+import { abApi } from "@/app/lib/agentBaseApi";
+import { useRouter } from "next/navigation";
 
 export default function Interact() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [activeFilter, setActiveFilter] = useState('All')
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState("All");
+  const [conversationalAgents, setConversationalAgents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const conversationalAgents = [
-    // This section shows "1-1 of 1" but no actual agents are displayed in the image
-  ]
+  useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    // const allowedAgentIds = [
+    //   "f8ce064f-a20a-448b-904b-2136716c37ee",
+    //   "af99bc61-8f8b-4c52-88f5-0d17f44e3444",
+    //   "0a7ce09d-33ae-4adb-a591-8741ece924b0",
+    //   "f98be3f7-5764-4a67-96ee-ec58966b3c93",
+    // ];
+
+    const fetchAgents = async () => {
+      try {
+        setIsLoading(true);
+        const response = await abApi.list({ signal });
+
+        if (response?.data && Array.isArray(response.data)) {
+          const mappedAgents = response.data
+            // .filter((agent) => allowedAgentIds.includes(agent.id))
+            .map((agent) => ({
+              id: agent.id,
+              name: agent.name || "Untitled Agent",
+              description: agent.description || "No description available",
+              model: agent.default_model?.id || "Unknown Model",
+              sessions: agent.sessions_count || 0,
+              bgColor: "#6366f1",
+            }));
+          setConversationalAgents(mappedAgents);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        if (error?.name !== "AbortError" && error?.code !== "ERR_CANCELED") {
+          console.error("Error fetching agents:", error);
+        }
+      } finally {
+        // setIsLoading(false);
+      }
+    };
+
+    fetchAgents();
+
+    return () => controller.abort();
+  }, []);
 
   const agenticProcessAutomations = [
     {
@@ -21,82 +66,105 @@ export default function Interact() {
       title: "PDF to Markdown",
       description: "A tool to convert a PDF file into into Markdown.",
       executions: 0,
-      bgColor: "#8b5cf6"
+      bgColor: "#8b5cf6",
     },
     {
       id: 2,
-      icon: "📄", 
+      icon: "📄",
       href: "/interact/pdf-to-text",
       title: "PDF to Text",
       description: "A tool to convert PDF file to text",
       executions: 0,
-      bgColor: "#8b5cf6"
+      bgColor: "#8b5cf6",
     },
     {
       id: 3,
       icon: "🔍",
       href: "/interact/google-search",
-      title: "Google Search Tool", 
-      description: "The name of the topic on which the tool will conduct Google Search.",
+      title: "Google Search Tool",
+      description:
+        "The name of the topic on which the tool will conduct Google Search.",
       executions: 1,
-      bgColor: "#8b5cf6"
+      bgColor: "#8b5cf6",
     },
     {
       id: 4,
       icon: "🔍",
       href: "/interact/web-researcher",
       title: "Web Researcher Tool",
-      description: "The name of the topic on which the tool will conduct research.",
+      description:
+        "The name of the topic on which the tool will conduct research.",
       executions: 0,
-      bgColor: "#8b5cf6"
-    }
-  ]
+      bgColor: "#8b5cf6",
+    },
+  ];
+
+  const filteredAgents = conversationalAgents.filter(
+    (agent) =>
+      agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      agent.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredAutomations = agenticProcessAutomations.filter(
+    (automation) =>
+      automation.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      automation.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <motion.main 
+    <motion.main
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
       className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]"
     >
       <motion.div
+        className="h-full"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
         {/* Header using component */}
-        <div>
-          <PageHeader 
+        {/* <div>
+          <PageHeader
             title="Interact"
             subtitle="Use your published Agents, Tools, and AI Chains."
           />
-        </div>
+        </div> */}
 
         {/* Filter and Search */}
-        <motion.div 
+        {/* <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
           className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4"
         >
           <div className="flex items-center gap-2">
-            <motion.button 
+            <motion.button
               className="px-4 py-2 rounded-md font-medium border cursor-pointer"
               style={{
-                background: activeFilter === 'All' ? 'var(--primary)' : 'transparent',
-                color: activeFilter === 'All' ? 'var(--text-inverse)' : 'var(--text-primary)',
-                borderColor: activeFilter === 'All' ? 'var(--primary)' : 'var(--border-medium)'
+                background:
+                  activeFilter === "All" ? "var(--primary)" : "transparent",
+                color:
+                  activeFilter === "All"
+                    ? "var(--text-inverse)"
+                    : "var(--text-primary)",
+                borderColor:
+                  activeFilter === "All"
+                    ? "var(--primary)"
+                    : "var(--border-medium)",
               }}
-              onClick={() => setActiveFilter('All')}
+              onClick={() => setActiveFilter("All")}
             >
               All
             </motion.button>
           </div>
-          
-          <motion.div 
-            className="relative"
-          >
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5" style={{ color: 'var(--text-muted)' }} />
+
+          <motion.div className="relative">
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5"
+              style={{ color: "var(--text-muted)" }}
+            />
             <input
               type="text"
               placeholder="Search application"
@@ -104,164 +172,323 @@ export default function Interact() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-4 py-2 rounded-md border focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
               style={{
-                background: 'var(--surface-elevated)',
-                color: 'var(--text-primary)',
-                borderColor: 'var(--border-medium)',
-                width: '300px'
+                background: "var(--surface-elevated)",
+                color: "var(--text-primary)",
+                borderColor: "var(--border-medium)",
+                width: "300px",
               }}
             />
           </motion.div>
-        </motion.div>
+        </motion.div> */}
 
         {/* Conversational Agents Section */}
-        <motion.div 
+        <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mb-12"
         >
           <div className="flex items-center justify-between mb-6">
-            <motion.h2 
+            <motion.h2
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.3 }}
               className="text-xl font-bold"
-              style={{ color: 'var(--text-primary)' }}
+              style={{ color: "var(--text-primary)" }}
             >
               Conversational Agents
             </motion.h2>
-            <motion.span 
+            <motion.span
               initial={{ x: 20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.3 }}
               className="text-sm"
-              style={{ color: 'var(--text-muted)' }}
+              style={{ color: "var(--text-muted)" }}
             >
-              1-1 of 1
+              {filteredAgents.length > 0
+                ? `1-${filteredAgents.length} of ${conversationalAgents.length}`
+                : `0 of ${conversationalAgents.length}`}
             </motion.span>
           </div>
-          
-          {/* Empty state for conversational agents */}
-          <motion.div 
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="p-8 rounded-md border text-center"
-            style={{
-              background: 'var(--surface-elevated)',
-              borderColor: 'var(--border-light)'
-            }}
-          >
-            <motion.p 
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              className="text-sm"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              No conversational agents found
-            </motion.p>
-          </motion.div>
+
+          {
+            isLoading ? (
+              // Loading skeleton
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full h-full">
+                {[...Array(filteredAgents.length)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="p-6 rounded-md border animate-pulse"
+                    style={{
+                      background: "var(--surface-elevated)",
+                      borderColor: "var(--border-light)",
+                    }}
+                  >
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-md bg-gray-300 dark:bg-gray-600" />
+                      <div className="flex-1 h-5 bg-gray-300 dark:bg-gray-600 rounded" />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded" />
+                      <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredAgents.length > 0 ? (
+              // Agent Cards Grid
+              <div className="grid grid-cols-3 gap-6 justify-center  max-lg:flex-col">
+                {filteredAgents.map((agent, index) => (
+                  <motion.div
+                    key={agent.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 * index }}
+                    className="rounded-md bg-white"
+                  >
+                    <button
+                      onClick={() =>
+                        router.push(`/agents/${agent.id}?fromInteract=true`)
+                      }
+                      className="w-full h-full p-6 shadow-lg rounded-md cursor-pointer text-left flex flex-col border hover:border-[var(--primary)] border-black/10 transition-all"
+                    >
+                      {/* Icon and Title */}
+                      <div className="flex-1">
+                        <motion.div className="flex items-center gap-3 mb-4">
+                          <motion.div
+                            className="w-10 h-10 rounded-md flex items-center justify-center text-lg"
+                            style={{
+                              background: agent.bgColor,
+                              color: "white",
+                            }}
+                          >
+                            <Bot className="h-5 w-5" />
+                          </motion.div>
+                          <h3
+                            className="font-bold text-base flex-1 line-clamp-1"
+                            style={{ color: "var(--text-primary)" }}
+                          >
+                            {agent.name}
+                          </h3>
+                        </motion.div>
+
+                        {/* Description */}
+                        <p
+                          className="text-sm leading-relaxed mb-6 line-clamp-2"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          {agent.description}
+                        </p>
+                      </div>
+
+                      {/* Model & Sessions Info */}
+                      {/* <motion.div className="space-y-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span
+                          className="font-medium"
+                          style={{ color: "var(--text-tertiary)" }}
+                        >
+                          Model:
+                        </span>
+                        <span
+                          className="font-medium"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          {agent.model}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle
+                          className="h-4 w-4"
+                          style={{
+                            color:
+                              agent.sessions > 0
+                                ? "var(--primary)"
+                                : "var(--text-muted)",
+                          }}
+                        />
+                        <span
+                          className="text-sm font-medium"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          {agent.sessions} sessions
+                        </span>
+                      </div>
+                    </motion.div> */}
+                    </button>
+                  </motion.div>
+                ))}
+              </div>
+            ) : null
+            // Empty state
+            // <motion.div
+            //   initial={{ scale: 0.9, opacity: 0 }}
+            //   animate={{ scale: 1, opacity: 1 }}
+            //   transition={{ duration: 0.5, delay: 0.4 }}
+            //   className="p-8 rounded-md border text-center"
+            //   style={{
+            //     background: "var(--surface-elevated)",
+            //     borderColor: "var(--border-light)",
+            //   }}
+            // >
+            //   <Bot
+            //     className="h-12 w-12 mx-auto mb-4"
+            //     style={{ color: "var(--text-muted)" }}
+            //   />
+            //   <motion.p
+            //     initial={{ y: 10, opacity: 0 }}
+            //     animate={{ y: 0, opacity: 1 }}
+            //     transition={{ duration: 0.5, delay: 0.5 }}
+            //     className="text-sm mb-2 font-medium"
+            //     style={{ color: "var(--text-primary)" }}
+            //   >
+            //     No conversational agents found
+            //   </motion.p>
+            //   <motion.p
+            //     className="text-sm"
+            //     style={{ color: "var(--text-muted)" }}
+            //   >
+            //     {searchQuery
+            //       ? "Try adjusting your search query"
+            //       : "Create your first agent to get started"}
+            //   </motion.p>
+            //   {!searchQuery && (
+            //     <motion.button
+            //       whileHover={{ scale: 1.05 }}
+            //       whileTap={{ scale: 0.95 }}
+            //       onClick={() => router.push("/agents/create")}
+            //       className="mt-4 px-6 py-2 rounded-lg font-medium cursor-pointer"
+            //       style={{
+            //         background: "var(--primary)",
+            //         color: "var(--text-inverse)",
+            //       }}
+            //     >
+            //       Create Agent
+            //     </motion.button>
+            //   )}
+            // </motion.div>
+          }
         </motion.div>
 
         {/* Agentic Process Automations Section */}
-        <motion.div 
+        {/* <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.3 }}
           className="mb-12"
         >
           <div className="flex items-center justify-between mb-6">
-            <motion.h2 
+            <motion.h2
               initial={{ x: -20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.4 }}
               className="text-xl font-bold"
-              style={{ color: 'var(--text-primary)' }}
+              style={{ color: "var(--text-primary)" }}
             >
               Agentic Process Automations
             </motion.h2>
-            <motion.span 
+            <motion.span
               initial={{ x: 20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.4 }}
               className="text-sm"
-              style={{ color: 'var(--text-muted)' }}
+              style={{ color: "var(--text-muted)" }}
             >
-              1-4 of 4
+              {filteredAutomations.length > 0
+                ? `1-${filteredAutomations.length} of ${agenticProcessAutomations.length}`
+                : `0 of ${agenticProcessAutomations.length}`}
             </motion.span>
           </div>
 
-          {/* Automation Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-            {agenticProcessAutomations.map((automation, index) => (
-              <motion.div
-                key={automation.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 * index }}
-                className='rounded-md bg-white'
-              >
-                <Link 
-                  href={automation.href}
-                  className="p-6 rounded-md cursor-pointer text-left flex flex-col h-full border hover:border-(--primary) border-black/10"
+          {filteredAutomations.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+              {filteredAutomations.map((automation, index) => (
+                <motion.div
+                  key={automation.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 * index }}
+                  className="rounded-md bg-white"
                 >
-                  {/* Icon and Title */}
-                  <div className="flex-1">
-                    <motion.div 
-                      className="flex items-center gap-3 mb-4"
-                    >
-                      <motion.div 
-                        className="w-10 h-10 rounded-md flex items-center justify-center text-lg"
-                        style={{
-                          background: automation.bgColor,
-                          color: 'white'
-                        }}
-                      >
-                        {automation.icon}
-                      </motion.div>
-                      <h3 
-                        className="font-bold text-base flex-1"
-                        style={{ color: 'var(--text-primary)' }}
-                      >
-                        {automation.title}
-                      </h3>
-                    </motion.div>
-
-                    {/* Description */}
-                    <p 
-                      className="text-sm leading-relaxed mb-6"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      {automation.description}
-                    </p>
-                  </div>
-
-                  {/* Executions */}
-                  <motion.div 
-                    className="flex items-center gap-2"
+                  <Link
+                    href={automation.href}
+                    className="p-6 rounded-md cursor-pointer text-left flex flex-col h-full border hover:border-[var(--primary)] border-black/10 transition-all"
                   >
-                    <motion.div
-                      whileTap={{ scale: 0.9 }}
-                    >
-                      <CheckCircle 
-                        className="h-4 w-4" 
-                        style={{ color: automation.executions > 0 ? 'var(--primary)' : 'var(--text-muted)' }}
-                      />
+                    <div className="flex-1">
+                      <motion.div className="flex items-center gap-3 mb-4">
+                        <motion.div
+                          className="w-10 h-10 rounded-md flex items-center justify-center text-lg"
+                          style={{
+                            background: automation.bgColor,
+                            color: "white",
+                          }}
+                        >
+                          {automation.icon}
+                        </motion.div>
+                        <h3
+                          className="font-bold text-base flex-1"
+                          style={{ color: "var(--text-primary)" }}
+                        >
+                          {automation.title}
+                        </h3>
+                      </motion.div>
+
+                      <p
+                        className="text-sm leading-relaxed mb-6"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {automation.description}
+                      </p>
+                    </div>
+
+                    <motion.div className="flex items-center gap-2">
+                      <motion.div whileTap={{ scale: 0.9 }}>
+                        <CheckCircle
+                          className="h-4 w-4"
+                          style={{
+                            color:
+                              automation.executions > 0
+                                ? "var(--primary)"
+                                : "var(--text-muted)",
+                          }}
+                        />
+                      </motion.div>
+                      <span
+                        className="text-sm font-medium"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {automation.executions} executions
+                      </span>
                     </motion.div>
-                    <span 
-                      className="text-sm font-medium"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
-                      {automation.executions} executions
-                    </span>
-                  </motion.div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="p-8 rounded-md border text-center"
+              style={{
+                background: "var(--surface-elevated)",
+                borderColor: "var(--border-light)",
+              }}
+            >
+              <FileText
+                className="h-12 w-12 mx-auto mb-4"
+                style={{ color: "var(--text-muted)" }}
+              />
+              <motion.p
+                className="text-sm"
+                style={{ color: "var(--text-muted)" }}
+              >
+                No automations match your search
+              </motion.p>
+            </motion.div>
+          )}
+        </motion.div> */}
       </motion.div>
     </motion.main>
-  )
-} 
+  );
+}

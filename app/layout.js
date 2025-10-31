@@ -11,7 +11,7 @@ const outfit = Outfit({
 });
 
 export const metadata = {
-  title: "NextDocs",
+  title: "Nexaview",
   description: "Modern documentation platform built with Next.js",
 };
 

@@ -24,7 +24,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { abApi } from "@/app/lib/agentBaseApi";
 import ConfirmDeleteModalAgent from "@/app/components/ConfirmDeleteModalAgent";
 import {
@@ -40,6 +40,10 @@ import {
   FaFileAudio,
   FaFileVideo,
 } from "react-icons/fa";
+import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
 
 export default function AgentDetail() {
   const router = useRouter();
@@ -69,10 +73,24 @@ export default function AgentDetail() {
   const [detailSession, setDetailSession] = useState("");
   const [delOpen, setDelOpen] = useState(false);
   const [delLoading, setDelLoading] = useState(false);
+  const [download, setDownload] = useState(null);
+  const [agentInteraction, setAgentInteraction] = useState(false);
+  const searchParams = useSearchParams();
+  // State untuk menyimpan conversation history untuk PSH dan Nota Pembelaan
+  const [conversationHistory, setConversationHistory] = useState([
+    { role: "system", content: "Kamu adalah asisten Divkum." },
+  ]);
 
   const currentId = agent?.id || params?.id;
   const messagesEndRef = useRef(null);
 
+  useEffect(() => {
+    const fromInteract = searchParams.get("fromInteract");
+    if (fromInteract === "true") {
+      setAgentInteraction(true);
+      setActiveTab("Chat");
+    }
+  }, [searchParams]);
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -85,6 +103,10 @@ export default function AgentDetail() {
         });
 
         const a = res?.data || {};
+        console.log("Agent Detail API Response:", a);
+        console.log("created_by_name:", a.created_by_name);
+        console.log("created_by:", a.created_by);
+
         const dataSourceLabel = (() => {
           const t = (a.data_source_type && a.data_source_type[0]) || "";
           if (t === "knowledge-bases") return "Knowledge Bases";
@@ -199,17 +221,135 @@ export default function AgentDetail() {
       const controller = new AbortController();
       const signal = controller.signal;
 
-      const { data } = await abApi.detailListAddMessages(agent.id, payload, {
-        signal,
-      });
-      if (!detailSession) {
-        setDetailSession(data?.session_id || "");
+      const isNotaPembelaanAgent =
+        agent.id === "f8ce064f-a20a-448b-904b-2136716c37ee";
+      const isPshAgent = agent.id === "af99bc61-8f8b-4c52-88f5-0d17f44e3444";
+
+      let data;
+      if (isNotaPembelaanAgent) {
+        const newUserMessage = { role: "user", content: inputMessage };
+        const updatedHistory = [...conversationHistory, newUserMessage];
+
+        const notaPayload = {
+          messages: updatedHistory,
+          objTemplate: {
+            nama: "",
+            pangkat: "",
+            nrp: "",
+            jabatan: "",
+            satuan_kerja: "",
+            tanggal_sidang: "",
+            fakta: "",
+            analisis: "",
+            hal_meringankan: "",
+            petitum: "",
+            penutup: "",
+            tanggal_surat: "",
+            pendahuluan: "",
+          },
+        };
+
+        const notaResponse = await fetch("/api/nota-pembelaan", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(notaPayload),
+          signal,
+        });
+
+        if (!notaResponse.ok) {
+          throw new Error("Failed to call nota-pembelaan API");
+        }
+
+        data = await notaResponse.json();
+
+        const assistantResponse =
+          data?.assistant ||
+          data?.answer ||
+          "Sorry, I couldn't process your request.";
+        setConversationHistory([
+          ...updatedHistory,
+          { role: "assistant", content: assistantResponse },
+        ]);
+
+        if (data.file_url) {
+          const downloadUrl = `https://nexa-file-gen.ifabula.id${data.file_url}`;
+          setDownload(downloadUrl);
+        }
+      } else if (isPshAgent) {
+        const newUserMessage = { role: "user", content: inputMessage };
+        const updatedHistory = [...conversationHistory, newUserMessage];
+
+        const pshPayload = {
+          messages: updatedHistory,
+          objTemplate: {
+            nomor: "",
+            klasifikasi: "",
+            lampiran: "",
+            hal: "",
+            posisi_kasus: "",
+            fakta: "",
+            analisis: "",
+            pendapat_hukum: "",
+            saran_hukum: "",
+            tembusan: [],
+            rujukan: "",
+            ttd_jabatan: "",
+            ttd_nama: "",
+            ttd_pangkat: "",
+            jabatan: "",
+            satuan_kerja: "",
+            tanggal_sidang: "",
+            pendahuluan: "",
+          },
+        };
+
+        const pshResponse = await fetch("/api/psh", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(pshPayload),
+          signal,
+        });
+
+        if (!pshResponse.ok) {
+          throw new Error("Failed to call PSH API");
+        }
+
+        data = await pshResponse.json();
+
+        const assistantResponse =
+          data?.assistant ||
+          data?.answer ||
+          "Sorry, I couldn't process your request.";
+        setConversationHistory([
+          ...updatedHistory,
+          { role: "assistant", content: assistantResponse },
+        ]);
+
+        if (data.file_url) {
+          const downloadUrl = `https://nexa-file-gen.ifabula.id${data.file_url}`;
+          setDownload(downloadUrl);
+        }
+      } else {
+        const response = await abApi.detailListAddMessages(agent.id, payload, {
+          signal,
+        });
+        data = response.data;
       }
+
+      if (!detailSession && data?.session_id) {
+        setDetailSession(data.session_id);
+      }
+
       setTimeout(() => {
         const aiResponse = {
           id: Date.now() + 1,
           role: "assistant",
           content:
+            data?.assistant ||
             data?.answer ||
             "Sorry, I couldn't process your request at the moment.",
           timestamp: new Date().toLocaleTimeString([], {
@@ -230,6 +370,9 @@ export default function AgentDetail() {
     setMessages([]);
     setDetailSession("");
     setActiveTab("Chat");
+    setConversationHistory([
+      { role: "system", content: "Kamu adalah asisten Divkum." },
+    ]);
   };
 
   const handleKeyPress = (e) => {
@@ -343,11 +486,35 @@ export default function AgentDetail() {
       );
       setDetailSession(detailSession?.id);
       setMessages(resSessionMessages.data || []);
+
+      const isNotaPembelaanAgent =
+        agent?.id === "f8ce064f-a20a-448b-904b-2136716c37ee";
+      const isPshAgent = agent?.id === "af99bc61-8f8b-4c52-88f5-0d17f44e3444";
+
+      if (isNotaPembelaanAgent || isPshAgent) {
+        const rebuiltHistory = [
+          { role: "system", content: "Kamu adalah asisten Divkum." },
+        ];
+
+        (resSessionMessages.data || []).forEach((msg) => {
+          if (msg.role === "user" || msg.role === "assistant") {
+            rebuiltHistory.push({
+              role: msg.role,
+              content: msg.content,
+            });
+          }
+        });
+
+        setConversationHistory(rebuiltHistory);
+      }
     } catch (error) {
       if (error?.name !== "AbortError") {
         console.error("Failed to fetch session messages:", error);
       }
       setMessages([]);
+      setConversationHistory([
+        { role: "system", content: "Kamu adalah asisten Divkum." },
+      ]);
     }
 
     return () => controller.abort();
@@ -374,12 +541,10 @@ export default function AgentDetail() {
     setDelSessionOpen(true);
   };
 
-  // Function to close the delete modal
   const closeSessionDelete = () => {
     if (!delSessionLoading) setDelSessionOpen(false);
   };
 
-  // Function to confirm session deletion
   const confirmSessionDelete = async () => {
     setDelSessionLoading(true);
 
@@ -401,6 +566,9 @@ export default function AgentDetail() {
       if (selectedSession.id == detailSession) {
         setDetailSession("");
         setMessages([]);
+        setConversationHistory([
+          { role: "system", content: "Kamu adalah asisten Divkum." },
+        ]);
       }
     } catch (error) {
       if (error.name === "AbortError") {
@@ -415,7 +583,6 @@ export default function AgentDetail() {
   };
 
   const handleExport = () => {
-    // import sementara
     const csvContent =
       "data:text/csv;charset=utf-8," +
       ["Session Name,Message Count,Last Active"]
@@ -650,116 +817,117 @@ export default function AgentDetail() {
         </motion.button>
 
         {/* Agent Header Card */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="rounded-xl border mb-8 overflow-hidden"
-          style={{
-            background: "var(--surface-elevated)",
-            borderColor: "var(--border-light)",
-          }}
-        >
-          <div className="p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-4">
-                <div
-                  className="w-16 h-16 rounded-xl flex items-center justify-center"
-                  style={{ background: "var(--primary)" }}
-                >
-                  <Bot className="h-8 w-8 text-white" />
-                </div>
-                <div>
-                  <h1
-                    className="text-2xl font-bold mb-1"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    {agent?.name || "-"}
-                  </h1>
+        {!agentInteraction && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="rounded-xl border mb-8 overflow-hidden"
+            style={{
+              background: "var(--surface-elevated)",
+              borderColor: "var(--border-light)",
+            }}
+          >
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-4">
                   <div
-                    className="flex items-center gap-4 text-sm"
-                    style={{ color: "var(--text-secondary)" }}
+                    className="w-16 h-16 rounded-xl flex items-center justify-center"
+                    style={{ background: "var(--primary)" }}
                   >
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      Created {agent?.timestamp || ""}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <User className="h-4 w-4" />
-                      {agent?.createdBy || ""}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <FileText className="h-4 w-4" />
-                      {agent?.agentId || ""}
-                    </span>
+                    <Bot className="h-8 w-8 text-white" />
+                  </div>
+                  <div>
+                    <h1
+                      className="text-2xl font-bold mb-1"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {agent?.name || "-"}
+                    </h1>
+                    <div
+                      className="flex items-center gap-4 text-sm"
+                      style={{ color: "var(--text-secondary)" }}
+                    >
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        Created {agent?.timestamp || ""}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <User className="h-4 w-4" />
+                        {agent?.createdBy || ""}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <FileText className="h-4 w-4" />
+                        {agent?.agentId || ""}
+                      </span>
+                    </div>
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-2 rounded-lg border cursor-pointer"
+                    style={{
+                      background: "var(--surface-secondary)",
+                      borderColor: "var(--border-light)",
+                      color: "var(--text-secondary)",
+                    }}
+                    onClick={() => router.push(`/agents/edit/${currentId}`)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-2 rounded-lg border cursor-pointer"
+                    style={{
+                      background: "var(--surface-secondary)",
+                      borderColor: "var(--border-light)",
+                      color: "var(--text-secondary)",
+                    }}
+                    onClick={openDelete}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </motion.button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2 rounded-lg border cursor-pointer"
-                  style={{
-                    background: "var(--surface-secondary)",
-                    borderColor: "var(--border-light)",
-                    color: "var(--text-secondary)",
-                  }}
-                  onClick={() => router.push(`/agents/edit/${currentId}`)}
-                >
-                  <Edit className="h-4 w-4" />
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2 rounded-lg border cursor-pointer"
-                  style={{
-                    background: "var(--surface-secondary)",
-                    borderColor: "var(--border-light)",
-                    color: "var(--text-secondary)",
-                  }}
-                  onClick={openDelete}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </motion.button>
-              </div>
-            </div>
 
-            {/* Tabs */}
-            <div className="flex items-center gap-1">
-              {tabs.map((tab) => (
-                <motion.button
-                  key={tab}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    setActiveTab(tab);
-                    tab == "Sessions" && handleRefreshSession();
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer transition-all"
-                  style={{
-                    background:
-                      activeTab === tab ? "var(--primary)" : "transparent",
-                    color:
-                      activeTab === tab
-                        ? "var(--text-inverse)"
-                        : "var(--text-secondary)",
-                  }}
-                >
-                  {tab === "Overview" && <Eye className="h-4 w-4" />}
-                  {tab === "Chat" && <MessageSquare className="h-4 w-4" />}
-                  {tab === "Sessions" && <Settings className="h-4 w-4" />}
-                  {tab}
-                  {tab === "Sessions" && (
-                    <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
-                      1
-                    </span>
-                  )}
-                </motion.button>
-              ))}
+              <div className="flex items-center gap-1">
+                {tabs.map((tab) => (
+                  <motion.button
+                    key={tab}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setActiveTab(tab);
+                      tab == "Sessions" && handleRefreshSession();
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium cursor-pointer transition-all"
+                    style={{
+                      background:
+                        activeTab === tab ? "var(--primary)" : "transparent",
+                      color:
+                        activeTab === tab
+                          ? "var(--text-inverse)"
+                          : "var(--text-secondary)",
+                    }}
+                  >
+                    {tab === "Overview" && <Eye className="h-4 w-4" />}
+                    {tab === "Chat" && <MessageSquare className="h-4 w-4" />}
+                    {tab === "Sessions" && <Settings className="h-4 w-4" />}
+                    {tab}
+                    {tab === "Sessions" && (
+                      <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">
+                        1
+                      </span>
+                    )}
+                  </motion.button>
+                ))}
+              </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        )}
 
         {/* Content based on active tab */}
         {activeTab === "Overview" && (
@@ -1286,14 +1454,18 @@ export default function AgentDetail() {
                     className="text-sm"
                     style={{ color: "var(--text-secondary)" }}
                   >
-                    AI Assistant • {agent?.model}
+                    AI Assistant
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Messages Area */}
-            <div className="h-96 overflow-y-auto p-4 space-y-4">
+            <div
+              className={`${
+                agentInteraction ? "h-[59vh]" : "h-92"
+              } overflow-y-auto p-4 space-y-4`}
+            >
               {messages.map((message) => (
                 <motion.div
                   key={message.id}
@@ -1347,21 +1519,12 @@ export default function AgentDetail() {
                           : "text-black/80"
                           }`}
                       >
-                        {message.content
-                          .split(/(\*\*.*?\*\*)/)
-                          .map((part, index) => {
-                            if (part.startsWith("**") && part.endsWith("**")) {
-                              return (
-                                <strong
-                                  key={index}
-                                  className="font-bold text-black"
-                                >
-                                  {part.slice(2, -2)}
-                                </strong>
-                              );
-                            }
-                            return part;
-                          })}
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeHighlight]}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
                       </p>
                       <div className="flex items-center justify-between mt-2">
                         <span
@@ -1392,6 +1555,18 @@ export default function AgentDetail() {
                           </motion.button>
                         )}
                       </div>
+                      {download && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <Link
+                            className="text-sm font-medium cursor-pointer hover:underline"
+                            target="_blank"
+                            style={{ color: "var(--primary)" }}
+                            href={download}
+                          >
+                            Download
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -1443,7 +1618,7 @@ export default function AgentDetail() {
               className="p-4 border-t"
               style={{ borderColor: "var(--border-light)" }}
             >
-              <div className="flex gap-3">
+              <div className="flex gap-3 items-center">
                 <div className="flex-1">
                   <textarea
                     value={inputMessage}
@@ -1451,7 +1626,7 @@ export default function AgentDetail() {
                     onKeyPress={handleKeyPress}
                     placeholder="Type your message..."
                     rows={1}
-                    className="w-full resize-none rounded-lg border px-3 h-[40px] text-sm focus:outline-none focus:ring-2 leading-[40px]"
+                    className="w-full resize-none rounded-lg border px-3 py-2 h-[75px] text-sm focus:outline-none focus:ring-2"
                     style={{
                       background: "var(--background)",
                       borderColor: "var(--border-light)",

@@ -19,8 +19,8 @@ import CreateAPIKeyModal from "../../components/CreateAPIKeyModal";
 import CreateProjectModal from "../../components/CreateProjectModal";
 import AddUserToProjectModal from "../../components/AddUserToProjectModal";
 import CreateCategoryModal from "../../components/CreateCategoryModal";
-import UserManagement from "../user-management/page";
-import RoleManagement from "../role-management/page";
+import UserManagement from "./user-management/page";
+import RoleManagement from "./role-management/page";
 
 export default function Settings() {
   const router = useRouter();
@@ -97,9 +97,9 @@ export default function Settings() {
   const mainTabs = [
     "Manage Users",
     "Manage Role",
-    "Manage projects",
-    "Billings & Plans",
-    "Usages",
+    // "Manage projects",
+    // "Billings & Plans",
+    // "Usages",
   ];
 
   const subTabs = ["Overview", "Invite"];

@@ -1,15 +1,13 @@
 "use client";
-import React, { useState, useCallback, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Upload, Plus, X, ArrowLeft } from "lucide-react";
+import { Upload, Plus, X, ArrowLeft, XIcon } from "lucide-react";
 import Alert from "@/app/components/Alert";
 import { withTimeout } from "@/app/lib/http";
 import { dsApi } from "@/app/lib/datasetBaseApi";
 import PageHeader from "@/app/components/PageHeader";
 
-export default function UpdateDataset() {
-  const router = useRouter();
+export default function UpdateDataset({ setShowUpdateDataset, datasetId }) {
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -19,9 +17,8 @@ export default function UpdateDataset() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const params = useParams();
-  const id = params.id;
+  const [errorMsg, setErrorMsg] = useState("");
+  const id = datasetId;
   const isFileSectionDisabled = true;
 
   // Simulate loading
@@ -147,7 +144,9 @@ export default function UpdateDataset() {
         setErrorMsg(res?.error || "Failed to update dataset");
         return;
       }
-      router.back();
+      setShowUpdateDataset(false);
+      // Refresh the page to show updated data
+      window.location.reload();
     } catch (err) {
       console.error(err);
       setErrorMsg(err?.message || "Failed to update dataset");
@@ -156,7 +155,6 @@ export default function UpdateDataset() {
       setUploading(false);
     }
   };
-
 
   useEffect(() => {
     if (!id) return;
@@ -170,47 +168,55 @@ export default function UpdateDataset() {
       if (!mounted) return;
 
       if (res?.success == false) {
-        setErrorMsg(res.error || 'Gagal memuat dataset');
+        setErrorMsg(res.error || "Gagal memuat dataset");
       } else {
         setCategories(res.data.category || []);
         setTags(res.data.tags || []);
         setFile({
           name: res.data?.filename || "",
-          size: res?.data.file_size || ""
-        })
-        const hasMeta = (Array.isArray(res.data.category) && res.data.category.length > 0)
-          || (Array.isArray(res.data.tags) && res.data.tags.length > 0);
+          size: res?.data.file_size || "",
+        });
+        const hasMeta =
+          (Array.isArray(res.data.category) && res.data.category.length > 0) ||
+          (Array.isArray(res.data.tags) && res.data.tags.length > 0);
         setIsExpanded(hasMeta);
       }
       setIsLoading(false);
     })();
 
-    return () => { mounted = false; cancel(); };
+    return () => {
+      mounted = false;
+      cancel();
+    };
   }, [id]);
 
   return (
-    <motion.main
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen p-4 sm:p-6 lg:p-8 overflow-y-auto bg-[var(--background)]"
-    >
+    <motion.main className="min-h-screen overflow-y-auto bg-black/10 backdrop-blur-sm flex fixed top-0 right-0 z-50 w-full">
+      <div className="flex-1" onClick={() => setShowUpdateDataset(false)}></div>
       <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
+        initial={{ x: 600 }}
+        animate={{ x: 0 }}
+        exit={{ x: 600 }}
+        transition={{ type: "spring", stiffness: 260, damping: 24 }}
+        className="w-[600px] z-50 bg-white h-screen p-4 sm:p-6 lg:p-8 max-sm:w-full"
       >
+        <div className="absolute top-4 right-4">
+          <XIcon
+            className="h-6 w-6 text-red-500 cursor-pointer"
+            onClick={() => setShowUpdateDataset(false)}
+          />
+        </div>
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <motion.button
+          {/* <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
-            onClick={() => router.back()}
+            onClick={() => setShowUpdateDataset(false)}
             className="p-2 rounded-full cursor-pointer"
             style={{ color: "var(--text-secondary)" }}
           >
             <ArrowLeft className="h-5 w-5" />
-          </motion.button>
+          </motion.button> */}
           {isLoading ? (
             <div className="flex-1">
               <div className="h-8 bg-gray-200 animate-pulse rounded w-1/4 mb-2" />
@@ -219,12 +225,13 @@ export default function UpdateDataset() {
           ) : (
             <PageHeader
               title="Edit Dataset"
-              subtitle="Update your dataset categories and tags." />
+              subtitle="Update your dataset categories and tags."
+            />
           )}
         </div>
 
         {errorMsg && (
-          <Alert variant="error" onDismiss={() => setErrorMsg('')}>
+          <Alert variant="error" onDismiss={() => setErrorMsg("")}>
             {errorMsg}
           </Alert>
         )}
@@ -236,18 +243,26 @@ export default function UpdateDataset() {
             <div
               className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors
     ${isDragging ? "border-primary bg-primary/5" : "border-gray-300"}
-    ${isFileSectionDisabled ? "opacity-60 pointer-events-none select-none" : "cursor-pointer"}
+    ${
+      isFileSectionDisabled
+        ? "opacity-60 pointer-events-none select-none"
+        : "cursor-pointer"
+    }
   `}
               style={{
                 background: "var(--surface-elevated)",
-                borderColor: isDragging ? "var(--primary)" : "var(--border-light)",
+                borderColor: isDragging
+                  ? "var(--primary)"
+                  : "var(--border-light)",
               }}
               onDragEnter={isFileSectionDisabled ? undefined : handleDragEnter}
               onDragLeave={isFileSectionDisabled ? undefined : handleDragLeave}
               onDragOver={isFileSectionDisabled ? undefined : handleDragOver}
               onDrop={isFileSectionDisabled ? undefined : handleDrop}
               onClick={
-                isFileSectionDisabled ? undefined : () => !file && document.getElementById("fileInput").click()
+                isFileSectionDisabled
+                  ? undefined
+                  : () => !file && document.getElementById("fileInput").click()
               }
             >
               <input

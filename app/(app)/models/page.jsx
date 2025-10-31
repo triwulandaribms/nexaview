@@ -1,10 +1,18 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import {
-  Settings, Info, Bot, Sparkles, Rocket, Zap, Brain, Database,
-  RefreshCw, Check, Lock as LockIcon
+  Settings,
+  Info,
+  Bot,
+  Sparkles,
+  Rocket,
+  Zap,
+  Brain,
+  Database,
+  RefreshCw,
+  Check,
+  Lock as LockIcon,
 } from "lucide-react";
-
 
 import PageHeader from "../../components/PageHeader";
 import ModelConfigModal from "../../components/ModelConfigModal";
@@ -29,7 +37,9 @@ export default function Models() {
   const [toggling, setToggling] = useState({});
   const [phase, setPhase] = useState("save");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showAllModels, setShowAllModels] = useState(false);
 
+  console.log(providers);
 
   const iconMap = {
     bot: Bot,
@@ -37,7 +47,7 @@ export default function Models() {
     rocket: Rocket,
     zap: Zap,
     brain: Brain,
-    database: Database
+    database: Database,
   };
 
   const handleSettingsClick = (provider) => {
@@ -55,7 +65,6 @@ export default function Models() {
     const current = modelStates[key] ?? model.enabled;
     const next = !current;
 
-
     // optimistic
     setModelStates((prev) => ({ ...prev, [key]: next }));
     setToggling((prev) => ({ ...prev, [key]: true }));
@@ -69,16 +78,16 @@ export default function Models() {
       );
       if (res?.error) throw new Error(res.error);
     } catch (e) {
-
       setModelStates((prev) => ({ ...prev, [key]: current }));
-      const errorMessage = e?.message || e?.error || "An unknown error occurred.";
+      const errorMessage =
+        e?.message || e?.error || "An unknown error occurred.";
 
-      setErrorMsg(errorMessage)
+      setErrorMsg(errorMessage);
     } finally {
       setToggling((prev) => ({ ...prev, [key]: false }));
     }
   };
-  
+
   // Skeleton Components
   const ProviderCardSkeleton = () => (
     <div
@@ -140,7 +149,6 @@ export default function Models() {
     </motion.div>
   );
 
-
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -154,11 +162,12 @@ export default function Models() {
         if (!res || res.error) {
           throw new Error(res?.error || "Gagal memuat dataset.");
         }
-        setProviders((res?.data || []).map(p => ({
-          ...p,
-          connected: !!(p.apiKey || p.apiKeyPreview || p.connected),
-        })));
-
+        setProviders(
+          (res?.data || []).map((p) => ({
+            ...p,
+            connected: !!(p.apiKey || p.apiKeyPreview || p.connected),
+          }))
+        );
       } catch (e) {
         if (e.name !== "AbortError") {
           setErrorMsg(e?.message || "Terjadi kesalahan.");
@@ -228,13 +237,19 @@ export default function Models() {
         </div>
         {/* Info Banner */}
 
-        {errorMsg && <Alert variant="error" onDismiss={() => setErrorMsg("")}>{errorMsg}</Alert>}
+        {errorMsg && (
+          <Alert variant="error" onDismiss={() => setErrorMsg("")}>
+            {errorMsg}
+          </Alert>
+        )}
 
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className={`mb-6 p-4 rounded-lg border ${errorMsg ? 'hidden' : 'flex'}`}
+          className={`mb-6 p-4 rounded-lg border ${
+            errorMsg ? "hidden" : "flex"
+          }`}
           style={{
             background: "var(--primary-light)",
             borderColor: "var(--primary)",
@@ -332,14 +347,17 @@ export default function Models() {
                       >
                         <Settings className="h-3.5 w-3.5" />
                       </button>
-
                     ) : (
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => handleSettingsClick(provider)}
                         className="px-3 py-1.5 rounded-lg font-medium cursor-pointer"
-                        style={{ background: "var(--primary)", color: "white", border: "none" }}
+                        style={{
+                          background: "var(--primary)",
+                          color: "white",
+                          border: "none",
+                        }}
                         aria-label={`Add API Key for ${provider.name}`}
                         title="Add API Key"
                       >
@@ -349,7 +367,6 @@ export default function Models() {
                         </div>
                       </motion.button>
                     )}
-
                   </div>
                 </div>
 
@@ -357,60 +374,85 @@ export default function Models() {
                 <div className="p-4">
                   {provider?.models?.length > 0 ? (
                     <div className="space-y-2">
-                      {provider?.models.slice(0, 4).map((model) => (
-                        <div
-                          key={model.id}
-                          className="flex items-center justify-between py-1"
-                        >
-                          <span
-                            className="text-sm truncate flex-1 mr-2"
-                            style={{
-                              color:
-                                provider.connected && model.enabled
-                                  ? "var(--text-primary)"
-                                  : "var(--text-secondary)",
-                            }}
-                            title={model.name}
+                      {provider?.models
+                        .slice(0, showAllModels ? provider?.models?.length : 4)
+                        .map((model) => (
+                          <div
+                            key={model.id}
+                            className="flex items-center justify-between py-1"
                           >
-                            {model.name}
-                          </span>
-                          {(() => {
-                            const key = `${provider.id}-${model.id}`;
-                            const isOn = (modelStates[key] ?? model.enabled) === true;
-                            const busy = !!toggling[key];
+                            <span
+                              className="text-sm truncate flex-1 mr-2"
+                              style={{
+                                color:
+                                  provider.connected && model.enabled
+                                    ? "var(--text-primary)"
+                                    : "var(--text-secondary)",
+                              }}
+                              title={model.name}
+                            >
+                              {model.name}
+                            </span>
+                            {(() => {
+                              const key = `${provider.id}-${model.id}`;
+                              const isOn =
+                                (modelStates[key] ?? model.enabled) === true;
+                              const busy = !!toggling[key];
 
-                            return (
-                              <motion.button
-                                whileHover={{ scale: provider.connected && !busy ? 1.1 : 1 }}
-                                whileTap={{ scale: provider.connected && !busy ? 0.9 : 1 }}
-                                onClick={() => handleToggleModel(provider.id, model)}
-                                disabled={!provider.connected || busy}
-                                aria-label={`Toggle ${model.name}`}
-                                aria-pressed={isOn}
-                                aria-busy={busy}
-                                className={`w-8 h-4 rounded-full transition-colors flex items-center ${isOn ? "bg-green-500" : "bg-gray-300"
-                                  } ${!provider.connected || busy ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                              >
-                                <div
-                                  className={`w-3 h-3 bg-white rounded-full transition-transform ${isOn ? "translate-x-4" : "translate-x-0.5"
+                              return (
+                                <motion.button
+                                  whileHover={{
+                                    scale:
+                                      provider.connected && !busy ? 1.1 : 1,
+                                  }}
+                                  whileTap={{
+                                    scale:
+                                      provider.connected && !busy ? 0.9 : 1,
+                                  }}
+                                  onClick={() =>
+                                    handleToggleModel(provider.id, model)
+                                  }
+                                  disabled={!provider.connected || busy}
+                                  aria-label={`Toggle ${model.name}`}
+                                  aria-pressed={isOn}
+                                  aria-busy={busy}
+                                  className={`w-8 h-4 rounded-full transition-colors flex items-center ${
+                                    isOn ? "bg-green-500" : "bg-gray-300"
+                                  } ${
+                                    !provider.connected || busy
+                                      ? "opacity-50 cursor-not-allowed"
+                                      : "cursor-pointer"
+                                  }`}
+                                >
+                                  <div
+                                    className={`w-3 h-3 bg-white rounded-full transition-transform ${
+                                      isOn ? "translate-x-4" : "translate-x-0.5"
                                     }`}
-                                />
-                              </motion.button>
-                            );
-                          })()}
-
-                        </div>
-                      ))}
-                      {provider?.models?.length > 4 && (
-                        <div className="pt-1">
-                          <span
-                            className="text-xs"
-                            style={{ color: "var(--text-tertiary)" }}
+                                  />
+                                </motion.button>
+                              );
+                            })()}
+                          </div>
+                        ))}
+                      <div className="flex">
+                        {provider?.models?.length > 4 && (
+                          <div
+                            className="pt-1 cursor-pointer flex"
+                            onClick={() => setShowAllModels(!showAllModels)}
                           >
-                            +{provider?.models?.length - 4} more models
-                          </span>
-                        </div>
-                      )}
+                            <span
+                              className="text-sm cursor-pointer"
+                              style={{ color: "var(--primary)" }}
+                            >
+                              {showAllModels
+                                ? "Show Less"
+                                : `+${
+                                    provider?.models?.length - 4
+                                  } more models`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className="py-6 text-center">
@@ -752,7 +794,6 @@ export default function Models() {
                             setIsSavingApiKey(false);
                             setSaveDone(false);
                           }}
-
                           className="flex-1 py-3 px-4 rounded-lg font-medium border transition-colors"
                           style={{
                             borderColor: "var(--border-light)",
@@ -773,19 +814,28 @@ export default function Models() {
                             try {
                               const controller = new AbortController();
                               const res = await mbApi.saveKey(
-                                { providerId: selectedProvider?.id, api_key: editedApiKey, },
+                                {
+                                  providerId: selectedProvider?.id,
+                                  api_key: editedApiKey,
+                                },
                                 { signal: controller.signal }
                               );
                               if (res?.error) throw new Error(res.error);
 
                               // update UI jadi connected + tampil mask
-                              setProviders(prev => prev.map(p =>
-                                p.id === selectedProvider?.id
-                                  ? { ...p, connected: true, apiKeyPreview: editedApiKey }
-                                  : p
-                              ));
+                              setProviders((prev) =>
+                                prev.map((p) =>
+                                  p.id === selectedProvider?.id
+                                    ? {
+                                        ...p,
+                                        connected: true,
+                                        apiKeyPreview: editedApiKey,
+                                      }
+                                    : p
+                                )
+                              );
                               setSaveDone(true);
-                              await new Promise(r => setTimeout(r, 400));
+                              await new Promise((r) => setTimeout(r, 400));
                               setIsApiKeyModalOpen(false);
                               setEditedApiKey("");
                             } catch (e) {
@@ -795,15 +845,27 @@ export default function Models() {
                             }
                           }}
                           className="flex-1 py-3 px-4 rounded-lg font-medium transition-colors disabled:opacity-50"
-                          style={{ background: "var(--primary)", color: "white", border: "none" }}
+                          style={{
+                            background: "var(--primary)",
+                            color: "white",
+                            border: "none",
+                          }}
                         >
                           <div className="flex items-center justify-center gap-2">
-                            {isSavingApiKey ? <RefreshCw className="h-4 w-4 animate-spin" /> : (saveDone ? <Check className="h-4 w-4" /> : null)}
-                            <span>{saveDone ? "Saved" : (isSavingApiKey ? "Saving..." : "Save")}</span>
+                            {isSavingApiKey ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : saveDone ? (
+                              <Check className="h-4 w-4" />
+                            ) : null}
+                            <span>
+                              {saveDone
+                                ? "Saved"
+                                : isSavingApiKey
+                                ? "Saving..."
+                                : "Save"}
+                            </span>
                           </div>
                         </motion.button>
-
-
                       </div>
                     </div>
                   </div>
