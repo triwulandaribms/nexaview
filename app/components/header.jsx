@@ -4,6 +4,7 @@ import FeedbackModal from "./FeedbackModal";
 import UpgradeModal from "./UpgradeModal";
 import Link from "next/link";
 import { Wallet, HelpCircle, PanelLeft, Menu } from "lucide-react";
+import Image from "next/image";
 
 const Header = ({ toggleSidebar }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -24,7 +25,7 @@ const Header = ({ toggleSidebar }) => {
       >
         {/* Logo/Brand */}
         <div className="flex items-center space-x-4 lg:space-x-8">
-          <h1
+          {/* <h1
             className="text-lg sm:text-xl font-bold"
             style={{
               background: "var(--sidebar-active-bg)",
@@ -34,8 +35,13 @@ const Header = ({ toggleSidebar }) => {
             }}
           >
             NextDocs
-          </h1>
-
+          </h1> */}
+          <Image
+            src="/assets/logo.png"
+            alt="Nexa Studio"
+            width={200}
+            height={120}
+          />
           {/* Desktop Navigation */}
           {/* <nav className="hidden lg:flex space-x-6 items-center">
             <div className="flex items-center gap-2">

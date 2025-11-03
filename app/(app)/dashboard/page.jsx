@@ -7,12 +7,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    console.log("token", token);
 
     if (token) {
       try {
         const decodedToken = JSON.parse(atob(token.split(".")[1]));
-        console.log("decodedToken", decodedToken);
         const fullName = decodedToken.name || decodedToken.username || "User";
         setUserName(fullName);
       } catch (error) {

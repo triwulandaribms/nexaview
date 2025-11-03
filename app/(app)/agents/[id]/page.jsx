@@ -22,6 +22,8 @@ import {
   AlertTriangle,
   X,
   Loader2,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
@@ -75,6 +77,7 @@ export default function AgentDetail() {
   const [delLoading, setDelLoading] = useState(false);
   const [download, setDownload] = useState(null);
   const [agentInteraction, setAgentInteraction] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const searchParams = useSearchParams();
   // State untuk menyimpan conversation history untuk PSH dan Nota Pembelaan
   const [conversationHistory, setConversationHistory] = useState([
@@ -122,12 +125,12 @@ export default function AgentDetail() {
           dataSources: dataSourceLabel,
           timestamp: a.created_at
             ? new Date(a.created_at).toLocaleString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
             : "-",
           model: a?.default_model?.id || "-",
           knowledgeBases: Array.isArray(a.knowledgebases)
@@ -139,28 +142,28 @@ export default function AgentDetail() {
           systemPrompt: a.system_prompt || "",
           kbDetails: Array.isArray(a.knowledgebases)
             ? a.knowledgebases.map((k) => ({
-              id: k.id,
-              name: k?.name,
-              description: k.description || "",
-              docs:
-                typeof k.documentCount === "number"
-                  ? k.documentCount
-                  : typeof k.docs === "number"
+                id: k.id,
+                name: k?.name,
+                description: k.description || "",
+                docs:
+                  typeof k.documentCount === "number"
+                    ? k.documentCount
+                    : typeof k.docs === "number"
                     ? k.docs
                     : 0,
-              category: "General",
-            }))
+                category: "General",
+              }))
             : [],
           dbDetails: Array.isArray(a.databases)
             ? a.databases.map((d) => ({
-              id: d.id,
-              label: d.label || `${d.type} DB`,
-              type: d.type,
-              host: d.host,
-              port: d.port,
-              user: d.user,
-              db: d.db,
-            }))
+                id: d.id,
+                label: d.label || `${d.type} DB`,
+                type: d.type,
+                host: d.host,
+                port: d.port,
+                user: d.user,
+                db: d.db,
+              }))
             : [],
         };
 
@@ -193,6 +196,32 @@ export default function AgentDetail() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Handle fullscreen body scroll
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isFullscreen]);
+
+  // Handle ESC key to exit fullscreen
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === "Escape" && isFullscreen) {
+        setIsFullscreen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleEscKey);
+    return () => {
+      document.removeEventListener("keydown", handleEscKey);
+    };
+  }, [isFullscreen]);
 
   // Handle sending messages
   const handleSendMessage = async () => {
@@ -413,18 +442,18 @@ export default function AgentDetail() {
   const filteredSessions =
     timeFilter === "All time"
       ? sessions.filter((session) => {
-        return (session?.session_name || "")
-          .toLowerCase()
-          .includes(searchSessions.toLowerCase());
-      })
-      : filterSessionsByTime(
-        sessions.filter((session) =>
-          (session?.session_name || "")
+          return (session?.session_name || "")
             .toLowerCase()
-            .includes(searchSessions.toLowerCase())
-        ),
-        timeFilter
-      );
+            .includes(searchSessions.toLowerCase());
+        })
+      : filterSessionsByTime(
+          sessions.filter((session) =>
+            (session?.session_name || "")
+              .toLowerCase()
+              .includes(searchSessions.toLowerCase())
+          ),
+          timeFilter
+        );
 
   const knowledgeBaseDetails =
     agent?.dataSources === "Knowledge Bases"
@@ -608,8 +637,9 @@ export default function AgentDetail() {
 
             const formattedTime = `${day}-${month}-${year} ${hours}:${minutes} ${ampm}`;
 
-            return `${session.session_name || ""},${session.message_count || 0
-              },"${formattedTime.toString()}"`;
+            return `${session.session_name || ""},${
+              session.message_count || 0
+            },"${formattedTime.toString()}"`;
           })
         )
         .join("\n");
@@ -664,8 +694,8 @@ export default function AgentDetail() {
   );
 
   const OverviewCardsSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {[1, 2, 3].map((i) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {[1, 2].map((i) => (
         <div
           key={i}
           className="p-5 rounded-lg border"
@@ -808,12 +838,18 @@ export default function AgentDetail() {
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => router.back()}
+          onClick={() => {
+            if (agentInteraction) {
+              router.push("/interact");
+            } else {
+              router.back();
+            }
+          }}
           className="flex items-center gap-2 mb-6 text-sm font-medium cursor-pointer"
           style={{ color: "var(--text-secondary)" }}
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Agents
+          {agentInteraction ? "Back to Interact" : "Back to Agents"}
         </motion.button>
 
         {/* Agent Header Card */}
@@ -950,7 +986,7 @@ export default function AgentDetail() {
               >
                 Agent Overview
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Knowledge Bases Card */}
                 <motion.div
                   whileHover={{ scale: 1.02 }}
@@ -1009,7 +1045,7 @@ export default function AgentDetail() {
                 </motion.div>
 
                 {/* AI Model Card */}
-                <motion.div
+                {/* <motion.div
                   whileHover={{ scale: 1.02 }}
                   className="p-5 rounded-lg border cursor-pointer"
                   style={{
@@ -1035,7 +1071,7 @@ export default function AgentDetail() {
                   <p className="text-xl font-bold text-white">
                     {agent?.model || "-"}
                   </p>
-                </motion.div>
+                </motion.div> */}
               </div>
             </motion.div>
 
@@ -1050,8 +1086,10 @@ export default function AgentDetail() {
                   className="text-xl font-semibold"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  {agent?.dataSources === "Knowledge Bases" && "Knowledge Base Details"}
-                  {agent?.dataSources === "Database Connections" && "Database Connections"}
+                  {agent?.dataSources === "Knowledge Bases" &&
+                    "Knowledge Base Details"}
+                  {agent?.dataSources === "Database Connections" &&
+                    "Database Connections"}
                   {agent?.dataSources === "API Features" && "API Features"}
                   {agent?.dataSources === "-" && "Data Source"}
                 </h2>
@@ -1060,9 +1098,13 @@ export default function AgentDetail() {
               <div className="space-y-4">
                 {agent?.dataSources === "Knowledge Bases" && (
                   <>
-                    {Array.isArray(agent?.kbDetails) && agent.kbDetails.length > 0 ? (
+                    {Array.isArray(agent?.kbDetails) &&
+                    agent.kbDetails.length > 0 ? (
                       agent.kbDetails.map((kb, index) => (
-                        <div className="flex flex-col gap-2" key={kb.id || index}>
+                        <div
+                          className="flex flex-col gap-2"
+                          key={kb.id || index}
+                        >
                           {kb?.id && (
                             <motion.button
                               className="text-sm font-medium cursor-pointer hover:underline text-end"
@@ -1165,9 +1207,13 @@ export default function AgentDetail() {
 
                 {agent?.dataSources === "Database Connections" && (
                   <>
-                    {Array.isArray(agent?.dbDetails) && agent.dbDetails.length > 0 ? (
+                    {Array.isArray(agent?.dbDetails) &&
+                    agent.dbDetails.length > 0 ? (
                       agent.dbDetails.map((db, index) => (
-                        <div className="flex flex-col gap-2" key={db.id || index}>
+                        <div
+                          className="flex flex-col gap-2"
+                          key={db.id || index}
+                        >
                           {db?.id && (
                             <motion.button
                               className="text-sm font-medium cursor-pointer hover:underline text-end"
@@ -1421,65 +1467,226 @@ export default function AgentDetail() {
 
         {/* Chat Tab */}
         {activeTab === "Chat" && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="rounded-xl border overflow-hidden"
-            style={{
-              background: "var(--surface-elevated)",
-              borderColor: "var(--border-light)",
-            }}
-          >
-            {/* Chat Header */}
-            <div
-              className="p-4 border-b"
-              style={{ borderColor: "var(--border-light)" }}
+          <>
+            {/* Fullscreen Backdrop */}
+            <AnimatePresence>
+              {isFullscreen && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed bg-black/50 backdrop-blur-sm z-50 top-0 left-0 w-full h-screen"
+                  onClick={() => setIsFullscreen(false)}
+                />
+              )}
+            </AnimatePresence>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: 1,
+                scale: isFullscreen ? [0.98, 1] : 1,
+              }}
+              transition={{
+                duration: isFullscreen ? 0.3 : 0.5,
+                type: isFullscreen ? "spring" : "tween",
+                stiffness: 300,
+                damping: 30,
+              }}
+              className={`rounded-xl border overflow-hidden ${
+                isFullscreen ? "fixed inset-4 z-50 shadow-2xl" : ""
+              }`}
+              style={{
+                background: "var(--surface-elevated)",
+                borderColor: "var(--border-light)",
+              }}
             >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center"
-                  style={{ background: "var(--primary)" }}
-                >
-                  <Bot className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h3
-                    className="font-semibold"
-                    style={{ color: "var(--text-primary)" }}
+              {/* Chat Header */}
+              <div
+                className="p-4 border-b"
+                style={{ borderColor: "var(--border-light)" }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center"
+                      style={{ background: "var(--primary)" }}
+                    >
+                      <Bot className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h3
+                        className="font-semibold"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        {agent?.name}
+                      </h3>
+                    </div>
+                  </div>
+                  {/* Fullscreen Toggle Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    className="p-2 rounded-lg border cursor-pointer transition-all flex gap-4 text-[12px]"
+                    style={{
+                      background: isFullscreen
+                        ? "var(--primary)"
+                        : "var(--surface-secondary)",
+                      borderColor: isFullscreen
+                        ? "var(--primary)"
+                        : "var(--border-light)",
+                      color: isFullscreen ? "white" : "var(--text-secondary)",
+                    }}
+                    title={
+                      isFullscreen
+                        ? "Exit Fullscreen (ESC)"
+                        : "Enter Fullscreen"
+                    }
                   >
-                    {agent?.name}
-                  </h3>
-                  <p
-                    className="text-sm"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    AI Assistant
-                  </p>
+                    {isFullscreen ? (
+                      <>
+                        <Minimize2 className="h-4 w-4" /> Exit Fullscreen
+                      </>
+                    ) : (
+                      <>
+                        <Maximize2 className="h-4 w-4" /> Enter Fullscreen
+                      </>
+                    )}
+                  </motion.button>
                 </div>
               </div>
-            </div>
 
-            {/* Messages Area */}
-            <div
-              className={`${
-                agentInteraction ? "h-[59vh]" : "h-92"
-              } overflow-y-auto p-4 space-y-4`}
-            >
-              {messages.map((message) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className={`flex ${message?.role === "user" ? "justify-end" : "justify-start"
+              {/* Messages Area */}
+              <div
+                className={`${
+                  isFullscreen
+                    ? "h-[calc(100vh-16rem)]"
+                    : agentInteraction
+                    ? "h-[59vh]"
+                    : "h-92"
+                } overflow-y-auto p-4 space-y-4`}
+              >
+                {messages.map((message) => (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className={`flex ${
+                      message?.role === "user" ? "justify-end" : "justify-start"
                     }`}
-                >
-                  <div
-                    className={`max-w-[70%] ${message?.role === "user" ? "order-2" : "order-1"
-                      }`}
                   >
-                    {message?.role !== "user" && (
+                    <div
+                      className={`max-w-[70%] ${
+                        message?.role === "user" ? "order-2" : "order-1"
+                      }`}
+                    >
+                      {message?.role !== "user" && (
+                        <div className="flex items-center gap-2 mb-1">
+                          <div
+                            className="w-6 h-6 rounded-full flex items-center justify-center"
+                            style={{ background: "var(--primary)" }}
+                          >
+                            <Bot className="h-4 w-4 text-white" />
+                          </div>
+                          <span
+                            className="text-xs font-medium"
+                            style={{ color: "var(--text-secondary)" }}
+                          >
+                            {agent?.name}
+                          </span>
+                        </div>
+                      )}
+                      <div
+                        className={`p-3 rounded-lg ${
+                          message?.role === "user"
+                            ? "rounded-br-sm"
+                            : "rounded-bl-sm"
+                        }`}
+                        style={{
+                          background:
+                            message?.role === "user"
+                              ? "var(--primary)"
+                              : message?.role === "system"
+                              ? "var(--surface-secondary)"
+                              : "var(--surface-secondary)",
+                          color:
+                            message?.role === "user"
+                              ? "var(--text-inverse)"
+                              : "var(--text-primary)",
+                        }}
+                      >
+                        <p
+                          className={`text-sm whitespace-pre-wrap ${
+                            message?.role === "user"
+                              ? "text-white/80"
+                              : "text-black/80"
+                          }`}
+                        >
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeHighlight]}
+                          >
+                            {message.content}
+                          </ReactMarkdown>
+                        </p>
+                        <div className="flex items-center justify-between mt-2">
+                          <span
+                            className={`text-xs ${
+                              message?.role === "user" ? "text-white/70" : ""
+                            }`}
+                            style={{
+                              color:
+                                message?.role === "user"
+                                  ? "rgba(255, 255, 255, 0.7)"
+                                  : "var(--text-tertiary)",
+                            }}
+                          >
+                            {message.timestamp}
+                          </span>
+                          {message?.role !== "system" && (
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                              onClick={() =>
+                                navigator.clipboard.writeText(message.content)
+                              }
+                              className={`ml-2 p-1 rounded ${
+                                message?.role === "user"
+                                  ? "hover:bg-white/20"
+                                  : "hover:bg-gray-100"
+                              }`}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </motion.button>
+                          )}
+                        </div>
+                        {download && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <Link
+                              className="text-sm font-medium cursor-pointer hover:underline"
+                              target="_blank"
+                              style={{ color: "var(--primary)" }}
+                              href={download}
+                            >
+                              Download
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+
+                {/* Loading indicator */}
+                {isSending && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex justify-start"
+                  >
+                    <div className="max-w-[70%]">
                       <div className="flex items-center gap-2 mb-1">
                         <div
                           className="w-6 h-6 rounded-full flex items-center justify-center"
@@ -1494,178 +1701,78 @@ export default function AgentDetail() {
                           {agent?.name}
                         </span>
                       </div>
-                    )}
-                    <div
-                      className={`p-3 rounded-lg ${message?.role === "user"
-                        ? "rounded-br-sm"
-                        : "rounded-bl-sm"
-                        }`}
-                      style={{
-                        background:
-                          message?.role === "user"
-                            ? "var(--primary)"
-                            : message?.role === "system"
-                              ? "var(--surface-secondary)"
-                              : "var(--surface-secondary)",
-                        color:
-                          message?.role === "user"
-                            ? "var(--text-inverse)"
-                            : "var(--text-primary)",
-                      }}
-                    >
-                      <p
-                        className={`text-sm whitespace-pre-wrap ${message?.role === "user"
-                          ? "text-white/80"
-                          : "text-black/80"
-                          }`}
-                      >
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          rehypePlugins={[rehypeHighlight]}
-                        >
-                          {message.content}
-                        </ReactMarkdown>
-                      </p>
-                      <div className="flex items-center justify-between mt-2">
-                        <span
-                          className={`text-xs ${message?.role === "user" ? "text-white/70" : ""
-                            }`}
-                          style={{
-                            color:
-                              message?.role === "user"
-                                ? "rgba(255, 255, 255, 0.7)"
-                                : "var(--text-tertiary)",
-                          }}
-                        >
-                          {message.timestamp}
-                        </span>
-                        {message?.role !== "system" && (
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            onClick={() =>
-                              navigator.clipboard.writeText(message.content)
-                            }
-                            className={`ml-2 p-1 rounded ${message?.role === "user"
-                              ? "hover:bg-white/20"
-                              : "hover:bg-gray-100"
-                              }`}
-                          >
-                            <Copy className="h-3 w-3" />
-                          </motion.button>
-                        )}
-                      </div>
-                      {download && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <Link
-                            className="text-sm font-medium cursor-pointer hover:underline"
-                            target="_blank"
-                            style={{ color: "var(--primary)" }}
-                            href={download}
-                          >
-                            Download
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-
-              {/* Loading indicator */}
-              {isSending && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex justify-start"
-                >
-                  <div className="max-w-[70%]">
-                    <div className="flex items-center gap-2 mb-1">
                       <div
-                        className="w-6 h-6 rounded-full flex items-center justify-center"
-                        style={{ background: "var(--primary)" }}
+                        className="p-3 rounded-lg rounded-bl-sm"
+                        style={{
+                          background: "var(--surface-secondary)",
+                          color: "var(--text-primary)",
+                        }}
                       >
-                        <Bot className="h-4 w-4 text-white" />
-                      </div>
-                      <span
-                        className="text-xs font-medium"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        {agent?.name}
-                      </span>
-                    </div>
-                    <div
-                      className="p-3 rounded-lg rounded-bl-sm"
-                      style={{
-                        background: "var(--surface-secondary)",
-                        color: "var(--text-primary)",
-                      }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        <span className="text-sm">Thinking...</span>
+                        <div className="flex items-center gap-2">
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          <span className="text-sm">Thinking...</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              )}
+                  </motion.div>
+                )}
 
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <div
-              className="p-4 border-t"
-              style={{ borderColor: "var(--border-light)" }}
-            >
-              <div className="flex gap-3 items-center">
-                <div className="flex-1">
-                  <textarea
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Type your message..."
-                    rows={1}
-                    className="w-full resize-none rounded-lg border px-3 py-2 h-[75px] text-sm focus:outline-none focus:ring-2"
-                    style={{
-                      background: "var(--background)",
-                      borderColor: "var(--border-light)",
-                      color: "var(--text-primary)",
-                      "--tw-ring-color": "var(--primary)",
-                    }}
-                    disabled={isSending}
-                  />
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleSendMessage}
-                  disabled={!inputMessage.trim() || isSending}
-                  className="size-10 rounded-lg border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                  style={{
-                    background:
-                      inputMessage.trim() && !isSending
-                        ? "var(--primary)"
-                        : "var(--surface-secondary)",
-                    borderColor: "var(--border-light)",
-                    color:
-                      inputMessage.trim() && !isSending
-                        ? "var(--text-inverse)"
-                        : "var(--text-secondary)",
-                  }}
-                >
-                  <Send className="h-4 w-4" />
-                </motion.button>
+                <div ref={messagesEndRef} />
               </div>
-              <p
-                className="text-xs mt-2"
-                style={{ color: "var(--text-tertiary)" }}
-              >
-                Press Enter to send, Shift+Enter for new line
-              </p>
 
-              {/* Quick Suggestions */}
-              {/* {(messages.length === 1 || messages.length === 0) && (
+              {/* Input Area */}
+              <div
+                className="p-4 border-t"
+                style={{ borderColor: "var(--border-light)" }}
+              >
+                <div className="flex gap-3 items-center">
+                  <div className="flex-1">
+                    <textarea
+                      value={inputMessage}
+                      onChange={(e) => setInputMessage(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Type your message..."
+                      rows={1}
+                      className="w-full resize-none rounded-lg border px-3 py-2 h-[75px] text-sm focus:outline-none focus:ring-2"
+                      style={{
+                        background: "var(--background)",
+                        borderColor: "var(--border-light)",
+                        color: "var(--text-primary)",
+                        "--tw-ring-color": "var(--primary)",
+                      }}
+                      disabled={isSending}
+                    />
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleSendMessage}
+                    disabled={!inputMessage.trim() || isSending}
+                    className="size-10 rounded-lg border cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    style={{
+                      background:
+                        inputMessage.trim() && !isSending
+                          ? "var(--primary)"
+                          : "var(--surface-secondary)",
+                      borderColor: "var(--border-light)",
+                      color:
+                        inputMessage.trim() && !isSending
+                          ? "var(--text-inverse)"
+                          : "var(--text-secondary)",
+                    }}
+                  >
+                    <Send className="h-4 w-4" />
+                  </motion.button>
+                </div>
+                <p
+                  className="text-xs mt-2"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  Press Enter to send, Shift+Enter for new line
+                </p>
+
+                {/* Quick Suggestions */}
+                {/* {(messages.length === 1 || messages.length === 0) && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1732,8 +1839,9 @@ export default function AgentDetail() {
                   </div>
                 </motion.div>
               )} */}
-            </div>
-          </motion.div>
+              </div>
+            </motion.div>
+          </>
         )}
 
         {activeTab === "Sessions" && (

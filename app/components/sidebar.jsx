@@ -33,6 +33,20 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
   const pathname = usePathname();
   const router = useRouter();
 
+  // Check if coming from interact page
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      const fromInteract = searchParams.get("fromInteract");
+
+      if (fromInteract === "true" && pathname.startsWith("/agents/")) {
+        setActiveItem("/interact");
+      } else if (pathname !== activeItem) {
+        setActiveItem("/" + pathname.split("/")[1]);
+      }
+    }
+  }, [pathname]);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -70,12 +84,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
 
     if (isMobile) setIsOpen(false);
   };
-
-  useEffect(() => {
-    if (pathname !== activeItem) {
-      setActiveItem("/" + pathname.split("/")[1]);
-    }
-  }, [pathname]);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -239,7 +247,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
                 className="font-semibold text-xs sm:text-sm truncate"
                 style={{ color: "var(--sidebar-text-hover)" }}
               >
-                Divkum
+                {user?.name || "User"}
               </p>
             </div>
           </div>
