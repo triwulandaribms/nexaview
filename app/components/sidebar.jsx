@@ -111,6 +111,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     // { icon: Wrench, label: "Tools", href: "/tools" },
     { icon: MessageCircle, label: "Interact", href: "/interact" },
     { icon: Bot, label: "Agents", href: "/agents" },
+    { icon: Bot, label: "Voice Agents", href: "/voice-agents" },
     // { icon: GitBranch, label: "AI chain", href: "/ai-chain" },
   ];
 
