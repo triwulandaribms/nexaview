@@ -14,6 +14,7 @@ import LanguageSelectionModal, {
   getLanguageByCode,
 } from "./LanguageSelectionModal";
 import LLMConfigModal from "./LLMConfigModal";
+import Link from "next/link";
 
 const EditVoiceAgent = ({ params }) => {
   const { id } = use(params);
@@ -46,8 +47,6 @@ const EditVoiceAgent = ({ params }) => {
   const [secretKey, setSecretKey] = useState(null);
   const [modelId, setModelId] = useState(null);
   const [serverUrl, setServerUrl] = useState(null);
-
-  console.log(agent);
 
   useEffect(() => {
     const fetchAgent = async () => {
@@ -199,10 +198,9 @@ const EditVoiceAgent = ({ params }) => {
       modelId: modelId,
       serverUrl: serverUrl,
     };
-
     const hasChanged =
       JSON.stringify(initialState) !== JSON.stringify(currentState);
-    setHasChanges(hasChanged);
+    setHasChanges(selectedVoice && hasChanged);
   }, [
     agentName,
     firstMessage,
@@ -404,28 +402,24 @@ const EditVoiceAgent = ({ params }) => {
       <div className="relative">
         <div className="flex items-center justify-between p-4 md:p-6 border-b border-(--border-light)">
           <div className="flex items-center gap-4 ">
-            <button className="cursor-pointer" onClick={() => router.back()}>
+            <Link href="/voice-agents" className="cursor-pointer">
               <ArrowLeft className="size-6 text-(--text-secondary)" />
-            </button>
+            </Link>
             <h1
               className="text-2xl font-semibold max-sm:text-xl"
               style={{ color: "var(--text-primary)" }}
             >
-              Edit Agent
+              Detail Agent
             </h1>
           </div>
 
-          <div className="flex items-center gap-2 max-lg:fixed left-0 bottom-0 max-lg:w-full z-10 bg-(--background) max-lg:justify-end max-lg:p-4">
-            <button
-              onClick={() => router.push("/voice-agents")}
-              disabled={isSaving || loading}
-              className="px-4 py-2 border border-(--error) text-(--error) rounded-md font-medium hover:opacity-80 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center cursor-pointer"
-            >
-              Cancel
-            </button>
+          <div
+            className={` items-center gap-2 max-lg:fixed left-0 bottom-0 max-lg:w-full z-10 hidden bg-(--background) max-lg:justify-end max-lg:p-4 ${
+              hasChanges ? "!flex" : "hidden"
+            }`}
+          >
             <button
               onClick={() => handleSaveChanges()}
-              disabled={isSaving || loading || !hasChanges}
               className="px-4 py-2 rounded-md font-medium hover:opacity-80 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 justify-center cursor-pointer"
               style={{
                 background: "var(--primary)",
