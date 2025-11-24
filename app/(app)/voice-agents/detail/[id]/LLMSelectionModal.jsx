@@ -155,7 +155,7 @@ const LLMSelectionModal = ({
             </div>
 
             {/* LLM List */}
-            <div className="px-4 pb-6 space-y-6">
+            <div className="px-4 pb-6">
               {Object.entries(grouped)
                 .sort(
                   (a, b) =>
@@ -163,10 +163,6 @@ const LLMSelectionModal = ({
                 )
                 .map(([category, items]) => (
                   <div key={category}>
-                    <h2 className="text-base mb-2 text-(--text-secondary)">
-                      {category}
-                    </h2>
-
                     <div className="flex flex-col">
                       {items.map((item, index) => (
                         <div
@@ -176,18 +172,12 @@ const LLMSelectionModal = ({
                         >
                           <div className="flex items-center gap-2 justify-between">
                             <div className="flex items-center gap-2">
-                              <ChevronRight className="size-4" />
                               <span className="text-base font-medium text-(--text-primary)">
                                 {category === "Custom"
                                   ? "Custom LLM"
                                   : item.llm}
                               </span>
                             </div>
-                            {category !== "Custom" && (
-                              <span className="text-[12px] text-(--text-secondary)">
-                                ~${formatPrice(item.price_per_minute)}
-                              </span>
-                            )}
                           </div>
                         </div>
                       ))}

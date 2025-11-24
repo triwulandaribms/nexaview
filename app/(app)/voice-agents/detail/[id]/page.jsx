@@ -409,7 +409,7 @@ const EditVoiceAgent = ({ params }) => {
               className="text-2xl font-semibold max-sm:text-xl"
               style={{ color: "var(--text-primary)" }}
             >
-              Detail Agent
+              Agent details
             </h1>
           </div>
 
@@ -426,7 +426,7 @@ const EditVoiceAgent = ({ params }) => {
                 color: "var(--text-inverse)",
               }}
             >
-              {isSaving ? "Saving..." : "Save Changes"}
+              {isSaving ? "Saving..." : "Save"}
             </button>
           </div>
         </div>

@@ -83,3 +83,46 @@ export async function PATCH(req, { params }) {
     );
   }
 }
+
+export async function DELETE(req, { params }) {
+  const { id } = await params;
+
+  if (!id || id === "undefined") {
+    console.error("Invalid agent ID:", id);
+    return new Response(
+      JSON.stringify({ error: "Invalid or missing agent ID" }),
+      {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  try {
+    const resp = await axios.delete(`${BASE_URL}/agents/${id}`, {
+      headers: {
+        "xi-api-key": process.env.ELEVENLABS_API_KEY,
+      },
+    });
+
+    return new Response(
+      JSON.stringify({ success: true, message: "Agent deleted successfully" }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (err) {
+    console.error("DELETE agent error:", err.response?.data || err.message);
+    return new Response(
+      JSON.stringify({
+        error: "Failed to delete agent",
+        details: err.response?.data || err.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+}
